@@ -1,0 +1,12 @@
+# Created by .ignore support plugin (hsz.mobi)
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+.wrangler/
+*.local
+coverage/
+test-results/
+.idea/
+.vscode/
+*.iml
