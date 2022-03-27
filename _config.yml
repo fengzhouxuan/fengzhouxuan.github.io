@@ -22,7 +22,7 @@ plugins: [jekyll-paginate]
 #分页 2.0
 gems: [jekyll-paginate]
 paginate: 5
-paginate_path: "page:num"
+# paginate_path: "page:num"
 
 
 # SNS settings
