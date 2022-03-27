@@ -1,11 +1,11 @@
 
 # Site settings
-title: 打个大西瓜 Blog
+title: 打个大西瓜
 SEOTitle: 打个大西瓜 | BLOG
 header-img: img/post-bg-desk.jpg
 email: fengzhouxuan@qq.com
-description: "Every failure is leading towards success."
-keyword: "BY, 打个大西瓜 Blog"
+description: "醉后不知天在水，满船清梦压星河"
+keyword: "打个大西瓜 Blog"
 url: "https://fengzhouxuan.github.io/"          # your host, for absolute URL
 baseurl: ""
 #baseurl: "/bom" # the subpath of your site, e.g. /blog      # for example, '/blog' if your blog hosted on 'host/blog'
@@ -17,6 +17,7 @@ sidebar-about-description: "Goals determine what you going to be!"
 sidebar-avatar: /img/longmao.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 #Page
+#分页显示 jekyll 3.0中必须生命次插件
 plugins: [jekyll-paginate]
 paginate: 5
 paginate_path: "page:num"
@@ -39,13 +40,6 @@ RSS: false
 permalink: pretty
 exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
-
-
-
-# Gems
-# from PR#40, to support local preview for Jekyll 3.0
-gems: [jekyll-paginate]
-
 
 
 
