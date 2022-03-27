@@ -1,4 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
+/_site
+/.jekyll-cache
 .env
 .env.*
 .dev.vars
