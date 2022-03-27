@@ -8,12 +8,12 @@ keyword: "BY, 打个大西瓜 Blog"
 url: "https://fengzhouxuan.github.io/"          # your host, for absolute URL
 baseurl: ""
 #baseurl: "/bom" # the subpath of your site, e.g. /blog      # for example, '/blog' if your blog hosted on 'host/blog'
-github_repo: "https://gitee.com/ckjcode/ckjcode" # you code repository
+github_repo: "https://github.com/fengzhouxuan/fengzhouxuan.github.io" # you code repository
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "Goals determine what you going to be!"
-sidebar-avatar: /avatar-g.png      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /img/longmao.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
