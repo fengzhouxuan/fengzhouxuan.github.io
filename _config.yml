@@ -19,6 +19,8 @@ sidebar-avatar: /img/longmao.jpg      # use absolute URL, seeing it's used in bo
 #Page
 #分页显示 jekyll 3.0中必须生命次插件
 plugins: [jekyll-paginate]
+#分页 2.0
+gems: [jekyll-paginate]
 paginate: 5
 paginate_path: "page:num"
 
