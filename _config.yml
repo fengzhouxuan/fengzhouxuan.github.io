@@ -1,11 +1,11 @@
 # Site settings
-title: 记得要让着本宝宝 Blog
-SEOTitle: 记得要让着本宝宝 | BLOG
+title: 打个大西瓜 Blog
+SEOTitle: 打个大西瓜 | BLOG
 header-img: img/post-bg-desk.jpg
-email: ischeng.kejun@gmail.com
+email: fengzhouxuan@qq.com
 description: "Every failure is leading towards success."
-keyword: "BY, 记得要让着本宝宝 Blog, 记得要让着本宝宝的博客"
-url: "http://ckjcode.gitee.io"          # your host, for absolute URL
+keyword: "BY, 打个大西瓜 Blog"
+url: "https://fengzhouxuan.github.io/"          # your host, for absolute URL
 baseurl: ""
 #baseurl: "/bom" # the subpath of your site, e.g. /blog      # for example, '/blog' if your blog hosted on 'host/blog'
 github_repo: "https://gitee.com/ckjcode/ckjcode" # you code repository
@@ -13,7 +13,7 @@ github_repo: "https://gitee.com/ckjcode/ckjcode" # you code repository
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "Goals determine what you going to be!"
-sidebar-avatar: /img/WX20190805-183950@2x.png      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /avatar-g.png      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
@@ -63,12 +63,12 @@ kramdown:
 # Gitalk
 gitalk:
   enable: true    #是否开启Gitalk评论
-  clientID: 3bea69473b3a33474b94                            #生成的clientID
-  clientSecret: 0bc2fff2064a2e3d6fa0068641c0e31eedee6fd8    #生成的clientSecret
-  repo: ChengKeJ.github.io    #仓库名称
-  owner: ChengKeJ    #github用户名
-  admin: ChengKeJ
-  distractionFreeMode: true #是否启用类似FB的阴影遮罩
+  clientID: 6e0e0132e43fc499efc7                            #生成的clientID
+  clientSecret: 1ab3c044680aa975253bd1d4ab9c9f2ae299c343    #生成的clientSecret
+  repo: fengzhouxuan.github.io    #仓库名称
+  owner: fengzhouxuan    #github用户名
+  admin: fengzhouxuan
+  distractionFreeMode: false #是否启用类似FB的阴影遮罩
 
 
 # 统计
