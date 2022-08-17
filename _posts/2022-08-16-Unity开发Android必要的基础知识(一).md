@@ -11,7 +11,7 @@ tags:
 ---
 
 # Android四大组件之Activity
-[官方文档](https://developer.android.com/docs)
+**[官方文档](https://developer.android.com/docs)**
 > 四大组件是构成Android应用的基本组件
 - Activity
 - Service
@@ -72,24 +72,8 @@ Intent 过滤器是 Android 平台的一项非常强大的功能。借助这项�
     startActivity(sendIntent);
 ```
 ## 生命周期
-```flow
-st=>start: onCreate
-opStart=>operation: onStart
-opResume=>operation: onResume
-paraPause=>parallel: onPause
-opStop=>parallel: onStop
-opRestart=>operation: onRestart
-opDestroy=>operation: onDestroy
+![来自官网](/img/android-img/activity_lifecycle.png)
 
-st->opStart
-opStart->opResume
-opResume->paraPause
-paraPause(path1,bottom)->opStop
-paraPause(path2,right)->opResume
-opStop(path1,right)->opRestart
-opRestart->opStart
-opStop(path2,bottom)->opDestroy
-```
 一个 Activity 在其生命周期中会经历多种状态。您可以使用一系列回调来处理状态之间的转换。下面几节将介绍这些回调。
 
 onCreate()
