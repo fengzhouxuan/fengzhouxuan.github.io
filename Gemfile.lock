@@ -2,10 +2,11 @@ GEM
   remote: https://rubygems.org/
   specs:
     ffi (1.15.5)
+    ffi (1.15.5-x64-mingw-ucrt)
     jekyll-paginate (1.1.0)
     jekyll-watch (2.2.1)
       listen (~> 3.0)
-    kramdown (2.3.2)
+    kramdown (2.4.0)
       rexml
     kramdown-parser-gfm (1.1.0)
       kramdown (~> 2.0)
@@ -20,6 +21,7 @@ GEM
 
 PLATFORMS
   universal-darwin-20
+  x64-mingw-ucrt
 
 DEPENDENCIES
   jekyll-paginate
@@ -28,4 +30,4 @@ DEPENDENCIES
   webrick
 
 BUNDLED WITH
-   2.3.10
+   2.3.20
