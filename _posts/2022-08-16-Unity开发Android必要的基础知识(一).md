@@ -11,7 +11,7 @@ tags:
 ---
 
 # Android四大组件之Activity
-**[官方文档](https://developer.android.com/docs)**
+:pushpin: **[官方文档](https://developer.android.com/docs)**
 > 四大组件是构成Android应用的基本组件
 - Activity
 - Service
