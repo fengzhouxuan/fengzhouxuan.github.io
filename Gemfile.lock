@@ -21,7 +21,7 @@ GEM
 
 PLATFORMS
   universal-darwin-20
-  x64-mingw-ucrt
+  x64-unknown
 
 DEPENDENCIES
   jekyll-paginate
@@ -30,4 +30,4 @@ DEPENDENCIES
   webrick
 
 BUNDLED WITH
-   2.3.20
+   2.3.10
