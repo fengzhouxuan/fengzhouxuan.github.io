@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      Unity开发Android必要的基础知识（二）
-subtitle:   AndroidManifest清单文件
+subtitle:   AndroidManifest清单文件(一)
 date:       2022-08-17 16:40:22+0800
 author:     打个大西瓜
 header-img: img/post-bg-hacker.jpg
@@ -9,7 +9,7 @@ catalog: true
 tags:
     - Android
 ---
-# AndroidManifest清单文件
+# AndroidManifest清单文件（一）
 **[官方文档](https://developer.android.com/guide/topics/manifest/manifest-intro)**
 ## 概念
 
@@ -200,3 +200,41 @@ tags:
 启动模式，有机会另起一篇，对于Unity导出，没特殊情况，使用默认的 ``` singleTask ``` 即可
 
 还有很多属性，详情可参考 [官方文档](https://developer.android.com/guide/topics/manifest/activity-element)
+
+### intent-filter 标签
+
+必须包含 ```<action>```
+
+可包含 ```<category> <data>``` 
+
+一般包含于四大组件的标签中，指定 Activity、服务或广播接收器可以响应的 intent 类型。Intent 过滤器声明其父组件的功能 - Activity 或服务可执行哪些操作，以及接收器可处理哪些类型的广播。它让组件可以接收所通告类型的 Intent，同时过滤掉对组件没有意义的 Intent。
+
+过滤器的大部分内容由它的 ```<action>、<category>``` 和 ```<data>``` 子元素进行描述。
+
+简单的开发只需要了解 ```<action android:name="android.intent.action.MAIN" />``` 和 ```<category android:name="android.intent.category.LAUNCHER" />```
+
+ ```<action android:name="android.intent.action.MAIN" />``` 指定了程序的启动Activity,
+
+ ```<category android:name="android.intent.category.LAUNCHER" />``` 决定了是否会在程序列表里面显示，也就是会不会出现在手机桌面上，声明了这个属性就会在桌面上出现图标，多个Activity的 ``` <intent-filter>``` 声明了这个 ```category``` 就会在桌面显示多个图标
+
+###  meta-data标签   
+
+
+```xml
+ <meta-data 
+    android:name="mymeta-Data"           
+    android:resource="resource specification"           
+    android:value="string" />
+```
+
+ 元数据标签，可以包含于任意组件标签且可以有任意数量
+
+ 主要作用就是存储信息，整个应用都可以访问，有点类似配置表,最常见是就是在接入第三方sdk时会要求加入 ```meta-data``` 标签记录 ```APPKEY```
+
+ 那怎么读取呢 
+
+ ```java
+ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
+Bundle bundle = ai.metaData;
+String myApiKey = bundle.getString("mymeta-Data");
+```
