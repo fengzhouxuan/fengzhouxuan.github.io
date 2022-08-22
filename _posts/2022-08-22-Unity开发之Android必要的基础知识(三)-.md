@@ -20,7 +20,7 @@ Gradle是一款基于Apache的Ant和Maven概念的项目自动化开源构建工
 
 Unity导出为Gradle工程时，Unity会创建拥有两个模块的Gradle工程
 
-**launcher模块**
+**launcher**
 作为启动unityLibrary模块的简单android应用，这个模块可以用别的android应用替换
 
 **unityLibrary**
