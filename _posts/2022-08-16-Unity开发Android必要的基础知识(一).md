@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      Unity开发Android必要的基础知识（一）
+title:      Unity开发之Android必要的基础知识（一）
 subtitle:   Android四大组件之Activity
 date:       2022-08-16 21:49:22+0800
 author:     打个大西瓜

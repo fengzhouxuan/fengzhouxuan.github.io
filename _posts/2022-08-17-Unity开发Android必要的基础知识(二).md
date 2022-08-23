@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      Unity开发Android必要的基础知识（二）
+title:      Unity开发之Android必要的基础知识（二）
 subtitle:   AndroidManifest清单文件(一)
 date:       2022-08-17 16:40:22+0800
 author:     打个大西瓜
@@ -9,11 +9,11 @@ catalog: true
 tags:
     - Android
 ---
-# AndroidManifest清单文件（一）
+# AndroidManifest清单文件（一） 
 **[官方文档](https://developer.android.com/guide/topics/manifest/manifest-intro)**
 ## 概念
 
-清单文件用于向 Android 构建工具、Android 操作系统和 Google Play 描述应用的基本信息
+ 清单文件用于向 Android 构建工具、Android 操作系统和 Google Play 描述应用的基本信息
 
 **划重点，清单文件需声明以下内容：**
 
