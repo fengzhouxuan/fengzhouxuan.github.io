@@ -20,10 +20,10 @@ Gradle是一款基于Apache的Ant和Maven概念的项目自动化开源构建工
 
 Unity导出为Gradle工程时，Unity会创建拥有两个模块的Gradle工程
 
-**launcher**
+**❗️launcher**
 作为启动unityLibrary模块的简单android应用，这个模块可以用别的android应用替换
 
-**unityLibrary**
+**❗️unityLibrary**
 unityLibrary包含了unity运行时以及资源和数据，这个模块作为一个库可以整合到任何一个Gradle项目中，
 
 也就是说，Unity在导出到android后，自动为我们创建了一个简单的android工程，以及一个启动模块，和一个包含所有unity相关运行时、资源、数据的库模块，启动模块负责依赖库模块，并且启动它
