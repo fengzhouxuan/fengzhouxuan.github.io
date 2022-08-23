@@ -60,7 +60,7 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 29
-        applicationId 'com.dudu.hole.hoard.eating'
+        applicationId 'xxx.xxx.xxx'
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
@@ -75,10 +75,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('C:/Mydocuments/workspace/Unity/ArcadeHole/hole_31.keystore')
-            storePassword ''
-            keyAlias 'hole-31'
-            keyPassword ''
+            storeFile file('xxx/xx/xxx/xxx/xxx.keystore')
+            storePassword 'xxx'
+            keyAlias 'xxx'
+            keyPassword 'xxx'
         }
     }
 
