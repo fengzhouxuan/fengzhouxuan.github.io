@@ -1,7 +1,7 @@
 {
   "name": "Fengzhouxuan Blog",
   "short_name": "FZX Blog",
-  "description": "A personal blog by old man",
+  "description": "打个大西瓜",
   "icons": [{
     "src": "icons/pwa_icon_128.png",
     "sizes": "128x128",
