@@ -6,4 +6,3 @@ gem "webrick"
 gem "kramdown-parser-gfm"
 gem "jekyll-watch"
 gem "jekyll-paginate"
-gem 'jekyll-openmoji'
