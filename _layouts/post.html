@@ -41,6 +41,9 @@ layout: default
                     <h2 class="subheading">{{ page.subtitle }}</h2>
                     {% comment %} endif {% endcomment %}
                     <span class="meta">Posted by {% if page.author %}{{ page.author }}{% else %}{{ site.title }}{% endif %} on {{ page.date | date: "%B %-d, %Y %H:%M:%S" }}</span>
+                    {% if page.music-id %}
+                    {% include cloud-music.html %}
+                  {% endif %} 
                 </div>
             </div>
         </div>
@@ -57,7 +60,7 @@ layout: default
                 col-lg-8 col-lg-offset-2
                 col-md-10 col-md-offset-1
                 post-container">
-
+   
 				{{ content }}
 
                 <hr style="visibility: hidden;">

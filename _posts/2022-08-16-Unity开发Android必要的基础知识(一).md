@@ -4,7 +4,7 @@ title:      Unity开发之Android必要的基础知识（一）
 subtitle:   Android四大组件之Activity
 date:       2022-08-16 21:49:22+0800
 author:     打个大西瓜
-header-img: img/post-bg-hacker.jpg
+header-img: img/post_bg-ios-android.png
 catalog: true
 tags:
     - Android
