@@ -4,7 +4,7 @@ title:      Unity开发之Android必要的基础知识（三）
 subtitle:   Gradle基础知识
 date:       2022-08-22 20:30:22+0800
 author:     打个大西瓜
-# header-img: img/post-bg-hacker.jpg
+header-img: img/post-bg-hacker.jpg
 catalog: true
 tags:
     - Android
