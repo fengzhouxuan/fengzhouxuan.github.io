@@ -33,4 +33,4 @@ public class FormerlySerializedAsTest : MonoBehaviour
     public string MyName;
 }
 ```
-但是要注意参数，也不是随便传一个string的 ，看看定义 ```FormerlySerializedAs(stirng oldName)``` ，参数名叫oldName，也就是旧的名字，重命名前的名字，所以我这里传的 ```”MyName“``` ，这样就相当于保存了```MyName```序列化的数据，然后再重命名为 ```MyNickname``` 时，就会把之前```MyName```序列化的数据赋值给 ```MyNickname```
+但是要注意参数，也不是随便传一个string的 ，看看定义 ```FormerlySerializedAs(string oldName)``` ，参数名叫oldName，也就是旧的名字，重命名前的名字，所以我这里传的 ```”MyName“``` ，这样就相当于保存了```MyName```序列化的数据，然后再重命名为 ```MyNickname``` 时，就会把之前```MyName```序列化的数据赋值给 ```MyNickname```
