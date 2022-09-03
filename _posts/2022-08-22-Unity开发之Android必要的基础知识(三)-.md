@@ -155,7 +155,7 @@ android {
 ```
 
 ## unityLibrary模块级 build.gradle
-和launcher其实没多大区别，以后再补充 TOTO：
+和launcher其实没多大区别，以后再补充 
 
 ## 项目级 build.gradle
 
@@ -211,4 +211,4 @@ task clean(type: Delete) {
 
 > 关于Unity导出Android的常用Gradle文件就这些了，其实还有很多配置，但是掌握上文这些基本够用了
 
-***TO BO CONTINUE!***
+***TO BE CONTINUE!***
