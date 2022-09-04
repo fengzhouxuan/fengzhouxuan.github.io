@@ -22,10 +22,12 @@ public class FormerlySerializedAsTest : MonoBehaviour
     public string MyName;
 }
 ```
+
 定义了一个 ```MyName``` 的 ```string```，在面板上赋值为 ```“打个大西瓜”```
 然后出于某种原因需要重命名 ```MyName``` 为 ```MyNickname```,那么面板上赋值的 ```“打个大西瓜”```就没了，变成了空
 
 为了让```MyNickname```继承之前的值，就需要加上 ```FormerlySerializedAs``` 特性
+
 ```CSharp
 public class FormerlySerializedAsTest : MonoBehaviour
 {
