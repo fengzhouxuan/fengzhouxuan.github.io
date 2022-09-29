@@ -43,3 +43,12 @@ public class FormerlySerializedAsTest : MonoBehaviour
 
 ### Vector2 UnityEngine.Random.insideUnitCircle
 随机返回单位圆内的点
+随机返回单位圆内的点
+## 判断空
+在判断一个对象是否为```null```时，一般有以下几种方式  
+1. ```==```
+2. ```Equals```
+3. ```System.Object.ReferenceEquals```
+
+对于Unity的对象，比如 ```GameObject``` ```MonoBehavior``` ，使用 ```System.Object.ReferenceEquals``` 的速度更快，而1和2两种方式会产生GC，速度也更慢。
+对于Unity的对象，比如 ```GameObject``` ```MonoBehavior``` ，使用 ```System.Object.ReferenceEquals``` 的速度更快，而1和2两种方式会产生GC，速度也更慢。
