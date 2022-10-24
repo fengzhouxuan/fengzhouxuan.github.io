@@ -2,6 +2,7 @@
 /_site
 /.jekyll-cache
 .DS_Store
+/.idea
 .env
 .env.*
 .dev.vars
