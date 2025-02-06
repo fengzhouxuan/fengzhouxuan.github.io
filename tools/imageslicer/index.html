@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>9-patch image slicer</title>
+    <style>
+        #dropper {
+            width: 250px;
+            height: 60px;
+            border: 1px dashed gray;
+        }
+        th {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+<div id="dropper" ondragover="allowDrop(event)" ondrop="drop(event)">
+    Drop image here.
+</div>
+
+<form onsubmit="event.preventDefault(); sliceClicked()">
+<table>
+    <tr>
+        <th>Inset left:</th>
+        <td><input type="number" id="insetLeft" value="220"></td>
+        <th>Inset right:</th>
+        <td><input type="number" id="insetRight" value="60"></td>
+    </tr>
+    <tr>
+        <th>Inset top:</th>
+        <td><input type="number" id="insetTop" value="60"></td>
+        <th>Inset bottom:</th>
+        <td><input type="number" id="insetBottom" value="60"></td>
+    </tr>
+</table>
+
+<div>
+    <button type="submit">Slice!</button>
+    <button type="button" onclick="saveImage()">Save slice as PNG</button>
+</div>
+</form>
+
+<canvas id="canvas"></canvas>
+<script src="FileSaver.js"></script>
+<script src="slicer.js"></script>
+</body>
+</html>
