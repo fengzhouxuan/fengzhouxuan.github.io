@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日快乐，李小涵！</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 气球特效 */
+        .balloon {
+            position: absolute;
+            width: 80px;
+            height: 100px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: float 6s ease-in-out infinite;
+            z-index: 1;
+        }
+        
+        .balloon::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 20px;
+            background: #333;
+        }
+        
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+        }
+        
+        .balloon:nth-child(1) {
+            background: #ff6b6b;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .balloon:nth-child(2) {
+            background: #4ecdc4;
+            left: 30%;
+            animation-delay: 1s;
+        }
+        
+        .balloon:nth-child(3) {
+            background: #45b7d1;
+            left: 50%;
+            animation-delay: 2s;
+        }
+        
+        .balloon:nth-child(4) {
+            background: #96ceb4;
+            left: 70%;
+            animation-delay: 3s;
+        }
+        
+        .balloon:nth-child(5) {
+            background: #ffeaa7;
+            left: 90%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(100vh) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-100px) rotate(5deg);
+            }
+        }
+        
+        /* 五彩纸屑特效 */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            animation: confetti-fall 3s ease-in-out infinite;
+            z-index: 1;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        /* 倒计时样式 */
+        .countdown-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            z-index: 10;
+            position: relative;
+        }
+        
+        .countdown {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .countdown-item {
+            text-align: center;
+        }
+        
+        .countdown-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #4ecdc4;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            min-width: 100px;
+        }
+        
+        .countdown-label {
+            margin-top: 10px;
+            font-size: 1em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .countdown-subtitle {
+            font-size: 1.2em;
+            color: #999;
+            margin-top: 30px;
+        }
+        
+        /* 生日卡片 */
+        .birthday-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            animation: slideIn 1s ease-out;
+            z-index: 10;
+            position: relative;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .title {
+            font-size: 2.5em;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            animation: titleBounce 1s ease-out;
+        }
+        
+        @keyframes titleBounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-30px);
+            }
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+        }
+        
+        .message {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        
+        .message p {
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeIn 1s ease-out forwards;
+        }
+        
+        .message p:nth-child(1) {
+            animation-delay: 0.8s;
+        }
+        
+        .message p:nth-child(2) {
+            animation-delay: 1.1s;
+        }
+        
+        .message p:nth-child(3) {
+            animation-delay: 1.4s;
+        }
+        
+        .celebration {
+            font-size: 1.3em;
+            color: #ff6b6b;
+            font-weight: bold;
+            margin: 30px 0;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.7s forwards;
+        }
+        
+        .gift {
+            font-size: 1.1em;
+            color: #4ecdc4;
+            margin: 20px 0;
+            font-weight: bold;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.3s forwards;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            color: #999;
+            font-size: 0.9em;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.6s forwards;
+        }
+        
+        .decorations {
+            font-size: 3em;
+            margin: 20px 0;
+            opacity: 0;
+            animation: fadeIn 1s ease-out forwards;
+        }
+        
+        .decorations:nth-of-type(1) {
+            animation-delay: 0.3s;
+        }
+        
+        .decorations:nth-of-type(2) {
+            animation-delay: 3.2s;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 火焰特效 */
+        .candle {
+            display: inline-block;
+            width: 10px;
+            height: 40px;
+            background: #333;
+            position: relative;
+            margin: 0 5px;
+            border-radius: 2px;
+        }
+        
+        .candle::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 20px;
+            background: radial-gradient(circle, #ffeb3b 0%, #ff9800 50%, transparent 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: flame 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes flame {
+            0%, 100% {
+                transform: translateX(-50%) scale(1) rotate(0deg);
+            }
+            50% {
+                transform: translateX(-50%) scale(1.1) rotate(5deg);
+            }
+        }
+        
+        .candles {
+            margin: 20px 0;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 3.5s forwards;
+        }
+        
+        /* 跳过按钮样式 */
+        .skip-button {
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .skip-button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .skip-button:active {
+            transform: translateY(0);
+        }
+        
+        /* 音乐控制按钮 */
+        .music-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .music-control:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        .music-control::before {
+            content: '🎵';
+            font-size: 24px;
+        }
+        
+        .music-control.paused::before {
+            content: '⏸';
+        }
+        
+        /* 隐藏元素 */
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown {
+                gap: 15px;
+            }
+            
+            .countdown-number {
+                font-size: 2em;
+                padding: 15px;
+                min-width: 80px;
+            }
+            
+            .birthday-card,
+            .countdown-container {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 2em;
+            }
+            
+            .balloon {
+                width: 60px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 气球 -->
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    
+    <!-- 倒计时容器 -->
+    <div class="countdown-container" id="countdownContainer">
+        <div class="countdown">
+            <div class="countdown-item">
+                <div class="countdown-number" id="days">00</div>
+                <div class="countdown-label">天</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-number" id="hours">00</div>
+                <div class="countdown-label">时</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-number" id="minutes">00</div>
+                <div class="countdown-label">分</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-number" id="seconds">00</div>
+                <div class="countdown-label">秒</div>
+            </div>
+        </div>
+        <button class="skip-button" id="skipButton">跳过倒计时</button>
+    </div>
+    
+    <!-- 生日祝福内容 -->
+    <div class="birthday-card hidden" id="birthdayCard">
+        <div class="decorations">🎉🎂🎁</div>
+        <h1 class="title">生日快乐，李小涵！</h1>
+        <h2 class="subtitle">愿你的每一天都充满阳光与欢笑</h2>
+        
+        <!-- 蜡烛特效 -->
+        <div class="candles">
+            <div class="candle"></div>
+            <div class="candle"></div>
+            <div class="candle"></div>
+            <div class="candle"></div>
+            <div class="candle"></div>
+        </div>
+        
+        <div class="message">
+            <p>亲爱的李小涵：</p>
+            <p>今天是你的生日，祝你生日快乐！🎂</p>
+            <p>愿你新的一岁，开心常伴，梦想成真！</p>
+            <p>爱你哦！❤️</p>
+        </div>
+        
+        <div class="celebration">🎊 生日快乐！ 🎊</div>
+        <div class="gift">🎁 愿你每天都有好心情！ 🎁</div>
+        
+        <div class="footer">
+            <p>爱你的小旋子</p>
+            <p>2026年</p>
+        </div>
+        <div class="decorations">🎈🎊✨</div>
+    </div>
+    
+    <!-- 音乐控制按钮 -->
+    <div class="music-control"></div>
+    
+    <script>
+        // 生成五彩纸屑
+        function createConfetti() {
+            const confettiContainer = document.body;
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#d9a7c7', '#feca57'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 5 + 's';
+                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confetti.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+                confettiContainer.appendChild(confetti);
+            }
+        }
+        
+        // 音乐播放功能
+        function setupMusic() {
+            const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3');
+            const musicControl = document.querySelector('.music-control');
+            let isPlaying = false;
+            
+            musicControl.addEventListener('click', () => {
+                if (isPlaying) {
+                    audio.pause();
+                    musicControl.classList.add('paused');
+                } else {
+                    audio.play();
+                    musicControl.classList.remove('paused');
+                }
+                isPlaying = !isPlaying;
+            });
+            
+            // 自动播放（现代浏览器可能会阻止，需要用户交互）
+            audio.volume = 0.3;
+        }
+        
+        // 倒计时功能
+        function setupCountdown() {
+            // 设置目标时间：今天凌晨（2026-01-10 00:00:00）
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 1);
+            targetDate.setHours(0, 0, 0, 0);
+            
+            const countdownContainer = document.getElementById('countdownContainer');
+            const birthdayCard = document.getElementById('birthdayCard');
+            const skipButton = document.getElementById('skipButton');
+            
+            // 显示生日祝福内容
+            function showBirthdayCard() {
+                countdownContainer.classList.add('hidden');
+                birthdayCard.classList.remove('hidden');
+                createConfetti();
+            }
+            
+            // 获取当前时间
+            const now = new Date();
+            
+            // 如果已经过了目标时间，直接显示生日祝福
+            if (now >= targetDate) {
+                showBirthdayCard();
+                return;
+            }
+            
+            // 跳过倒计时按钮事件
+            skipButton.addEventListener('click', showBirthdayCard);
+            
+            // 更新倒计时显示
+            function updateCountdown() {
+                const now = new Date();
+                const difference = targetDate - now;
+                
+                // 如果已经到达目标时间
+                if (difference <= 0) {
+                    showBirthdayCard();
+                    return;
+                }
+                
+                // 计算时间差
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+                
+                // 更新DOM
+                document.getElementById('days').textContent = days.toString().padStart(2, '0');
+                document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+                document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+                document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+            }
+            
+            // 初始更新
+            updateCountdown();
+            
+            // 每秒更新一次
+            setInterval(updateCountdown, 1000);
+        }
+        
+        // 初始化功能
+        window.addEventListener('DOMContentLoaded', () => {
+            setupCountdown();
+            setupMusic();
+        });
+    </script>
+</body>
+</html>
