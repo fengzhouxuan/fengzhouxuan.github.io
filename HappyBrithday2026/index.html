@@ -363,38 +363,6 @@
             transform: translateY(0);
         }
         
-        /* 音乐控制按钮 */
-        .music-control {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .music-control:hover {
-            transform: scale(1.1);
-            background: rgba(255, 255, 255, 1);
-        }
-        
-        .music-control::before {
-            content: '🎵';
-            font-size: 24px;
-        }
-        
-        .music-control.paused::before {
-            content: '⏸';
-        }
-        
         /* 隐藏元素 */
         .hidden {
             display: none !important;
@@ -551,9 +519,6 @@
         <div class="decorations">🎈🎊✨</div>
     </div>
     
-    <!-- 音乐控制按钮 -->
-    <div class="music-control"></div>
-    
     <script>
         // 生成五彩纸屑
         function createConfetti() {
@@ -570,27 +535,6 @@
                 confetti.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
                 confettiContainer.appendChild(confetti);
             }
-        }
-        
-        // 音乐播放功能
-        function setupMusic() {
-            const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3');
-            const musicControl = document.querySelector('.music-control');
-            let isPlaying = false;
-            
-            musicControl.addEventListener('click', () => {
-                if (isPlaying) {
-                    audio.pause();
-                    musicControl.classList.add('paused');
-                } else {
-                    audio.play();
-                    musicControl.classList.remove('paused');
-                }
-                isPlaying = !isPlaying;
-            });
-            
-            // 自动播放（现代浏览器可能会阻止，需要用户交互）
-            audio.volume = 0.3;
         }
         
         // 倒计时功能
@@ -657,7 +601,6 @@
         // 初始化功能
         window.addEventListener('DOMContentLoaded', () => {
             setupCountdown();
-            setupMusic();
         });
     </script>
 </body>
