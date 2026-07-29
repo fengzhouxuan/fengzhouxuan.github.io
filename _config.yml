@@ -1,117 +1,138 @@
+# Hexo Configuration
+## Docs: https://hexo.io/docs/configuration.html
+## Source: https://github.com/hexojs/hexo/
 
-# Site settings
-title: 打个大西瓜
-SEOTitle: 打个大西瓜 | BLOG
-header-img: img/bg-macbook.png
-email: fengzhouxuan@qq.com
-description: "醉后不知天在水，满船清梦压星河"
-keyword: "打个大西瓜 Blog"
-url: "https://fengzhouxuan.github.io/"          # your host, for absolute URL
-baseurl: ""
-#baseurl: "/bom" # the subpath of your site, e.g. /blog      # for example, '/blog' if your blog hosted on 'host/blog'
-github_repo: "https://github.com/fengzhouxuan/fengzhouxuan.github.io" # you code repository
-
-# Sidebar settings
-sidebar: true                           # whether or not using Sidebar.
-sidebar-about-description: "Too Old To Be Yourself"
-sidebar-avatar: /img/longmao.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
-
-#Page
-#分页显示 jekyll 3.0中声明方式
-plugins: [jekyll-paginate]
-#分页 2.0
-gems: [jekyll-paginate]
-paginate: 5
-# paginate_path: "page:num"
-
-# SNS settings
-RSS: false
-# weibo_username:     ckjcode
-# zhihu_username:     ckjcode
-github_username:    fengzhouxuan
-# facebook_username:  baiying.qiu.7
-# jianshu_username:   e71990ada2fd
-#twitter_username:   ckjcode
-
-
+# Site
+title: 打个大柚子的兔子洞
+subtitle: 顺着问题，一路追到地基
+description: 记录技术学习、工程实践和不断深入的兔子洞
+keywords:
+  - 技术学习
+  - 工程实践
+  - rabbit holes
+author: fengzhouxuan
+language: zh-CN
 timezone: Asia/Shanghai
 
-# Build settings
-# from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
-permalink: pretty
-exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
-anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
+# URL
+## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
+url: https://fengzhouxuan.github.io
+permalink: posts/:title/
+permalink_defaults:
+pretty_urls:
+  trailing_index: false
+  trailing_html: false
 
+# Directory
+source_dir: source
+public_dir: public
+tag_dir: tags
+archive_dir: archives
+category_dir: categories
+code_dir: downloads/code
+i18n_dir: :lang
+skip_render:
+  - rabbit-holes/**/*.html
 
+# Writing
+new_post_name: :title.md # File name of new posts
+default_layout: post
+titlecase: false # Transform title into titlecase
+external_link:
+  enable: true # Open external links in new tab
+  field: site # Apply to the whole site
+  exclude: ''
+filename_case: 0
+render_drafts: false
+post_asset_folder: false
+relative_link: false
+future: true
+syntax_highlighter: highlight.js
+highlight:
+  line_number: true
+  auto_detect: false
+  tab_replace: ''
+  wrap: true
+  hljs: false
+prismjs:
+  preprocess: true
+  line_number: true
+  tab_replace: ''
 
-# Markdown settings
-# replace redcarpet to kramdown,
-# although redcarpet can auto highlight code, the lack of header-id make the catalog impossible, so I switch to kramdown
-# document: http://jekyllrb.com/docs/configuration/#kramdown
-markdown: kramdown
-highlighter: rouge
-# kramdown:
-#   input: GFM                            # use Github Flavored Markdown !important
-#   syntax_highlighter: rouge
+# Home page setting
+# path: Root path for your blogs index page. (default = '')
+# per_page: Posts displayed per page. (0 = disable pagination)
+# order_by: Posts order. (Order by date descending by default)
+index_generator:
+  path: ''
+  per_page: 10
+  order_by: -date
 
+# Category & Tag
+default_category: 学习笔记
+category_map:
+tag_map:
 
-# 评论系统
-# Disqus（https://disqus.com/）
-# disqus_username: ckjcode
+# Metadata elements
+## https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
+meta_generator: true
 
-# Gitalk
-gitalk:
-  enable: true    #是否开启Gitalk评论
-  clientID: 6e0e0132e43fc499efc7                            #生成的clientID
-  clientSecret: 1ab3c044680aa975253bd1d4ab9c9f2ae299c343    #生成的clientSecret
-  repo: fengzhouxuan.github.io    #仓库名称
-  owner: fengzhouxuan    #github用户名
-  admin: fengzhouxuan
-  distractionFreeMode: false #是否启用类似FB的阴影遮罩
+# Date / Time format
+## Hexo uses Moment.js to parse and display date
+## You can customize the date format as defined in
+## http://momentjs.com/docs/#/displaying/format/
+date_format: YYYY-MM-DD
+time_format: HH:mm:ss
+## updated_option supports 'mtime', 'date', 'empty'
+updated_option: 'date'
 
+# Pagination
+## Set per_page to 0 to disable pagination
+per_page: 10
+pagination_dir: page
 
-# 统计
+# Include / Exclude file(s)
+## include:/exclude: options only apply to the 'source/' folder
+include:
+exclude:
+ignore:
 
-# Analytics settings
-# Baidu Analytics
-# ba_track_id: b50bf2b12b5338a1845e33832976fd68
+# Extensions
+## Plugins: https://hexo.io/plugins/
+## Themes: https://hexo.io/themes/
+theme: flatpaper
 
-# Google Analytics
-# ga_track_id: 'UA-90855596-1'            # Format: UA-xxxxxx-xx
-# ga_domain: ckjcode.gitee.io               # 默认的是 auto, 这里我是自定义了的域名，你如果没有自己的域名，需要改成auto
+# Deployment
+## Docs: https://hexo.io/docs/one-command-deployment
+deploy:
+  type: ''
 
+feed:
+  enable: true
+  type: atom
+  path: atom.xml
+  limit: 20
+  hub:
+  content:
+  content_limit: 140
+  content_limit_delim: ' '
+  order_by: -date
+  icon: /images/apple-touch-icon.png
+  autodiscovery: true
+  template:
 
+markdown_it_plus:
+  html: true
+  xhtmlOut: true
+  breaks: false
+  langPrefix:
+  linkify: true
+  typographer:
+  quotes: “”‘’
+  rawLaTeX: false # newly added
 
-
-
-# Featured Tags
-featured-tags: true                     # 是否使用首页标签
-featured-condition-size: 0              # 相同标签数量大于这个数，才会出现在首页
-
-
-
-# Progressive Web Apps
-chrome-tab-theme-color: "#000000"
-service-worker: true
-
-
-
- #Friends
-friends: [
-    {
-        title: "长胖是个梦想",
-        href: "https://zhoujun2303.github.io/"
-    },
-    {
-        title: "自然妙有猫仙人",
-        href: "http://cathole.top/"
-    },
-    {
-        title: "JingFengJi(GF)",
-        href: "https://www.jingfengji.tech/"
-    },
-    {
-        title: "烟雨迷离半世殇",
-        href: "https://www.lfzxb.top/"
-    },
-]
+search:
+  path: search.json
+  field: all
+  content: true
+  format: striptags

@@ -1,0 +1,15 @@
+- class_name: 小伙伴们
+  class_desc: 兔子洞之外，也有一些值得常去的地方。
+  link_list:
+    - name: 长胖是个梦想
+      link: https://zhoujun2303.github.io/
+      descr: 朋友的个人站点
+    - name: 自然妙有猫仙人
+      link: http://cathole.top/
+      descr: 朋友的个人站点
+    - name: JingFengJi（GF）
+      link: https://www.jingfengji.tech/
+      descr: 朋友的个人站点
+    - name: 烟雨迷离半世殇
+      link: https://www.lfzxb.top/
+      descr: 朋友的个人站点

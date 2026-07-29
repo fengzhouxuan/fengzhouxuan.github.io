@@ -1,28 +1,29 @@
 {
-    "name": "by-blog",
-    "title": "BY Blog",
-    "author": "BY <ischeng.kejun@gmail.com>",
-    "version": "1.7.0",
-    "homepage": "http://ckjcode.gitee.io",
-    "repository": {
-        "type": "git",
-        "url": "https://gitee.com/ckjcode/ckjcode"
-    },
-    "bugs": "https://gitee.com/ckjcode/ckjcode/issues",
-    "devDependencies": {
-        "grunt": "~0.4.5",
-        "grunt-contrib-less": "~0.11.4",
-        "grunt-contrib-watch": "~0.6.1",
-        "grunt-banner": "~0.2.3",
-        "grunt-contrib-uglify": "~0.5.1"
-    },
-    "scripts": {
-        "preview": "cd _site; python -m SimpleHTTPServer 8020",
-        "py3view": "cd _site; python3 -m http.server 8020",
-        "watch": "grunt watch & npm run preview & jekyll serve -w",
-        "py3wa": "grunt watch & npm run py3view & jekyll serve -w",
-        "boil": "git push boilerplate boilerplate:master",
-        "push": "git push origin master --tag",
-        "cafe": "git co gitcafe-pages; git merge master; git push gitcafe gitcafe-pages:gitcafe-pages --tag; git co master;"
-    }
+  "name": "fengzhouxuan-rabbit-holes",
+  "version": "1.0.0",
+  "description": "打个大柚子的兔子洞",
+  "private": true,
+  "scripts": {
+    "build": "hexo generate",
+    "check": "hexo clean && hexo generate",
+    "clean": "hexo clean",
+    "server": "hexo server"
+  },
+  "hexo": {
+    "version": "8.1.2"
+  },
+  "dependencies": {
+    "@reimujs/hexo-renderer-markdown-it-plus": "^1.2.3",
+    "hexo": "^8.1.2",
+    "hexo-filter-mermaid-diagrams": "^1.0.5",
+    "hexo-generator-archive": "^2.0.0",
+    "hexo-generator-category": "^2.0.0",
+    "hexo-generator-feed": "^4.0.0",
+    "hexo-generator-index": "^4.0.0",
+    "hexo-generator-searchdb": "^1.5.0",
+    "hexo-generator-tag": "^2.0.0",
+    "hexo-renderer-ejs": "^2.0.0",
+    "hexo-renderer-stylus": "^3.0.1",
+    "hexo-server": "^3.0.0"
+  }
 }
