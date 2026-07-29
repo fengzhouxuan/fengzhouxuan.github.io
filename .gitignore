@@ -1,8 +1,12 @@
-# Created by .ignore support plugin (hsz.mobi)
-/_site
-/.jekyll-cache
 .DS_Store
-/.idea
+Thumbs.db
+db.json
+*.log
+node_modules/
+public/
+.deploy*/
+_multiconfig.yml
+.cache/
 .env
 .env.*
 .dev.vars
