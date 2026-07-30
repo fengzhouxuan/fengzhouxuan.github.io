@@ -79,6 +79,7 @@ type: links
 - `guestbook`
 - `tags`
 - `categories`
+- `rabbit-holes`
 
 其他值会回退到默认页面布局。
 
@@ -95,6 +96,8 @@ top_img: /images/pages/links.jpg
 页面顶部图只读取当前页面的 `top_img`，没有主题级回退或配置；不填写 `top_img` 时不会渲染顶部图。
 
 普通独立页面可设置 `toc: true`，在桌面侧栏和移动端侧栏抽屉中显示正文目录。未设置时仍显示默认的分类与标签卡片。
+
+`type: rabbit-holes` 会读取 `source/_data/rabbit_holes.yml`，以首页同款卡片网格展示主题入口。每项可填写 `title`、`subtitle`、`description`、`chapters`、`path`，并可用 `coming_soon: true` 标记待开主题。
 
 要生成静态 404 页面，可在 Hexo 站点中创建 `source/404.md`：
 

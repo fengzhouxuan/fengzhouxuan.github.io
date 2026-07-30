@@ -1,0 +1,35 @@
+/* ============== EMBEDDED INTERACTIVE DEMOS ============== */
+.interactive-demo {
+  margin: 20px 0 24px;
+}
+
+.interactive-demo__frame {
+  display: block;
+  width: 100%;
+  height: 680px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--paper-warm);
+}
+
+.interactive-demo__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 2px 0;
+  font-size: 12px;
+}
+
+.interactive-demo__actions a {
+  color: var(--color-accent-strong);
+  font-weight: 700;
+}
+
+.dark-mode .interactive-demo__actions a {
+  color: var(--color-accent-muted);
+}
+
+@media (max-width: 640px) {
+  .interactive-demo__frame {
+    height: 880px;
+  }
+}

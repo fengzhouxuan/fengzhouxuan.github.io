@@ -1,0 +1,42 @@
+- slug: networking
+  title: 计算机网络
+  subtitle: Networking
+  description: 从内网穿透一路追到 DNS、TCP、TLS、WebSocket、CDN 与 HTTP 状态。
+  chapters: 10
+  path: /rabbit-holes/networking/
+
+- slug: database
+  title: 数据库
+  subtitle: Database
+  description: 从数据库文件追到页、索引、Buffer Pool、WAL 与崩溃恢复。
+  chapters: 1
+  path: /rabbit-holes/database/
+
+- slug: javascript
+  title: JavaScript 运行时
+  subtitle: JavaScript
+  description: 从运行时追到语言语义、事件循环、内存、模块系统与 Native Bridge。
+  chapters: 6
+  path: /rabbit-holes/javascript/
+
+- slug: engineering
+  title: 工程化
+  subtitle: Engineering
+  description: 从代码能跑追到模块边界、自动化、质量门禁、发布回滚与反馈闭环。
+  chapters: 1
+  path: /rabbit-holes/engineering/
+
+- slug: rendering
+  title: 渲染
+  subtitle: Rendering
+  description: 从一帧画面追到像素、三角形、插值、坐标空间、矩阵与 GPU 管线。
+  chapters: 3
+  path: /rabbit-holes/rendering/
+
+- slug: cicd
+  title: CI/CD
+  subtitle: Coming next
+  description: 从一次提交追到构建、测试、制品、部署、回滚与可观测反馈。
+  chapters: 0
+  path: ""
+  coming_soon: true

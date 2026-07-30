@@ -162,6 +162,18 @@ home_hero:
   visit: Visit
   cancel: Cancel
 
+rabbit_holes:
+  label: Learning map
+  choose: Choose a rabbit hole
+  patterns_short: Shared patterns
+  chapters: "%d chapters"
+  coming: Coming soon
+  enter: Enter
+  under_construction: In progress
+  patterns_title: Shared patterns
+  patterns_description: Layers, state, caches, queues, and coordinate spaces recur across different fields.
+  patterns_action: Explore recurring foundations
+
 toc:
   title: Table of contents
   empty: The table of contents is generated from post headings.

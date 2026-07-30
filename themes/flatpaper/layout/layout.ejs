@@ -2,7 +2,8 @@
 <%
 var pageTypeKey = String(page.type || '').toLowerCase();
 var isNotFoundPage = page.layout === '404' || pageTypeKey === '404';
-var isStandalonePage = page.layout === 'page' || isNotFoundPage;
+var isCollectionPage = pageTypeKey === 'rabbit-holes';
+var isStandalonePage = (page.layout === 'page' && !isCollectionPage) || isNotFoundPage;
 var fbEnabled = theme.fancybox && theme.fancybox.enable && (is_post() || (page.layout === 'page' && !isNotFoundPage));
 var htmlLang = flatpaper_i18n_language();
 %>
