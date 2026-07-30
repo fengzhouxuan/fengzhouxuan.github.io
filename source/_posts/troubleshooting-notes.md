@@ -9,7 +9,7 @@ tags:
   - "Unity"
   - "GitHub"
   - "排错"
-cover: /images/legacy/home-bg.jpg
+cover: /images/covers/legacy/troubleshooting.webp
 toc: true
 comments: false
 ---

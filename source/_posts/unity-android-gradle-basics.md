@@ -9,7 +9,7 @@ tags:
   - "Unity"
   - "Android"
   - "Gradle"
-cover: /images/legacy/post-bg-android.png
+cover: /images/covers/legacy/android-gradle-basics.webp
 toc: true
 comments: false
 ---

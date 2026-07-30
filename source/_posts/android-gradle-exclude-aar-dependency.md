@@ -8,7 +8,7 @@ categories:
 tags:
   - "Android"
   - "Gradle"
-cover: /images/legacy/post-bg-android.png
+cover: /images/covers/legacy/android-aar-conflict.webp
 toc: true
 comments: false
 ---

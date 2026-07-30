@@ -8,7 +8,7 @@ categories:
 tags:
   - "Unity"
   - "渲染"
-cover: /images/legacy/post-bg-unity.jpeg
+cover: /images/covers/legacy/unity-mesh-2.webp
 toc: true
 comments: false
 ---
