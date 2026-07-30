@@ -48,7 +48,7 @@ nav:
 
 # Favicon：默认使用主题内置 /images/favicon.png。
 # 设为 false 时不输出 <link rel="icon">，交给浏览器请求站点根目录 /favicon.ico。
-favicon: /images/apple-touch-icon.png
+favicon: /images/favicon-avatar.png
 # favicon: false
 
 # 背景特效
@@ -158,13 +158,19 @@ home_hero:
     # 内置便签贴纸的文字。
     note_text: 继续深挖
     # 自定义图片贴纸最多渲染 5 张；加上内置便签后，开屏最多 6 个 sticker。link 可选，不配置则只是可拖动装饰。
-    # items:
-    #   - image: /images/stickers/memo.png
-    #     alt: 手账贴纸
-    #     size: 96
-    #   - image: /images/stickers/github.png
-    #     alt: GitHub
-    #     link: https://github.com/yourname
+    items:
+      - image: /images/icon.png
+        alt: 打开兔子洞
+        link: /rabbit-holes/
+        size: 72
+      - image: /images/stickers/matrix-basis.png
+        alt: 探索渲染与矩阵
+        link: /rabbit-holes/rendering/
+        size: 150
+      - image: /images/stickers/network-paths.png
+        alt: 探索网络原理
+        link: /rabbit-holes/networking/
+        size: 150
 
 # 首页文章卡片摘要的最大字符数（无 <!-- more --> 时按正文截断）
 excerpt_length: 96
@@ -182,7 +188,7 @@ related_posts: 4
 # 文章页顶部大图模式：
 # 留空禁用；top_img 只使用文章 front-matter 的 top_img；fallback 则 top_img 优先，缺省时按 cover/thumbnail/image/banner/正文首图解析。
 post_top_img:
-  mode:
+  mode: fallback
 
 # 文章正文加粗文本是否使用主题色；设为 false 则只保留默认加粗。
 article:
@@ -240,9 +246,10 @@ buttons:
 
 # 首页轮播置顶（最多 4 项；按文章 slug / 路径 / 标题任一匹配）
 featured:
-  # - hello-world
-  # - markdown-elements-showcase
-  # - 2026/05/09/weekend-photowalk-notes
+  - unity-mesh-rendering-1
+  - unity-android-gradle-basics
+  - android-gradle-exclude-aar-dependency
+  - troubleshooting-notes
 
 # 轮播自动播放（毫秒，0 表示关闭）
 featured_autoplay: 5000
