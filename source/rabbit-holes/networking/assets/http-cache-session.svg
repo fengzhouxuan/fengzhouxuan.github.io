@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
+  <title id="title">HTTP Cookie Session Cache Flow</title>
+  <desc id="desc">Browser, CDN cache, server, and session store interaction for HTTP caching and login state.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 14; }
+      .cache { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; rx: 14; }
+      .store { fill: #fef3c7; stroke: #d97706; stroke-width: 2; rx: 14; }
+      .title { font: 700 22px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 600 16px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .small { font: 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .code { font: 13px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; fill: #1e293b; }
+      .line { stroke: #334155; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #0891b2; stroke-width: 2; fill: none; stroke-dasharray: 7 6; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect class="bg" width="960" height="520"/>
+  <text class="title" x="48" y="48">HTTP: 无状态请求上补出缓存和登录态</text>
+
+  <rect class="box" x="54" y="104" width="210" height="132"/>
+  <text class="label" x="84" y="142">浏览器</text>
+  <text class="small" x="84" y="172">保存 Cookie</text>
+  <text class="code" x="84" y="202">sid=abc123</text>
+
+  <rect class="cache" x="54" y="330" width="210" height="110"/>
+  <text class="label" x="84" y="367">浏览器缓存</text>
+  <text class="small" x="84" y="397">Cache-Control / ETag</text>
+
+  <rect class="cache" x="372" y="104" width="214" height="132"/>
+  <text class="label" x="408" y="142">CDN / 共享缓存</text>
+  <text class="small" x="408" y="172">公共静态资源</text>
+  <text class="code" x="408" y="202">304 / cache hit</text>
+
+  <rect class="box" x="696" y="104" width="210" height="132"/>
+  <text class="label" x="734" y="142">业务服务器</text>
+  <text class="small" x="734" y="172">处理 HTTP 请求</text>
+  <text class="code" x="734" y="202">Set-Cookie</text>
+
+  <rect class="store" x="696" y="330" width="210" height="110"/>
+  <text class="label" x="738" y="367">Session 表</text>
+  <text class="small" x="738" y="397">sid → userId</text>
+
+  <path class="line" d="M 264 148 C 304 124, 334 124, 372 148"/>
+  <text class="code" x="288" y="118">GET /app</text>
+
+  <path class="line" d="M 586 148 C 626 124, 656 124, 696 148"/>
+  <text class="code" x="615" y="118">miss / 回源</text>
+
+  <path class="line" d="M 696 192 C 656 224, 626 224, 586 192"/>
+  <text class="code" x="606" y="254">200 OK</text>
+
+  <path class="line" d="M 372 192 C 332 224, 304 224, 264 192"/>
+  <text class="code" x="286" y="254">返回内容</text>
+
+  <path class="dash" d="M 160 236 L 160 330"/>
+  <text class="small" x="178" y="288">可缓存内容落本地</text>
+
+  <path class="line" d="M 801 236 L 801 330"/>
+  <text class="small" x="818" y="288">sid 查身份</text>
+
+  <path class="dash" d="M 264 385 C 402 468, 560 468, 696 385"/>
+  <text class="small" x="355" y="482">未过期直接用；过期带 ETag 协商</text>
+</svg>

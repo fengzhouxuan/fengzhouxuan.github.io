@@ -1,0 +1,30 @@
+<svg width="100%" viewBox="0 0 680 340" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>TCP 拥塞窗口 cwnd 随时间变化的锯齿曲线</title>
+<desc>拥塞窗口 cwnd 随往返轮次的变化：起步阶段慢启动，每个 RTT 翻倍、指数飙升；到达阈值后转入拥塞避免，每轮只加一、线性慢爬；一旦发生丢包，窗口立即砍半，然后重新线性爬升，如此往复形成锯齿形。</desc>
+<style>
+svg{--color-text-primary:#1f2328;--color-text-secondary:#57606a;--color-border-secondary:#d0d7de;--color-text-info:#0969da;}
+text{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+.th{font-size:14px;font-weight:600;fill:#1f2328;}.ts{font-size:11px;fill:#57606a;}.t{font-size:13px;fill:#1f2328;}
+</style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="340" fill="#ffffff"/>
+<line x1="70" y1="300" x2="70" y2="64" stroke="var(--color-border-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="70" y1="300" x2="636" y2="300" stroke="var(--color-border-secondary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="60" y="58" text-anchor="start">cwnd（拥塞窗口）</text>
+<text class="ts" x="632" y="322" text-anchor="end">时间（每过一个 RTT）→</text>
+<polyline points="70,290 105,282 140,266 175,230 210,160" fill="none" stroke="var(--color-text-info)" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="210,160 330,118" fill="none" stroke="var(--color-text-primary)" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="330,118 330,210" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-dasharray="4 3"/>
+<polyline points="330,210 450,160" fill="none" stroke="var(--color-text-primary)" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="450,160 450,235" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-dasharray="4 3"/>
+<polyline points="450,235 600,180" fill="none" stroke="var(--color-text-primary)" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="330" cy="118" r="4" fill="var(--color-text-primary)"/>
+<circle cx="450" cy="160" r="4" fill="var(--color-text-primary)"/>
+<text class="ts" x="120" y="252" text-anchor="start">① 慢启动：每轮翻倍</text>
+<text class="ts" x="232" y="100" text-anchor="start">② 拥塞避免：每轮 +1</text>
+<text class="ts" x="462" y="138" text-anchor="start">③ 丢包 → 砍半</text>
+</svg>

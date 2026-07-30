@@ -1,0 +1,46 @@
+<svg width="100%" viewBox="0 0 680 412" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>WebSocket 升级握手与双向通信时序</title>
+<desc>客户端先发一个带 Upgrade 头的 HTTP GET 请求请求升级，服务器回 101 Switching Protocols 同意。分界线以上是 HTTP 一问一答；分界线以下，同一条 TCP 连接改说 WebSocket，双方随时互发数据帧，服务器可主动推送，并用 ping/pong 心跳保活，底层 TCP 连接全程不关。</desc>
+<style>
+svg{--color-text-primary:#1f2328;--color-text-secondary:#57606a;--color-border-secondary:#d0d7de;--color-text-info:#0969da;}
+text{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+.th{font-size:14px;font-weight:600;fill:#1f2328;}.ts{font-size:11px;fill:#57606a;}.t{font-size:13px;fill:#1f2328;}
+.c-teal rect{fill:#d7f3ee;stroke:#0d9488;}.c-teal text{fill:#0f766e;}
+.c-amber rect{fill:#fef3c7;stroke:#d97706;}.c-amber text{fill:#b45309;}
+</style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="412" fill="#ffffff"/>
+<g class="c-teal">
+<rect x="110" y="40" width="120" height="40" rx="10" stroke-width="0.5"/>
+<text class="th" x="170" y="59" text-anchor="middle">浏览器/客户端</text>
+<text class="ts" x="170" y="74" text-anchor="middle">先发起连接</text>
+</g>
+<g class="c-amber">
+<rect x="450" y="40" width="120" height="40" rx="10" stroke-width="0.5"/>
+<text class="th" x="510" y="59" text-anchor="middle">服务器</text>
+<text class="ts" x="510" y="74" text-anchor="middle">listen 中</text>
+</g>
+<line x1="170" y1="82" x2="170" y2="386" stroke="var(--color-border-secondary)" stroke-width="1.5" stroke-dasharray="4 4"/>
+<line x1="510" y1="82" x2="510" y2="386" stroke="var(--color-border-secondary)" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text class="th" x="44" y="114" text-anchor="start">① HTTP 开场</text>
+<text class="ts" x="340" y="123" text-anchor="middle">GET … Upgrade: websocket（求升级）</text>
+<line x1="170" y1="130" x2="510" y2="130" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="163" text-anchor="middle">101 Switching Protocols（同意，换！）</text>
+<line x1="510" y1="170" x2="170" y2="170" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="198" text-anchor="middle">↑ 以上是 HTTP（一问一答）</text>
+<line x1="92" y1="208" x2="600" y2="208" stroke="var(--color-text-info)" stroke-width="2" stroke-dasharray="6 4"/>
+<text class="ts" x="340" y="226" text-anchor="middle">↓ 同一条 TCP 连接改说 WebSocket（双向常开）</text>
+<text class="th" x="44" y="256" text-anchor="start">② WebSocket</text>
+<text class="ts" x="340" y="265" text-anchor="middle">数据帧（想发就发）</text>
+<line x1="170" y1="272" x2="510" y2="272" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="305" text-anchor="middle">服务器主动推（不用你先问！）</text>
+<line x1="510" y1="312" x2="170" y2="312" stroke="var(--color-text-info)" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="345" text-anchor="middle">…接着再推下一帧…</text>
+<line x1="510" y1="352" x2="170" y2="352" stroke="var(--color-text-info)" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="378" text-anchor="middle">ping / pong 心跳：我还活着，别回收我</text>
+<line x1="200" y1="384" x2="480" y2="384" stroke="var(--color-text-secondary)" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+</svg>
