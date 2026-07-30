@@ -273,9 +273,18 @@ x × 新 X 轴 + y × 新 Y 轴
 
 ### 可交互图例：亲手改变矩阵的两列
 
-![二维矩阵改变基向量和坐标网格](/rabbit-holes/rendering/assets/matrix-basis-playground.png)
-
-[打开二维矩阵与基向量交互演示](https://fengzhouxuan.github.io/rabbit-holes/rendering/matrix-basis-playground/)
+<div class="interactive-demo">
+  <iframe
+    class="interactive-demo__frame"
+    src="/rabbit-holes/rendering/matrix-basis-playground/"
+    title="二维矩阵与基向量交互演示"
+    loading="lazy"
+    referrerpolicy="no-referrer"
+  ></iframe>
+  <div class="interactive-demo__actions">
+    <a href="/rabbit-holes/rendering/matrix-basis-playground/" target="_blank" rel="noopener">在新页面打开演示</a>
+  </div>
+</div>
 
 先不要把 `a、b、c、d` 当成四个孤立的数字：
 

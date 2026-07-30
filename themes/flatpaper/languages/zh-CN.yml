@@ -162,6 +162,18 @@ home_hero:
   visit: 访问
   cancel: 取消
 
+rabbit_holes:
+  label: 学习地图
+  choose: 选择一个兔子洞
+  patterns_short: 跨洞母题
+  chapters: "%d 篇"
+  coming: 待开
+  enter: 进入
+  under_construction: 施工中
+  patterns_title: 跨洞母题
+  patterns_description: 分层、状态、缓存、队列、坐标系……同一种思维模式会在不同领域反复出现。
+  patterns_action: 查看反复出现的底层模式
+
 toc:
   title: 文章目录
   empty: 目录会根据文章标题自动生成。

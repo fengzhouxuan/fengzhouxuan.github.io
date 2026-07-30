@@ -1,0 +1,63 @@
+<%
+var holes = site.data && Array.isArray(site.data.rabbit_holes) ? site.data.rabbit_holes : [];
+%>
+
+<section class="taxonomy-paper rabbit-holes-intro">
+  <span class="label-pill"><%= flatpaper_i18n('rabbit_holes.label') %></span>
+  <h1><%= page.title || '兔子洞' %></h1>
+  <div class="rabbit-holes-intro__copy">
+    <%- page.content %>
+  </div>
+</section>
+
+<section class="section-head">
+  <h2><%- partial('_partial/icons', { icon: 'layout-grid' }) %><%= flatpaper_i18n('rabbit_holes.choose') %></h2>
+  <a href="<%- url_for('/rabbit-holes/patterns/') %>"><%= flatpaper_i18n('rabbit_holes.patterns_short') %> →</a>
+</section>
+
+<div class="post-list rabbit-hole-list">
+  <% holes.forEach(function (hole, index) {
+    var disabled = hole.coming_soon === true || !hole.path;
+    var cardPost = { title: hole.title };
+  %>
+    <article class="post-card rabbit-hole-card<%= disabled ? ' is-coming-soon' : '' %>">
+      <% if (!disabled) { %>
+        <a class="post-thumb-link" href="<%- url_for(hole.path) %>" aria-label="<%= hole.title %>">
+          <%- partial('_partial/thumbnail', { index: index, post: cardPost }) %>
+        </a>
+      <% } else { %>
+        <div class="post-thumb-link" aria-hidden="true">
+          <%- partial('_partial/thumbnail', { index: index, post: cardPost }) %>
+        </div>
+      <% } %>
+      <div class="post-card-copy">
+        <span class="rabbit-hole-card__eyebrow"><%= hole.subtitle %></span>
+        <h3>
+          <% if (!disabled) { %>
+            <a href="<%- url_for(hole.path) %>"><%= hole.title %></a>
+          <% } else { %>
+            <%= hole.title %>
+          <% } %>
+        </h3>
+        <p><%= hole.description %></p>
+        <div class="rabbit-hole-card__footer">
+          <span>
+            <%- partial('_partial/icons', { icon: 'folder' }) %>
+            <%= disabled ? flatpaper_i18n('rabbit_holes.coming') : flatpaper_i18n('rabbit_holes.chapters', hole.chapters) %>
+          </span>
+          <% if (!disabled) { %>
+            <a href="<%- url_for(hole.path) %>"><%= flatpaper_i18n('rabbit_holes.enter') %> <%- partial('_partial/icons', { icon: 'arrow-right' }) %></a>
+          <% } else { %>
+            <span><%= flatpaper_i18n('rabbit_holes.under_construction') %></span>
+          <% } %>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+</div>
+
+<section class="taxonomy-paper rabbit-holes-patterns">
+  <h2><%= flatpaper_i18n('rabbit_holes.patterns_title') %></h2>
+  <p><%= flatpaper_i18n('rabbit_holes.patterns_description') %></p>
+  <a href="<%- url_for('/rabbit-holes/patterns/') %>"><%= flatpaper_i18n('rabbit_holes.patterns_action') %> <%- partial('_partial/icons', { icon: 'arrow-right' }) %></a>
+</section>
