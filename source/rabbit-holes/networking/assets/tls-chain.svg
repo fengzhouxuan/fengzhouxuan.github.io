@@ -1,0 +1,44 @@
+<svg width="100%" viewBox="0 0 680 292" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>TLS 证书信任链：从服务器证书逐级追溯到内置根证书</title>
+<desc>信任链共三层。最上层是根 CA 证书，自己给自己签名，出厂就内置在你的操作系统和浏览器里，是信任的源头。根 CA 用私钥签发中间 CA 证书；中间 CA 再用私钥签发服务器证书，服务器证书里含网站公钥和域名。浏览器收到服务器证书后逆着往上逐级验证，一直验到内置的根才放心。冒充者无法伪造一条能追溯到内置根的合法链。</desc>
+<style>
+svg{--color-text-primary:#1f2328;--color-text-secondary:#57606a;--color-border-secondary:#d0d7de;--color-text-info:#0969da;}
+text{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+.th{font-size:14px;font-weight:600;fill:#1f2328;}.ts{font-size:11px;fill:#57606a;}.t{font-size:13px;fill:#1f2328;}
+.c-teal rect{fill:#d7f3ee;stroke:#0d9488;}.c-teal text{fill:#0f766e;}
+.c-blue rect{fill:#dbeafe;stroke:#3b82f6;}.c-blue text{fill:#1d4ed8;}
+.c-purple rect{fill:#ede9fe;stroke:#8b5cf6;}.c-purple text{fill:#6d28d9;}
+</style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="292" fill="#ffffff"/>
+<text class="ts" x="340" y="20" text-anchor="middle">★ 信任锚点：这一层出厂就装在你系统里</text>
+<g class="c-purple">
+<rect x="180" y="30" width="320" height="56" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="54" text-anchor="middle">根 CA 证书（Root CA）</text>
+<text class="ts" x="340" y="72" text-anchor="middle">自己签自己 · 你系统里预装好的</text>
+</g>
+<line x1="340" y1="88" x2="340" y2="110" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="356" y="104" text-anchor="start">① 根私钥签发 ↓</text>
+<g class="c-blue">
+<rect x="180" y="112" width="320" height="52" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="134" text-anchor="middle">中间 CA 证书</text>
+<text class="ts" x="340" y="152" text-anchor="middle">由根 CA 签发担保</text>
+</g>
+<line x1="340" y1="166" x2="340" y2="188" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="356" y="182" text-anchor="start">② 中间私钥签发 ↓</text>
+<g class="c-teal">
+<rect x="180" y="190" width="320" height="58" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="214" text-anchor="middle">服务器证书（你访问的网站）</text>
+<text class="ts" x="340" y="232" text-anchor="middle">含 公钥 + 域名 · 由中间 CA 签发</text>
+</g>
+<line x1="540" y1="238" x2="540" y2="48" stroke="var(--color-text-info)" stroke-width="2" marker-end="url(#arrow)"/>
+<text class="ts" x="556" y="130" text-anchor="start">③ 浏览器</text>
+<text class="ts" x="556" y="146" text-anchor="start">逆向验到</text>
+<text class="ts" x="556" y="162" text-anchor="start">内置根 ✓</text>
+<text class="ts" x="120" y="146" text-anchor="end">签发</text>
+<text class="ts" x="120" y="162" text-anchor="end">方向 ↓</text>
+</svg>

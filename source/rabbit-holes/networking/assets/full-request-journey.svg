@@ -1,0 +1,48 @@
+<svg width="100%" viewBox="0 0 680 366" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>一次访问大网站的完整旅程：从 DNS 到后端服务器</title>
+<desc>五个步骤串起整趟学习。第一步 DNS 把域名解析成就近节点的 IP，靠 Anycast 与 BGP 选路。第二步连上最近的 CDN 边缘节点，就近完成 TCP 握手和 TLS 握手，RTT 短。第三步边缘节点检查缓存，命中就直接返回，未命中则回源。第四步回源到源站的负载均衡器，L4 看 IP 加端口、L7 看 HTTP 内容来分发。第五步分到后端某台服务器，用 socket 和五元组区分连接，处理后返回。</desc>
+<style>
+svg{--color-text-primary:#1f2328;--color-text-secondary:#57606a;--color-border-secondary:#d0d7de;--color-text-info:#0969da;}
+text{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+.th{font-size:14px;font-weight:600;fill:#1f2328;}.ts{font-size:11px;fill:#57606a;}.t{font-size:13px;fill:#1f2328;}
+.c-teal rect{fill:#d7f3ee;stroke:#0d9488;}.c-teal text{fill:#0f766e;}
+.c-blue rect{fill:#dbeafe;stroke:#3b82f6;}.c-blue text{fill:#1d4ed8;}
+.c-amber rect{fill:#fef3c7;stroke:#d97706;}.c-amber text{fill:#b45309;}
+.c-purple rect{fill:#ede9fe;stroke:#8b5cf6;}.c-purple text{fill:#6d28d9;}
+</style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="366" fill="#ffffff"/>
+<g class="c-purple">
+<rect x="110" y="24" width="460" height="50" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="46" text-anchor="middle">① 域名 → IP</text>
+<text class="ts" x="340" y="64" text-anchor="middle">DNS 返回就近节点 IP（Anycast / BGP 选路）</text>
+</g>
+<line x1="340" y1="74" x2="340" y2="92" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<g class="c-blue">
+<rect x="110" y="92" width="460" height="50" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="114" text-anchor="middle">② 连上最近的 CDN 边缘节点</text>
+<text class="ts" x="340" y="132" text-anchor="middle">就近做 TCP 握手 + TLS 握手 · RTT 短</text>
+</g>
+<line x1="340" y1="142" x2="340" y2="160" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<g class="c-teal">
+<rect x="110" y="160" width="460" height="50" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="182" text-anchor="middle">③ 边缘命中缓存？</text>
+<text class="ts" x="340" y="200" text-anchor="middle">命中 → 直接返回（最快）；未命中 → 回源 ↓</text>
+</g>
+<line x1="340" y1="210" x2="340" y2="228" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<g class="c-amber">
+<rect x="110" y="228" width="460" height="50" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="250" text-anchor="middle">④ 回源到负载均衡器</text>
+<text class="ts" x="340" y="268" text-anchor="middle">L4 看 IP+端口 ／ L7 看 HTTP 内容 → 分发</text>
+</g>
+<line x1="340" y1="278" x2="340" y2="296" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<g class="c-teal">
+<rect x="110" y="296" width="460" height="50" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="318" text-anchor="middle">⑤ 分到后端某台服务器</text>
+<text class="ts" x="340" y="336" text-anchor="middle">socket ／ 五元组区分连接 → 处理 → 返回</text>
+</g>
+</svg>

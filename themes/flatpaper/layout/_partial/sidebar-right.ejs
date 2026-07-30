@@ -42,6 +42,7 @@ var siteInfoItems = [
 // Menu entry helpers shared with header.ejs — see scripts/menu-helpers.js.
 var __menu = flatpaper_menu_helpers();
 var menuChildren = __menu.children, menuHref = __menu.href, menuIcon = __menu.icon, menuText = __menu.text, menuActive = __menu.active;
+var showContentToc = is_post() || (page.layout === 'page' && page.toc === true);
 %>
 
 <aside id="paper-sidebar-drawer" class="paper-sidebar paper-sidebar--right" aria-label="<%= flatpaper_i18n('navigation.sidebar') %>">
@@ -204,7 +205,7 @@ var menuChildren = __menu.children, menuHref = __menu.href, menuIcon = __menu.ic
     </section>
   <% } %>
 
-  <% if (is_post()) { %>
+  <% if (showContentToc) { %>
     <div class="post-sticky-stack">
       <section class="side-card toc-card">
         <header class="toc-card__head">

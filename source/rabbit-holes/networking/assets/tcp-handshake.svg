@@ -1,0 +1,49 @@
+<svg width="100%" viewBox="0 0 680 500" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>TCP 三次握手与四次挥手时序</title>
+<desc>客户端与服务器之间的 TCP 连接全过程。三次握手：客户端发 SYN，服务器回 SYN+ACK，客户端再回 ACK，连接建立。中间双向传输数据。四次挥手：客户端发 FIN，服务器回 ACK，服务器发 FIN，客户端回 ACK，客户端进入 TIME_WAIT 后彻底关闭。</desc>
+<style>
+svg{--color-text-primary:#1f2328;--color-text-secondary:#57606a;--color-border-secondary:#d0d7de;--color-text-info:#0969da;}
+text{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+.th{font-size:14px;font-weight:600;fill:#1f2328;}.ts{font-size:11px;fill:#57606a;}.t{font-size:13px;fill:#1f2328;}
+.c-teal rect{fill:#d7f3ee;stroke:#0d9488;}.c-teal text{fill:#0f766e;}
+.c-amber rect{fill:#fef3c7;stroke:#d97706;}.c-amber text{fill:#b45309;}
+</style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="500" fill="#ffffff"/>
+<g class="c-teal">
+<rect x="110" y="40" width="120" height="40" rx="10" stroke-width="0.5"/>
+<text class="th" x="170" y="59" text-anchor="middle">客户端</text>
+<text class="ts" x="170" y="74" text-anchor="middle">你的程序</text>
+</g>
+<g class="c-amber">
+<rect x="450" y="40" width="120" height="40" rx="10" stroke-width="0.5"/>
+<text class="th" x="510" y="59" text-anchor="middle">服务器</text>
+<text class="ts" x="510" y="74" text-anchor="middle">listen 中</text>
+</g>
+<line x1="170" y1="82" x2="170" y2="482" stroke="var(--color-border-secondary)" stroke-width="1.5" stroke-dasharray="4 4"/>
+<line x1="510" y1="82" x2="510" y2="482" stroke="var(--color-border-secondary)" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text class="th" x="44" y="116" text-anchor="start">三次握手</text>
+<text class="ts" x="340" y="125" text-anchor="middle">① SYN  seq=x —— 我要连，序号从 x 起</text>
+<line x1="170" y1="132" x2="510" y2="132" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="167" text-anchor="middle">② SYN+ACK  ack=x+1, seq=y —— 好，我从 y 起</text>
+<line x1="510" y1="174" x2="170" y2="174" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="209" text-anchor="middle">③ ACK  ack=y+1 —— 收到，开整</text>
+<line x1="170" y1="216" x2="510" y2="216" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="244" text-anchor="middle">✓ 连接建立：双方都确认了对方收发正常</text>
+<text class="ts" x="340" y="278" text-anchor="middle">── 双向收发数据 · 滑动窗口 / 拥塞控制（见 05-tcp）──</text>
+<line x1="170" y1="288" x2="510" y2="288" stroke="var(--color-border-secondary)" stroke-width="1" stroke-dasharray="2 4"/>
+<text class="th" x="44" y="320" text-anchor="start">四次挥手</text>
+<text class="ts" x="340" y="329" text-anchor="middle">① FIN —— 我发完了，想关闭</text>
+<line x1="170" y1="336" x2="510" y2="336" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="371" text-anchor="middle">② ACK —— 知道了（我可能还有数据要发）</text>
+<line x1="510" y1="378" x2="170" y2="378" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="413" text-anchor="middle">③ FIN —— 我也发完了</text>
+<line x1="510" y1="420" x2="170" y2="420" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="340" y="455" text-anchor="middle">④ ACK —— 好，再见</text>
+<line x1="170" y1="462" x2="510" y2="462" stroke="var(--color-text-primary)" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="170" y="480" text-anchor="middle">TIME_WAIT：等 2×MSL 才真正关</text>
+</svg>

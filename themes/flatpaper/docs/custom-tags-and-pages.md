@@ -94,6 +94,8 @@ top_img: /images/pages/links.jpg
 
 Page top images only use the current page's `top_img`. There is no theme-level fallback or configuration for pages; leaving `top_img` empty renders no image.
 
+Set `toc: true` on a regular standalone page to show its content table of contents in the desktop sidebar and mobile sidebar drawer. Pages without it keep the default category and tag cards.
+
 For a static 404 page, create `source/404.md` in the Hexo site:
 
 ```yaml
