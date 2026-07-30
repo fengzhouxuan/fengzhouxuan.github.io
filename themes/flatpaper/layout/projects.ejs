@@ -1,0 +1,99 @@
+<%
+var data = site.data && site.data.projects ? site.data.projects : [];
+var groups = Array.isArray(data) ? data : [data];
+groups = groups.filter(function (group) {
+  return group && Array.isArray(group.project_list) && group.project_list.length;
+});
+
+function projectHref(value) {
+  var raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(raw)) {
+    return flatpaper_safe_url(raw, 'href');
+  }
+  return flatpaper_safe_url(url_for(raw), 'href');
+}
+%>
+
+<section class="taxonomy-paper projects-intro">
+  <span class="label-pill"><%= flatpaper_i18n('projects.label') %></span>
+  <h1><%= page.title || flatpaper_i18n('projects.title') %></h1>
+  <div class="projects-intro__copy">
+    <%- page.content %>
+  </div>
+</section>
+
+<% if (!groups.length) { %>
+  <section class="empty-paper">
+    <p class="empty-state"><%= flatpaper_i18n('projects.empty') %></p>
+  </section>
+<% } %>
+
+<% groups.forEach(function (group, groupIndex) { %>
+  <section class="projects-group">
+    <header class="projects-group__head">
+      <div>
+        <span class="green-dot" aria-hidden="true"></span>
+        <h2><%= group.group_name %></h2>
+      </div>
+      <% if (group.group_desc) { %>
+        <p><%= group.group_desc %></p>
+      <% } %>
+    </header>
+
+    <div class="projects-grid">
+      <% group.project_list.forEach(function (project, projectIndex) {
+        var cover = project.cover ? flatpaper_safe_url(url_for(project.cover), 'image') : '';
+        var liveHref = projectHref(project.live);
+        var sourceHref = projectHref(project.source);
+        var tags = Array.isArray(project.tags) ? project.tags : [];
+      %>
+        <article class="project-card project-card--<%= (groupIndex + projectIndex) % 4 %>">
+          <div class="project-card__visual">
+            <% if (cover) { %>
+              <img src="<%= cover %>" alt="<%= project.name %> 项目预览" loading="lazy">
+            <% } else { %>
+              <div class="project-card__placeholder" aria-hidden="true">
+                <span><%= (project.name || '?').charAt(0) %></span>
+              </div>
+            <% } %>
+            <% if (project.status) { %>
+              <span class="project-card__status"><%= project.status %></span>
+            <% } %>
+          </div>
+
+          <div class="project-card__body">
+            <% if (project.eyebrow) { %>
+              <span class="project-card__eyebrow"><%= project.eyebrow %></span>
+            <% } %>
+            <h3><%= project.name %></h3>
+            <p><%= project.description %></p>
+
+            <% if (tags.length) { %>
+              <ul class="project-card__tags" aria-label="<%= flatpaper_i18n('projects.tech_stack') %>">
+                <% tags.forEach(function (tag) { %>
+                  <li><%= tag %></li>
+                <% }) %>
+              </ul>
+            <% } %>
+
+            <div class="project-card__actions">
+              <% if (liveHref) { %>
+                <a class="project-action project-action--primary" href="<%= liveHref %>" target="_blank" rel="noopener">
+                  <%- partial('_partial/icons', { icon: 'eye' }) %>
+                  <%= flatpaper_i18n('projects.live') %>
+                </a>
+              <% } %>
+              <% if (sourceHref) { %>
+                <a class="project-action" href="<%= sourceHref %>" target="_blank" rel="noopener noreferrer">
+                  <%- partial('_partial/icons', { icon: 'github' }) %>
+                  <%= flatpaper_i18n('projects.source') %>
+                </a>
+              <% } %>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+<% }) %>

@@ -80,6 +80,7 @@ Recognized values:
 - `tags`
 - `categories`
 - `rabbit-holes`
+- `projects`
 
 Anything else falls back to the default page layout.
 
@@ -98,6 +99,8 @@ Page top images only use the current page's `top_img`. There is no theme-level f
 Set `toc: true` on a regular standalone page to show its content table of contents in the desktop sidebar and mobile sidebar drawer. Pages without it keep the default category and tag cards.
 
 `type: rabbit-holes` reads `source/_data/rabbit_holes.yml` and renders topic entries with the same card grid used on the home page. Each item may define `title`, `subtitle`, `description`, `chapters`, and `path`; set `coming_soon: true` for an unavailable topic.
+
+`type: projects` reads `source/_data/projects.yml` and renders grouped project cards. Each group uses `group_name`, `group_desc`, and `project_list`; projects may define `name`, `eyebrow`, `description`, `cover`, `status`, `tags`, `live`, and `source`. Both `live` and `source` accept site-local paths or absolute URLs.
 
 For a static 404 page, create `source/404.md` in the Hexo site:
 

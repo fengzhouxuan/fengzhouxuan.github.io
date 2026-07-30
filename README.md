@@ -23,6 +23,7 @@ npm run check
 
 - `source/_posts/`：普通文章。
 - `source/rabbit-holes/`：按主题组织的兔子洞文档。
+- `source/projects/`：项目工坊页面与可在线运行的静态项目。
 - `source/about/`：关于页面。
 - `source/friend/`：友情链接页面。
 - `source/images/`：站点横幅、图标等公共图片。
@@ -31,4 +32,4 @@ npm run check
 
 ## 历史内容
 
-旧 Jekyll 站点及历史静态项目保留在独立的 legacy 分支中，不参与新站构建。
+旧 Jekyll 站点保留在独立的 legacy 分支中；已整理的静态项目会按需迁入新站。

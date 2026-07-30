@@ -1,0 +1,52 @@
+- group_name: 在线工具
+  group_desc: 打开浏览器就能使用，数据只在本地处理。
+  project_list:
+    - name: 九宫图切分器
+      eyebrow: Web Tool
+      description: 通过四边 inset 裁掉九宫图中可拉伸区域的冗余像素，生成更小的代表图。
+      cover: /images/projects/image-slicer.jpg
+      status: 在线体验
+      tags:
+        - Vue
+        - TypeScript
+        - Canvas
+      live: /projects/image-slicer/
+      source: https://github.com/fengzhouxuan/simpleTools
+
+- group_name: 游戏与 Demo
+  group_desc: 可以直接运行的引擎构建与交互实验。
+  project_list:
+    - name: Cocos 3D 小游戏
+      eyebrow: Cocos Creator
+      description: 基于 Cocos Creator 3.x 构建的 Web 端闯关 Demo，保留完整引擎与关卡资源。
+      cover: /images/projects/cocos-game.jpg
+      status: 在线游玩
+      tags:
+        - Cocos Creator
+        - TypeScript
+        - WebGL
+      live: /projects/cocos-game/
+      source: https://github.com/fengzhouxuan/mlgf-ccc
+
+- group_name: 桌面应用与开源工程
+  group_desc: 更完整的工具链、框架与长期维护项目。
+  project_list:
+    - name: SimpleImage
+      eyebrow: Desktop App
+      description: 面向游戏美术资源流程的本地图像工具箱，包含压缩、图集、九宫图、图标与图片对比等能力。
+      cover: /images/projects/simple-image.png
+      status: macOS · 开源
+      tags:
+        - Electron
+        - Preact
+        - Sharp
+      source: https://github.com/fengzhouxuan/simpleTools
+    - name: MLGameFramework
+      eyebrow: Game Framework
+      description: 为 Cocos Creator 项目整理的游戏客户端框架与工程实践。
+      status: 开源项目
+      tags:
+        - Cocos Creator
+        - JavaScript
+        - Framework
+      source: https://github.com/fengzhouxuan/MLGameFramework
