@@ -80,6 +80,7 @@ type: links
 - `tags`
 - `categories`
 - `rabbit-holes`
+- `projects`
 
 其他值会回退到默认页面布局。
 
@@ -98,6 +99,8 @@ top_img: /images/pages/links.jpg
 普通独立页面可设置 `toc: true`，在桌面侧栏和移动端侧栏抽屉中显示正文目录。未设置时仍显示默认的分类与标签卡片。
 
 `type: rabbit-holes` 会读取 `source/_data/rabbit_holes.yml`，以首页同款卡片网格展示主题入口。每项可填写 `title`、`subtitle`、`description`、`chapters`、`path`，并可用 `coming_soon: true` 标记待开主题。
+
+`type: projects` 会读取 `source/_data/projects.yml`，按分组渲染项目卡片。每个分组使用 `group_name`、`group_desc` 和 `project_list`；项目可填写 `name`、`eyebrow`、`description`、`cover`、`status`、`tags`、`live` 与 `source`。`live` 和 `source` 支持站内路径或绝对 URL。
 
 要生成静态 404 页面，可在 Hexo 站点中创建 `source/404.md`：
 

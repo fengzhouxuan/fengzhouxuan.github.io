@@ -6,6 +6,9 @@ menu:
   兔子洞:
     link: /rabbit-holes/
     icon: book-open
+  项目:
+    link: /projects/
+    icon: layout-grid
   归档:
     link: /archives/
     icon: archive
