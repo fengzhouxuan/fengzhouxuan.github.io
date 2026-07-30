@@ -16,9 +16,9 @@
 - group_name: 游戏与 Demo
   group_desc: 可以直接运行的引擎构建与交互实验。
   project_list:
-    - name: Cocos 3D 小游戏
-      eyebrow: Cocos Creator
-      description: 基于 Cocos Creator 3.x 构建的 Web 端闯关 Demo，保留完整引擎与关卡资源。
+    - name: mlgf-ccc
+      eyebrow: Cocos 3D 闯关 Demo
+      description: 基于 Cocos Creator 3.7 构建的 Web 端闯关项目，包含关卡、资源加载与客户端框架实践。
       cover: /images/projects/cocos-game.jpg
       status: 在线游玩
       tags:
