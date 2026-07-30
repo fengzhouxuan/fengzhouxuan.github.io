@@ -7,7 +7,7 @@ categories:
   - "Unity"
 tags:
   - "Unity"
-cover: /images/legacy/home-bg.jpg
+cover: /images/covers/legacy/unity-tips.webp
 toc: true
 comments: false
 ---

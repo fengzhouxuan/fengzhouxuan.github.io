@@ -8,7 +8,7 @@ categories:
 tags:
   - "Unity"
   - "Android"
-cover: /images/legacy/post-bg-android.png
+cover: /images/covers/legacy/android-activity.webp
 toc: true
 comments: false
 ---
