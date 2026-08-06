@@ -1043,6 +1043,24 @@
       }, 520);
     }
 
+    // The header's home link deliberately targets the content anchor so a
+    // visitor returning from another page skips the opening hero. On the home
+    // page itself, letting that absolute URL navigate again briefly recreates
+    // the hero before the browser resolves the anchor. Handle the same-page
+    // case here instead, so the visible position is preserved (or smoothly
+    // moves down only when the visitor is still on the hero).
+    var homeContentLinks = document.querySelectorAll('a[href$="#flatpaper-home-content"]');
+    homeContentLinks.forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        var targetUrl;
+        try { targetUrl = new URL(link.href, window.location.href); } catch (e) { return; }
+        if (targetUrl.origin !== window.location.origin || targetUrl.pathname !== window.location.pathname) return;
+        event.preventDefault();
+        if (Math.abs(window.pageYOffset - homeTop()) <= 2) return;
+        scrollToHome();
+      });
+    });
+
     function closeVisitConfirm() {
       if (!confirmBubble) return;
       confirmBubble.remove();

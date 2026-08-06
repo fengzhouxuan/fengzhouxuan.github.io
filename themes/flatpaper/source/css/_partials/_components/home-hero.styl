@@ -16,6 +16,20 @@
   isolation: isolate;
 }
 
+// A primary-nav visit to /#flatpaper-home-content intentionally bypasses the
+// opening page. Collapse the hero as soon as the fragment target exists so the
+// browser never first paints the hero and then corrects the anchor position.
+// :has() is supported by the evergreen browsers this theme targets.
+body.has-home-hero:has(#flatpaper-home-content:target) .home-hero {
+  display: none;
+}
+
+// With the hero collapsed, the main element sits immediately below the sticky
+// header. Keep that clearance when the browser resolves the fragment target.
+#flatpaper-home-content:target {
+  scroll-margin-top: 128px;
+}
+
 body.has-home-hero.is-hero-active::before {
   opacity: 0;
 }
