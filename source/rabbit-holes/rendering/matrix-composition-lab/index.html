@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>矩阵乘法与组合变换</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color: #33423a; background: #fffdf5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px; }
+    .lab { max-width: 1060px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 32px); }
+    .intro, .hint { margin: 0; line-height: 1.7; color: #637069; }
+    .controls, .formula, .panels { display: grid; gap: 14px; }
+    .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 20px 0 14px; }
+    .control, .formula, .panel { background: #fffefa; border: 1px dashed #d8cba8; border-radius: 16px; box-shadow: 3px 4px 0 rgb(183 162 108 / 14%); }
+    .control { padding: 14px 16px; }
+    label { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
+    output { color: #d66d44; font-variant-numeric: tabular-nums; }
+    input { width: 100%; margin-top: 12px; accent-color: #d66d44; }
+    .formula { grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; padding: 14px 18px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; }
+    .matrix { display: grid; grid-template-columns: repeat(2, auto); gap: 4px 10px; min-width: 84px; padding: 5px 13px; border-left: 2px solid #637069; border-right: 2px solid #637069; text-align: center; }
+    .panels { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
+    .panel { padding: 12px; text-align: center; }
+    .panel h2 { margin: 0 0 8px; font-size: 16px; }
+    svg { display: block; width: 100%; height: auto; border-radius: 10px; background: #fcf9ea; }
+    .result { margin: 15px 0 0; padding: 14px 16px; border-left: 4px solid #82a86d; background: #f1f7ec; border-radius: 0 12px 12px 0; line-height: 1.7; }
+    .result strong { color: #527b43; }
+    @media (max-width: 720px) { .controls, .panels { grid-template-columns: 1fr; } .formula { grid-template-columns: 1fr; justify-items: center; } .formula > span { transform: rotate(90deg); } }
+  </style>
+</head>
+<body>
+  <main class="lab">
+    <h1>把两个变换接成一个：A × B</h1>
+    <p class="intro">拖动滑块：先由 <strong>B</strong> 拉伸单位正方形，再由 <strong>A</strong> 旋转。右侧的结果矩阵正是这个完整过程。</p>
+
+    <section class="controls" aria-label="变换控制">
+      <div class="control">
+        <label for="scale">B：x 方向缩放 <output id="scale-value">2.00</output></label>
+        <input id="scale" type="range" min="0.5" max="3" step="0.1" value="2">
+      </div>
+      <div class="control">
+        <label for="angle">A：逆时针旋转 <output id="angle-value">90°</output></label>
+        <input id="angle" type="range" min="-180" max="180" step="5" value="90">
+      </div>
+    </section>
+
+    <section class="formula" aria-label="矩阵乘法结果">
+      <div><div>B</div><div class="matrix"><span id="b11">2</span><span>0</span><span>0</span><span>1</span></div></div>
+      <span>→ A →</span>
+      <div><div>A</div><div class="matrix"><span id="a11">0</span><span id="a12">-1</span><span id="a21">1</span><span id="a22">0</span></div></div>
+      <span>=</span>
+      <div><div>A × B</div><div class="matrix"><span id="ab11">0</span><span id="ab12">-1</span><span id="ab21">2</span><span id="ab22">0</span></div></div>
+    </section>
+
+    <section class="panels" aria-label="组合变换的几何过程">
+      <article class="panel"><h2>原始单位正方形</h2><svg id="original" viewBox="0 0 240 240" aria-label="原始单位正方形"></svg></article>
+      <article class="panel"><h2>先做 B</h2><svg id="after-b" viewBox="0 0 240 240" aria-label="B 变换后"></svg></article>
+      <article class="panel"><h2>再做 A，也就是 A × B</h2><svg id="after-ab" viewBox="0 0 240 240" aria-label="组合变换后"></svg></article>
+    </section>
+
+    <p class="result" id="summary"></p>
+    <p class="hint">看矩阵的两列：第一列是原 x 轴的最终去向，第二列是原 y 轴的最终去向。每次滑动时，右图的两条彩色箭头都会对应这两列。</p>
+  </main>
+  <script>
+    const ns = 'http://www.w3.org/2000/svg';
+    const $ = id => document.getElementById(id);
+    const clean = value => Math.abs(value) < 1e-8 ? 0 : value;
+    const format = value => clean(value).toFixed(2).replace(/\.00$/, '');
+    const multiply = (m, v) => [m[0] * v[0] + m[1] * v[1], m[2] * v[0] + m[3] * v[1]];
+    function node(name, attrs) { const el = document.createElementNS(ns, name); Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value)); return el; }
+    function draw(id, e1, e2) {
+      const svg = $(id); svg.replaceChildren();
+      const origin = [100, 140], unit = 55;
+      for (let i = -2; i <= 2; i++) {
+        svg.append(node('line', { x1: 0, y1: origin[1] - i * unit, x2: 240, y2: origin[1] - i * unit, stroke: '#e4d8b9', 'stroke-width': 1 }));
+        svg.append(node('line', { x1: origin[0] + i * unit, y1: 0, x2: origin[0] + i * unit, y2: 240, stroke: '#e4d8b9', 'stroke-width': 1 }));
+      }
+      svg.append(node('line', { x1: 0, y1: origin[1], x2: 240, y2: origin[1], stroke: '#8c9a92', 'stroke-width': 1.5 }));
+      svg.append(node('line', { x1: origin[0], y1: 0, x2: origin[0], y2: 240, stroke: '#8c9a92', 'stroke-width': 1.5 }));
+      const point = v => [origin[0] + v[0] * unit, origin[1] - v[1] * unit];
+      const p1 = point(e1), p2 = point(e2), p3 = point([e1[0] + e2[0], e1[1] + e2[1]]);
+      svg.append(node('polygon', { points: [origin, p1, p3, p2].map(p => p.join(',')).join(' '), fill: '#8fc4e8', 'fill-opacity': .42, stroke: '#4d9fd1', 'stroke-width': 2 }));
+      [[p1, '#e97849', 'e₁'], [p2, '#5cae72', 'e₂']].forEach(([p, color, label]) => {
+        svg.append(node('line', { x1: origin[0], y1: origin[1], x2: p[0], y2: p[1], stroke: color, 'stroke-width': 4, 'stroke-linecap': 'round' }));
+        const text = node('text', { x: p[0] + 6, y: p[1] - 7, fill: color, 'font-size': 15, 'font-weight': 700 }); text.textContent = label; svg.append(text);
+      });
+      svg.append(node('circle', { cx: origin[0], cy: origin[1], r: 4.5, fill: '#33423a' }));
+    }
+    function update() {
+      const scale = Number($('scale').value), degree = Number($('angle').value), rad = degree * Math.PI / 180;
+      const A = [Math.cos(rad), -Math.sin(rad), Math.sin(rad), Math.cos(rad)], B = [scale, 0, 0, 1];
+      const e1 = multiply(A, [scale, 0]), e2 = multiply(A, [0, 1]);
+      $('scale-value').value = scale.toFixed(2); $('angle-value').value = `${degree}°`;
+      [['b11', scale], ['a11', A[0]], ['a12', A[1]], ['a21', A[2]], ['a22', A[3]], ['ab11', e1[0]], ['ab21', e1[1]], ['ab12', e2[0]], ['ab22', e2[1]]].forEach(([id, value]) => { $(id).textContent = format(value); });
+      draw('original', [1, 0], [0, 1]); draw('after-b', [scale, 0], [0, 1]); draw('after-ab', e1, e2);
+      $('summary').innerHTML = `<strong>结果：</strong>B 的第一列 <code>(${format(scale)}, 0)</code> 经 A 变成 <code>(${format(e1[0])}, ${format(e1[1])})</code>；第二列 <code>(0, 1)</code> 经 A 变成 <code>(${format(e2[0])}, ${format(e2[1])})</code>。它们就是 A × B 的两列。`;
+    }
+    ['scale', 'angle'].forEach(id => $(id).addEventListener('input', update)); update();
+  </script>
+</body>
+</html>
