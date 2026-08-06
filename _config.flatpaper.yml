@@ -1,7 +1,7 @@
 # 导航菜单：
 menu:
   首页:
-    link: /
+    link: /#flatpaper-home-content
     icon: home
   兔子洞:
     link: /rabbit-holes/
