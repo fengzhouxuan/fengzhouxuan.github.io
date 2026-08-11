@@ -36,14 +36,14 @@ Cocos / Unity 如何包装它
 | 01 | [从场景到像素](/rabbit-holes/rendering/01-from-scene-to-pixel/) | 渲染就是把场景数据逐层变换成帧缓冲里的像素；分清像素、片元、颜色、分辨率和采样，是理解后续管线的地基 |
 | 02 | [顶点、三角形与插值](/rabbit-holes/rendering/02-vertices-triangles-interpolation/) | 顶点提供离散属性，三角形确定覆盖范围，光栅化再用重心坐标为内部片元连续插值 |
 | 03 | [坐标系与矩阵变换](/rabbit-holes/rendering/03-coordinate-spaces-and-matrices/) | 同一个顶点依次经过模型、观察、投影、透视除法和视口变换，才从局部坐标来到屏幕像素 |
-| 04 | [CPU 怎样组织数据并命令 GPU 绘制](/rabbit-holes/rendering/04-cpu-gpu-data-and-draw-calls/) | 从 Mesh、Draw Call 和合批追到 Attribute、Uniform 与 Varying；Buffer 和命令提交继续深入中 |
+| 04 | [CPU 怎样组织数据并命令 GPU 绘制](/rabbit-holes/rendering/04-cpu-gpu-data-and-draw-calls/) | 从场景对象到 Buffer、Draw Call、命令队列与同步，理解 CPU 如何把工作交给 GPU |
 
 ## 后续追问路线
 
 - [x] 01. 渲染是什么；像素、片元、分辨率与颜色
 - [x] 02. 顶点、三角形、网格与插值
 - [x] 03. 向量、坐标系与矩阵变换
-- [ ] 04. CPU 如何组织数据并向 GPU 提交命令（进行中：已完成到 Shader 输入的数据分类）
+- [x] 04. CPU 如何组织数据并向 GPU 提交命令
 - [ ] 05. 顶点着色器、图元装配、裁剪与光栅化
 - [ ] 06. 片元着色器、纹理、UV 与采样
 - [ ] 07. 深度测试、模板测试与透明混合
