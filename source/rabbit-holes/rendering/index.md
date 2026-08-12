@@ -37,6 +37,7 @@ Cocos / Unity 如何包装它
 | 02 | [顶点、三角形与插值](/rabbit-holes/rendering/02-vertices-triangles-interpolation/) | 顶点提供离散属性，三角形确定覆盖范围，光栅化再用重心坐标为内部片元连续插值 |
 | 03 | [坐标系与矩阵变换](/rabbit-holes/rendering/03-coordinate-spaces-and-matrices/) | 同一个顶点依次经过模型、观察、投影、透视除法和视口变换，才从局部坐标来到屏幕像素 |
 | 04 | [CPU 怎样组织数据并命令 GPU 绘制](/rabbit-holes/rendering/04-cpu-gpu-data-and-draw-calls/) | 从场景对象到 Buffer、Draw Call、命令队列与同步，理解 CPU 如何把工作交给 GPU |
+| 05 | [顶点进入 GPU 后，怎样变成屏幕上的片元](/rabbit-holes/rendering/05-vertex-processing-clipping-rasterization/) | 从索引复用、图元装配和齐次裁剪，走到视口变换、采样覆盖与片元生成 |
 
 ## 后续追问路线
 
@@ -44,7 +45,7 @@ Cocos / Unity 如何包装它
 - [x] 02. 顶点、三角形、网格与插值
 - [x] 03. 向量、坐标系与矩阵变换
 - [x] 04. CPU 如何组织数据并向 GPU 提交命令
-- [ ] 05. 顶点着色器、图元装配、裁剪与光栅化
+- [ ] 05. 顶点着色器、图元装配、裁剪与光栅化（进行中：已完成到片元覆盖，下一步是透视正确插值）
 - [ ] 06. 片元着色器、纹理、UV 与采样
 - [ ] 07. 深度测试、模板测试与透明混合
 - [ ] 08. 法线、光照、材质与阴影
