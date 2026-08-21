@@ -33,6 +33,13 @@
   chapters: 3
   path: /rabbit-holes/rendering/
 
+- slug: git
+  title: Git
+  subtitle: Version Control
+  description: 从嵌入另一个仓库追到 commit 固定、分支升级、版本发布与 Cocos 框架复用。
+  chapters: 1
+  path: /rabbit-holes/git/
+
 - slug: cicd
   title: CI/CD
   subtitle: Coming next

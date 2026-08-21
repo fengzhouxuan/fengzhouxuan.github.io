@@ -34,6 +34,7 @@ permalink: /rabbit-holes/patterns/
 - [JavaScript 内存与生命周期](/rabbit-holes/javascript/03-memory-lifecycle/)：业务生命周期、JS 引用可达性、宿主和 native 资源属于不同层，结束其中一层不代表其他层已经结束。
 - [ECMAScript、模块与兼容](/rabbit-holes/javascript/06-modules-and-compatibility/)：语言版本、模块系统、构建转换和运行时 polyfill 是四层不同问题，名字同时出现不代表属于同一条版本线。
 - [从场景到像素](/rabbit-holes/rendering/01-from-scene-to-pixel/)：场景、几何、片元和像素属于不同表示层；渲染管线让每一层只完成一种变换，再把结果交给下一层。
+- [Git 子模块](/rabbit-holes/git/01-git-submodules/)：父项目管理依赖版本，子模块管理自身代码与历史；`.gitmodules` 只描述入口，父项目的 gitlink 才负责固定可复现的 commit。
 
 ## 在更弱的底座上补出更强的抽象
 
