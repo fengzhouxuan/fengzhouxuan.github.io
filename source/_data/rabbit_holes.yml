@@ -30,7 +30,7 @@
   title: 渲染
   subtitle: Rendering
   description: 从一帧画面追到像素、三角形、插值、坐标空间、矩阵与 GPU 管线。
-  chapters: 3
+  chapters: 5
   path: /rabbit-holes/rendering/
 
 - slug: git
