@@ -40,6 +40,13 @@
   chapters: 1
   path: /rabbit-holes/git/
 
+- slug: simulation
+  title: 确定性模拟
+  subtitle: Deterministic Simulation
+  description: 从帧同步为什么怕浮点数，追到定点表示、舍入、格子边界、快照与状态 Hash。
+  chapters: 1
+  path: /rabbit-holes/simulation/
+
 - slug: cicd
   title: CI/CD
   subtitle: Coming next
