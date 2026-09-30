@@ -5,6 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
 
 permissions:
   contents: read
@@ -30,6 +32,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Checkout music station
+        uses: actions/checkout@v4
+        with:
+          repository: fengzhouxuan/musicsquare
+          ref: main
+          path: .music-station
+          persist-credentials: false
+
+      - name: Export music station
+        run: node .music-station/scripts/export-site.mjs source/music
 
       - name: Build
         run: npm run build

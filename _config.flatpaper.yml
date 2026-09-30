@@ -9,6 +9,9 @@ menu:
   项目:
     link: /projects/
     icon: layout-grid
+  音乐站:
+    link: /music/
+    icon: music
   归档:
     link: /archives/
     icon: archive
