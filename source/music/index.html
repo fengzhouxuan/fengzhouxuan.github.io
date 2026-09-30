@@ -1448,6 +1448,7 @@
             <div id="featured-toolbar">
               <div class="featured-tools">
                 <select id="featured-source" aria-label="歌单平台">
+                  <option value="all">全部平台</option>
                   <option value="netease">网易云音乐</option><option value="qq">QQ 音乐</option><option value="kuwo">酷我音乐</option>
                 </select>
                 <select id="featured-tag" aria-label="歌单分类"></select>
@@ -3019,7 +3020,7 @@
       }finally{
         featured.loading=false;
         if(featured.selected){
-          featured.selected=featured.catalog?.sources[featured.source]?.playlists.find(p=>p.id===featured.selected.id)||null;
+          featured.selected=MusicSquareFeatured.getPlaylists(featured.catalog,featured.selected.source).find(p=>p.id===featured.selected.id)||null;
         }
         renderPlaylistList();
       }
@@ -3032,13 +3033,15 @@
       featured.failed.clear();featured.failureStreak=0;
       state.playMode=shuffle?'shuffle':'list';setPlaymodeUI();
       if(shuffle)index=Math.floor(Math.random()*featured.queue.length);
-      playFromList('featured',index,featured.source+'-'+featured.selected.id);
+      playFromList('featured',index,featured.selected.source+'-'+featured.selected.id);
     }
 
     function renderFeatured(){
       const featured=state.featured;
       const data=featured.catalog?.sources[featured.source];
-      const playlists=data?.playlists||[];
+      const playlists=MusicSquareFeatured.getPlaylists(featured.catalog,featured.source);
+      const sourceLabel=source=>t(source==='netease'?'sourceNetease':source==='qq'?'sourceQQ':'sourceKuwo');
+      dom.featuredSource.querySelector('[value="all"]').textContent=featuredText('全部平台','All platforms');
       const tags=[...new Set(playlists.flatMap(p=>p.tags))].sort();
       if(!tags.includes(featured.tag))featured.tag='';
       dom.featuredTag.replaceChildren();
@@ -3054,12 +3057,15 @@
       dom.featuredPlay.textContent=featuredText('▶ 播放全部','▶ Play all');
       dom.featuredShuffle.textContent=featuredText('🔀 随机播放','🔀 Shuffle');
       dom.featuredOriginal.textContent=featuredText('原平台','Original');
-      const updated=featured.selected?.updatedAt||data?.updatedAt;
+      const updated=featured.selected?.updatedAt||(featured.source==='all'?featured.catalog?.generatedAt:data?.updatedAt);
       const date=updated?new Date(updated).toLocaleString(state.language==='zh'?'zh-CN':'en-US'):'';
+      const errors=featured.source==='all'
+        ? MusicSquareFeatured.sources.filter(source=>featured.catalog?.sources[source]?.error).map(source=>sourceLabel(source)+': '+featuredText(featured.catalog.sources[source].error,'Some data could not be updated; showing saved data.')).join(' · ')
+        : data?.error?featuredText(data.error,'Some data could not be updated; showing saved data.'):'';
       dom.featuredStatus.textContent=[
         featured.loading?featuredText('加载歌单中…','Loading playlists…'):featured.error,
         date?featuredText('更新于 ','Updated ')+date:'',
-        data?.error?featuredText(data.error,'Some data could not be updated; showing saved data.'):'',
+        errors,
         featured.cached?featuredText('本地缓存','Local cache'):''
       ].filter(Boolean).join(' · ');
       dom.featuredActions.hidden=!featured.selected;
@@ -3069,7 +3075,7 @@
         const playlist=featured.selected;
         dom.playlistInfo.textContent=playlist.name;
         const count=playlist.tracks.length;
-        dom.featuredDescription.textContent=(playlist.creator?playlist.creator+' · ':'')+
+        dom.featuredDescription.textContent=sourceLabel(playlist.source)+' · '+(playlist.creator?playlist.creator+' · ':'')+
           featuredText(count+' 首'+(count<playlist.trackCount?'（原歌单 '+playlist.trackCount+' 首）':''),count+' tracks'+(count<playlist.trackCount?' ('+playlist.trackCount+' in original)':''))+
           (playlist.description?'\n'+playlist.description.slice(0,260):'');
         dom.featuredOriginal.hidden=!playlist.pageUrl;
@@ -3083,7 +3089,7 @@
         const card=document.createElement('button');card.className='featured-card';
         if(playlist.cover){const img=document.createElement('img');img.src=playlist.cover;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';card.appendChild(img);}
         const name=document.createElement('strong');name.textContent=playlist.name;card.appendChild(name);
-        const meta=document.createElement('small');meta.textContent=featuredText(playlist.tracks.length+' 首',playlist.tracks.length+' tracks')+(playlist.tags.length?' · '+playlist.tags.join(' / '):'');card.appendChild(meta);
+        const meta=document.createElement('small');meta.textContent=sourceLabel(playlist.source)+' · '+featuredText(playlist.tracks.length+' 首',playlist.tracks.length+' tracks')+(playlist.tags.length?' · '+playlist.tags.join(' / '):'');card.appendChild(meta);
         card.addEventListener('click',()=>{featured.selected=playlist;dom.playlistMain.scrollTop=0;renderPlaylistList();});
         grid.appendChild(card);
       }

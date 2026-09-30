@@ -58,6 +58,12 @@
     return catalog;
   }
 
+  function getPlaylists(catalog,source='all',tag=''){
+    const selected=source==='all'?sources:[source];
+    return selected.flatMap(key=>catalog?.sources?.[key]?.playlists||[])
+      .filter(playlist=>!tag || playlist.tags.includes(tag));
+  }
+
   function nextIndex(list,current,direction,mode,failed,random=Math.random){
     if(!list.length)return -1;
     const available=list.map((track,index)=>index).filter(index=>!failed.has(list[index].uid));
@@ -108,7 +114,7 @@
     return {audioUrl,detailsLoaded:true};
   }
 
-  const api={sources,safeURL,normalizeTrack,normalizePlaylist,parseCatalog,nextIndex,requestJSON,resolveTrack};
+  const api={sources,safeURL,normalizeTrack,normalizePlaylist,parseCatalog,getPlaylists,nextIndex,requestJSON,resolveTrack};
   if(typeof module==='object' && module.exports)module.exports=api;
   else root.MusicSquareFeatured=api;
 })(typeof window==='object'?window:globalThis);
