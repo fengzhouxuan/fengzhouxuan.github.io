@@ -13,6 +13,24 @@
   }
 }
 
+/* Keep longer menus on one line before navigation moves into the drawer. */
+@media (min-width: 961px) and (max-width: 1280px) {
+  .site-header {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+
+  .site-nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .site-nav-link,
+  .site-nav a {
+    white-space: nowrap;
+  }
+}
+
 /* sidebar drawer chrome (active only on narrow screens) */
 .sidebar-toggle { display: none; }
 
