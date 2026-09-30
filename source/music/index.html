@@ -232,10 +232,10 @@
                 </div>
               </div>
               <div id="featured-actions" class="featured-tools" hidden>
-                <button id="featured-back" class="btn btn-ghost">← 歌单</button>
-                <button id="featured-play" class="btn btn-secondary">▶ 播放全部</button>
-                <button id="featured-shuffle" class="btn btn-ghost">🔀 随机播放</button>
-                <a id="featured-original" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">原平台</a>
+                <button id="featured-back" class="btn btn-ghost" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16"/></svg><span>返回歌单</span></button>
+                <button id="featured-play" class="btn" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 12 7-12 7Z"/></svg><span>播放全部</span></button>
+                <button id="featured-shuffle" class="btn btn-secondary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 3 3 3-3 3m0 6 3 3-3 3M3 6h3c5 0 7 12 12 12h3M3 18h3c2 0 3-1 4-3m4-6c1-2 2-3 4-3h3"/></svg><span>随机播放</span></button>
+                <a id="featured-original" class="btn btn-ghost" target="_blank" rel="noopener noreferrer"><span>原平台</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
               </div>
               <div class="featured-update"><p id="featured-status" class="featured-status" role="status"></p><button id="featured-refresh" class="refresh-button" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M16 7a6 6 0 1 0 0 6M16 3v4h-4"/></svg><span id="refresh-label">刷新</span></button></div>
               <p id="featured-description" class="featured-description"></p>
@@ -1899,10 +1899,10 @@
       renderCategoryOptions();
       dom.refreshLabel.textContent=featuredText('刷新','Refresh');
       dom.featuredRefresh.disabled=featured.loading;
-      dom.featuredBack.textContent=featuredText('← 歌单','← Playlists');
-      dom.featuredPlay.textContent=featuredText('▶ 播放全部','▶ Play all');
-      dom.featuredShuffle.textContent=featuredText('🔀 随机播放','🔀 Shuffle');
-      dom.featuredOriginal.textContent=featuredText('原平台','Original');
+      dom.featuredBack.querySelector('span').textContent=featuredText('返回歌单','Back to playlists');
+      dom.featuredPlay.querySelector('span').textContent=featuredText('播放全部','Play all');
+      dom.featuredShuffle.querySelector('span').textContent=featuredText('随机播放','Shuffle');
+      dom.featuredOriginal.querySelector('span').textContent=featuredText('原平台','Original');
       const updated=featured.selected?.updatedAt||(featured.source==='all'?featured.catalog?.generatedAt:data?.updatedAt);
       const date=updated?new Date(updated).toLocaleString(state.language==='zh'?'zh-CN':'en-US',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'';
       const errors=featured.source==='all'
@@ -2028,14 +2028,26 @@
         const act=document.createElement('div');
         act.className='track-actions';
         const pBtn=document.createElement('button');
-        pBtn.className='btn btn-secondary btn-icon ripple-target'; pBtn.textContent='▶';
+        pBtn.type='button';
+        pBtn.className='btn btn-icon track-play ripple-target';
+        pBtn.appendChild(dom.featuredPlay.querySelector('svg').cloneNode(true));
+        pBtn.title=featuredText('播放：','Play: ')+(track.title||'Unknown');
+        pBtn.setAttribute('aria-label',pBtn.title);
         const fBtn=document.createElement('button');
-        fBtn.className='btn btn-secondary btn-icon ripple-target'; fBtn.textContent='❤';
-        if(isFavorite(track)) fBtn.classList.add('btn-fav-active');
+        fBtn.type='button';
+        fBtn.className='btn btn-icon track-favorite ripple-target';
+        fBtn.appendChild(dom.favBtn.querySelector('svg').cloneNode(true));
+        const favorite=isFavorite(track);
+        fBtn.classList.toggle('btn-fav-active',favorite);
+        fBtn.setAttribute('aria-pressed',String(favorite));
+        fBtn.title=featuredText(favorite?'取消收藏：':'收藏：',favorite?'Unfavorite: ':'Favorite: ')+(track.title||'Unknown');
+        fBtn.setAttribute('aria-label',fBtn.title);
         const removeBtn=document.createElement('button');
-        removeBtn.className='btn btn-ghost btn-icon ripple-target';
-        removeBtn.textContent='×';
+        removeBtn.type='button';
+        removeBtn.className='btn btn-ghost btn-icon track-remove ripple-target';
+        removeBtn.appendChild(dom.categoryClose.querySelector('svg').cloneNode(true));
         removeBtn.title=t('removeFromPlaylist');
+        removeBtn.setAttribute('aria-label',removeBtn.title+'：'+(track.title||'Unknown'));
 
         pBtn.addEventListener('click',ev=>{
           ev.stopPropagation();

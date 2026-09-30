@@ -136,6 +136,17 @@ select { background:var(--paper);color:var(--ink);border:1px solid var(--dash);b
 .refresh-button:hover { color:var(--accent); }
 .refresh-button svg { width:13px;height:13px; }
 .featured-tools { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px; }
+.featured-tools .btn { min-height:38px;padding:7px 14px;gap:7px;border-radius:12px;font-weight:500;line-height:1.4;box-shadow:none;transition:background-color .18s,border-color .18s,color .18s; }
+.featured-tools .btn:hover { transform:none; }
+.featured-tools svg { width:16px;height:16px;flex-shrink:0; }
+#featured-back,#featured-original { background:transparent;border-color:transparent;color:var(--muted);padding-inline:6px; }
+#featured-back:hover,#featured-original:hover { color:var(--accent);background:rgba(79,136,98,.07); }
+#featured-back { margin-right:6px; }
+#featured-original { margin-left:auto; }
+#featured-play { border-color:var(--accent);box-shadow:0 2px 5px rgba(79,136,98,.12); }
+#featured-play:hover { background:#417752;border-color:#417752; }
+#featured-shuffle { background:var(--paper);border-color:var(--line);color:var(--ink-soft); }
+#featured-shuffle:hover { background:var(--accent-soft);border-color:#b7cdb1;color:var(--accent); }
 .featured-description { color:var(--ink-soft);font-size:13px;line-height:1.8;max-height:132px;overflow:auto;white-space:pre-line;margin:0 0 20px; }
 .featured-description:empty { display:none; }
 .featured-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px 20px; }
@@ -163,8 +174,15 @@ select { background:var(--paper);color:var(--ink);border:1px solid var(--dash);b
 .track-meta-sub { display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:3px; }
 .track-meta-sub > span:first-child { white-space:nowrap;text-overflow:ellipsis;overflow:hidden; }
 .track-meta-sub > span:last-child { white-space:nowrap;flex-shrink:0; }
-.track-actions { display:flex;gap:6px; }
-.track-actions .btn-icon { width:29px;min-height:29px;font-size:12px; }
+.track-actions { display:flex;align-items:center;gap:6px; }
+.track-actions .btn-icon { width:34px;height:34px;min-height:34px;padding:8px;border:1px solid transparent;border-radius:50%;box-shadow:none;background:transparent;color:var(--muted);transition:background-color .18s,color .18s; }
+.track-actions .btn-icon:hover { transform:none;background:var(--paper);color:var(--accent); }
+.track-actions svg { width:17px;height:17px;flex-shrink:0;stroke-linecap:round;stroke-linejoin:round; }
+.track-actions .track-play { background:rgba(79,136,98,.1);color:var(--accent); }
+.track-actions .track-play:hover { background:var(--accent);color:var(--paper); }
+.track-actions .track-play svg { transform:translateX(1px); }
+.track-actions .btn-fav-active,.track-actions .btn-fav-active:hover { background:#f5e5de;color:#b45f56; }
+.track-actions .track-favorite:hover,.track-actions .track-remove:hover { color:#b45f56; }
 .player-panel { position:fixed;bottom:16px;left:3vw;right:3vw;max-width:1300px;margin:auto;z-index:20;padding:16px 24px;background:var(--paper);border:1px dashed var(--dash);border-radius:5px 3px 6px 4px;box-shadow:0 8px 28px rgba(82,64,38,.15); }
 .player-panel::before { content:"";position:absolute;left:20%;top:-8px;width:65px;height:18px;background-color:var(--tape-green);background-image:var(--tape-stripes);transform:rotate(-3deg);pointer-events:none; }
 .player-panel > .panel-header { display:none; }
@@ -296,6 +314,10 @@ kbd { display:inline-block;margin-right:3px;padding:1px 5px;border:1px solid var
   .category-options { gap:12px 10px; }
   .category-options button { min-height:36px; }
   .featured-update { margin:10px 0 18px; }
+  .featured-tools { gap:8px 6px; }
+  .featured-tools .btn { min-height:40px;padding:8px 12px;font-size:12px; }
+  #featured-back { width:100%;justify-content:flex-start;margin:0;padding:0;min-height:32px; }
+  #featured-original { padding-inline:4px; }
   .featured-card strong { font-size:12px;min-height:40px;margin:10px 0 6px; }
   .card-meta { font-size:10px;gap:3px; }
   .card-tags { font-size:9px; }
@@ -317,6 +339,7 @@ kbd { display:inline-block;margin-right:3px;padding:1px 5px;border:1px solid var
   .lyrics-container { width:100%;height:300px; }
   .track-item { gap:7px;padding:12px 3px;grid-template-columns:20px minmax(0,1fr) auto; }
   .track-actions { gap:3px; }
+  .track-actions .btn-icon { width:36px;height:36px;min-height:36px; }
   .track-meta-sub { font-size:10px; }
   #toast { bottom:180px; }
 }
