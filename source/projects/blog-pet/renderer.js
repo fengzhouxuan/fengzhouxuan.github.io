@@ -8,7 +8,7 @@
   function image(url){
     return new Promise((resolve,reject)=>{
       const asset=new Image();
-      const timer=setTimeout(()=>finish(false),8000);
+      const timer=setTimeout(()=>finish(false),15000);
       function finish(success){
         clearTimeout(timer);asset.onload=null;asset.onerror=null;
         if(success)resolve(asset);else reject(Error('角色图片暂时没加载出来'));
@@ -49,9 +49,9 @@
     if(!standing || !asleep)throw Error('角色姿势不完整');
     return {frames,sleep:cel(legacy,asleep,Math.min(98,asleep.height*98/standing.height)),rows,bounds};
   }
-  async function loadOutfit(outfit,assetBase){
+  async function loadOutfit(outfit,assetBase,onLegacy=()=>{}){
     const [legacy,motion]=await Promise.all([
-      image(new URL(outfit.sprite,assetBase).href),
+      image(new URL(outfit.sprite,assetBase).href).then(asset=>{onLegacy();return asset;}),
       image(new URL(outfit.motion,assetBase).href).catch(()=>null)
     ]);
     if(!motion)return null;

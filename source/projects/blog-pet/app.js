@@ -186,7 +186,7 @@
 
     function setupBlinking(){
       const image=new Image();
-      const url=new URL('assets/youyou-blink-v1.png',assetBase).href;
+      const url=new URL('assets/youyou-blink-v1.webp',assetBase).href;
       body.style.setProperty('--blink-sprite','url("'+url+'")');
       image.onload=()=>{blinkReady=true;};image.src=url;
       reducedMotion.addEventListener('change',()=>{
@@ -205,9 +205,9 @@
       for(const button of $('outfit-options').children)button.setAttribute('aria-pressed',String(button.dataset.outfit===state.outfit));
     }
 
-    function loadOutfit(outfit){
+    function loadOutfit(outfit,onLegacy){
       if(loadedOutfits.has(outfit.id))return loadedOutfits.get(outfit.id);
-      const promise=window.BlogPetRenderer.loadOutfit(outfit,assetBase);
+      const promise=window.BlogPetRenderer.loadOutfit(outfit,assetBase,onLegacy);
       loadedOutfits.set(outfit.id,promise);
       promise.catch(()=>{if(loadedOutfits.get(outfit.id)===promise)loadedOutfits.delete(outfit.id);});
       return promise;
@@ -405,15 +405,21 @@
     });
 
     setupWardrobe();render();syncUI();
+    setupDragging();setupPresence();setupBlinking();scheduleOutfit();remember();
+    function showCharacter(){
+      home.hidden=false;home.dataset.paused=String(document.hidden);syncUI();restorePosition();
+    }
+    const initialOutfit=state.outfit;
     try{
-      animator.setAssets(await loadOutfit(core.outfits.find(item=>item.id===state.outfit)));
+      const assets=await loadOutfit(core.outfits.find(item=>item.id===initialOutfit),showCharacter);
+      if(state.outfit===initialOutfit)animator.setAssets(assets);
     }catch(e){
+      console.warn('柚柚的角色素材暂时没加载好：'+e.message);
       if(state.outfit==='sage'){animator.destroy();host.remove();return;}
-      try{animator.setAssets(await loadOutfit(core.outfits[0]));state=core.normalize({...state,outfit:'sage'});renderOutfit();remember();}
+      try{animator.setAssets(await loadOutfit(core.outfits[0],showCharacter));state=core.normalize({...state,outfit:'sage'});renderOutfit();remember();}
       catch(error){animator.destroy();host.remove();return;}
     }
-    home.hidden=false;home.dataset.paused=String(document.hidden);
-    syncUI();restorePosition();setupDragging();setupPresence();setupBlinking();scheduleOutfit();remember();
+    showCharacter();
     try{
       const key='rabbit-blog-pet-greeted-v1';
       if(!window.sessionStorage.getItem(key)){

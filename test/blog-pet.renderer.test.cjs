@@ -5,8 +5,8 @@ const vm=require('node:vm');
 const motion=require('../source/projects/blog-pet/motion.js');
 const rendererPath=require.resolve('../source/projects/blog-pet/renderer.js');
 
-function environment({missingMotion=false,missingLegacy=false,empty=false,decodeFails=false}={}){
-  let now=0,id=0;const frames=new Map(),timers=new Map(),draws=[];
+function environment({missingMotion=false,missingLegacy=false,empty=false,decodeFails=false,deferMotion=false}={}){
+  let now=0,id=0;const frames=new Map(),timers=new Map(),draws=[],pendingImages=[];
   function canvas(){
     let source;
     const context={setTransform(){},clearRect(){},drawImage(...args){source=args[0];draws.push(args);},getImageData(){
@@ -22,7 +22,8 @@ function environment({missingMotion=false,missingLegacy=false,empty=false,decode
   class Image{
     set src(url){
       this.url=url;this.naturalWidth=url.includes('motion')?160:80;this.naturalHeight=80;
-      queueMicrotask(()=>{if((missingMotion && url.includes('motion')) || (missingLegacy && url.includes('legacy')))this.onerror();else this.onload();});
+      const deliver=()=>{if((missingMotion && url.includes('motion')) || (missingLegacy && url.includes('legacy')))this.onerror();else this.onload();};
+      queueMicrotask(()=>{if(deferMotion && url.includes('motion'))pendingImages.push(deliver);else deliver();});
     }
     get src(){return this.url;}
     decode(){return decodeFails?Promise.reject(Error('decode')):Promise.resolve();}
@@ -40,7 +41,7 @@ function environment({missingMotion=false,missingLegacy=false,empty=false,decode
     now=time;const pending=[...frames.values()];frames.clear();for(const fn of pending)fn(now);
     for(const [key,timer] of [...timers])if(timer.at<=now){timers.delete(key);timer.fn();}
   }
-  return {api:window.BlogPetRenderer,player,body,element,screen,reducedMotion,frames,timers,completed,advance,draws,
+  return {api:window.BlogPetRenderer,player,body,element,screen,reducedMotion,frames,timers,completed,advance,draws,releaseImages:()=>pendingImages.splice(0).forEach(deliver=>deliver()),
     assets:()=>({frames:Array.from({length:32},canvas),sleep:canvas()})};
 }
 test('renderer owns one animation clock, pauses without work and resumes the same action',()=>{
@@ -96,4 +97,12 @@ test('missing or malformed motion sheets fall back; missing base images reject c
   for(const options of [{missingLegacy:true},{decodeFails:true}]){
     const env=environment(options);await assert.rejects(env.api.loadOutfit(outfit,base),/图片/);env.player.destroy();
   }
+});
+test('the small standing image becomes ready before a slow animation atlas completes',async()=>{
+  const env=environment({deferMotion:true});let ready=0,finished=false;
+  const loading=env.api.loadOutfit({sprite:'legacy.webp',motion:'motion.webp'},'https://example.test/',()=>{ready++;}).then(assets=>{finished=true;return assets;});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(ready,1);assert.equal(finished,false);
+  env.releaseImages();const assets=await loading;
+  assert.equal(assets.frames.length,32);assert.equal(ready,1);assert.equal(finished,true);env.player.destroy();
 });

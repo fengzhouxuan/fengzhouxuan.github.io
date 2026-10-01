@@ -4,10 +4,10 @@
   const storageKey='rabbit-blog-pet-v1';
   const hour=60*60*1000;
   const outfits=[
-    {id:'sage',name:'森系日常',sprite:'./assets/youyou-girl-v1.png',motion:'./assets/youyou-sage-motion-v2.png'},
-    {id:'lavender',name:'紫芋奶茶',sprite:'./assets/youyou-lavender-v1.png',motion:'./assets/youyou-lavender-motion-v2.png'},
-    {id:'sailor',name:'晴空水手',sprite:'./assets/youyou-sailor-v1.png',motion:'./assets/youyou-sailor-motion-v2.png'},
-    {id:'autumn',name:'焦糖秋日',sprite:'./assets/youyou-autumn-v1.png',motion:'./assets/youyou-autumn-motion-v2.png'}
+    {id:'sage',name:'森系日常',sprite:'./assets/youyou-girl-v1.webp',motion:'./assets/youyou-sage-motion-v2.webp'},
+    {id:'lavender',name:'紫芋奶茶',sprite:'./assets/youyou-lavender-v1.webp',motion:'./assets/youyou-lavender-motion-v2.webp'},
+    {id:'sailor',name:'晴空水手',sprite:'./assets/youyou-sailor-v1.webp',motion:'./assets/youyou-sailor-motion-v2.webp'},
+    {id:'autumn',name:'焦糖秋日',sprite:'./assets/youyou-autumn-v1.webp',motion:'./assets/youyou-autumn-motion-v2.webp'}
   ];
 
   function normalize(raw,now=Date.now()){
