@@ -54,14 +54,12 @@
       <section id="song-search" class="panel search-panel ripple-target">
         <div class="panel-header">
           <div class="panel-title">
-            <span class="icon">🔍</span>
             <span data-i18n="searchTitle">歌曲搜索</span>
           </div>
           <span class="chip" data-i18n="searchSubtitle">支持网易云 / QQ / 酷我 / JOOX</span>
         </div>
         <div class="search-panel-content">
           <div class="search-row ripple-target">
-            <span class="search-prefix">🔍</span>
             <input id="search-input" class="input" type="text"
                    placeholder="输入歌名 / 歌手，回车搜索…" />
             <button id="search-btn" class="btn ripple-target" data-i18n="searchButton">搜索</button>
@@ -71,17 +69,17 @@
             <label class="source-chip ripple-target">
               <span class="source-dot netease"></span>
               <input type="checkbox" data-source="netease" checked />
-              <span>网易云</span>
+              <span data-i18n="sourceNetease">网易云</span>
             </label>
             <label class="source-chip ripple-target">
               <span class="source-dot qq"></span>
               <input type="checkbox" data-source="qq" checked />
-              <span>QQ</span>
+              <span data-i18n="sourceQQ">QQ音乐</span>
             </label>
             <label class="source-chip ripple-target">
               <span class="source-dot kuwo"></span>
               <input type="checkbox" data-source="kuwo" checked />
-              <span>酷我</span>
+              <span data-i18n="sourceKuwo">酷我</span>
             </label>
             <label class="source-chip ripple-target">
               <span class="source-dot joox"></span>
@@ -117,7 +115,6 @@
       <section class="panel player-panel ripple-target">
         <div class="panel-header">
           <div class="panel-title">
-            <span class="icon">🎧</span>
             <span data-i18n="playerTitle">正在播放</span>
           </div>
           <span class="chip" data-i18n="playerSubtitle">同步歌词</span>
@@ -127,7 +124,7 @@
           <div class="cover-wrapper">
             <img id="cover-img" src="" alt="cover" />
             <div class="cover-placeholder">
-              <span aria-hidden="true">♪</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2.5"/><ellipse cx="17" cy="16" rx="3" ry="2.5"/></svg>
               <div data-i18n="coverHint">搜索并播放一首歌吧！</div>
             </div>
           </div>
@@ -145,7 +142,7 @@
                 <div class="player-btn-row">
                   <button id="fav-btn" class="btn btn-secondary btn-icon" title="收藏 (F)" aria-label="收藏当前歌曲" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
                   <button id="download-btn" class="btn btn-secondary btn-icon" title="下载" aria-label="下载当前歌曲"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg></button>
-                  <button id="lyrics-toggle-btn" class="btn btn-secondary btn-icon" title="显示 / 隐藏歌词 (L)" aria-label="显示 / 隐藏歌词" aria-expanded="false">词</button>
+                  <button id="lyrics-toggle-btn" class="btn btn-secondary btn-icon" title="显示 / 隐藏歌词 (L)" aria-label="显示 / 隐藏歌词" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></button>
                 </div>
                 <div id="player-status" class="status-pill" data-i18n="playerStatusIdle">空闲</div>
               </div>
@@ -190,7 +187,6 @@
       <section class="panel playlist-panel ripple-target">
         <div class="panel-header">
           <div class="panel-title">
-            <span class="icon">📜</span>
             <span data-i18n="playlistTitle">发现与收藏</span>
           </div>
           <div class="playlist-tabs ripple-target">
@@ -243,7 +239,7 @@
             <div id="playlist-select-row" class="playlist-select-row" style="display:none;">
               <div class="playlist-select-tools">
                 <select id="playlist-select"></select>
-                <button id="add-current-btn" class="btn btn-secondary btn-icon ripple-target" title="把当前歌曲加入歌单">＋</button>
+                <button id="add-current-btn" class="btn btn-secondary btn-icon ripple-target" title="把当前歌曲加入歌单" aria-label="把当前歌曲加入歌单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
                 <button id="delete-playlist-btn" class="btn btn-ghost ripple-target" data-i18n="deletePlaylist">删除歌单</button>
               </div>
               <div class="playlist-file-actions">
@@ -268,32 +264,30 @@
 
   <!-- 歌单弹窗 -->
   <div id="playlist-modal" class="modal-backdrop">
-    <div class="modal ripple-target">
+    <div class="modal ripple-target" role="dialog" aria-modal="true" aria-labelledby="playlist-modal-title">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <div class="modal-title-icon">🎵</div>
-          <span data-i18n="modalNewPlaylistTitle">新建歌单</span>
+          <span id="playlist-modal-title" data-i18n="modalNewPlaylistTitle">新建歌单</span>
         </div>
-        <button id="playlist-close" class="modal-close-btn">×</button>
+        <button id="playlist-close" class="modal-close-btn" type="button" aria-label="关闭新建歌单"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
       </div>
-      <p class="modal-desc" data-i18n="modalNewPlaylistDesc">给你的歌单取一个可爱的名字吧～</p>
-      <input id="playlist-name-input" type="text" placeholder="例如：通勤歌单 / 宝可梦歌单" />
+      <p class="modal-desc" data-i18n="modalNewPlaylistDesc">给这份歌单起个名字。</p>
+      <input id="playlist-name-input" type="text" aria-label="歌单名称" placeholder="例如：通勤路上 / 午后阅读" />
       <div class="modal-actions">
         <button id="playlist-cancel-btn" class="btn btn-ghost ripple-target" data-i18n="modalCancel">取消</button>
-        <button id="playlist-confirm-btn" class="btn btn-secondary ripple-target" data-i18n="modalConfirm">确定</button>
+        <button id="playlist-confirm-btn" class="btn ripple-target" data-i18n="modalConfirm">确定</button>
       </div>
     </div>
   </div>
 
   <!-- 快捷键说明弹窗 -->
   <div id="shortcut-modal" class="modal-backdrop">
-    <div class="modal ripple-target">
+    <div class="modal ripple-target" role="dialog" aria-modal="true" aria-labelledby="shortcut-modal-title">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <div class="modal-title-icon">⌨️</div>
-          <span data-i18n="shortcutPanelTitle">快捷键说明</span>
+          <span id="shortcut-modal-title" data-i18n="shortcutPanelTitle">快捷键说明</span>
         </div>
-        <button id="shortcut-close" class="modal-close-btn">×</button>
+        <button id="shortcut-close" class="modal-close-btn" type="button" aria-label="关闭快捷键说明"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
       </div>
       <p class="modal-desc" data-i18n="shortcutPanelDesc">
         用键盘控制音乐小站：
@@ -428,7 +422,7 @@
         sourceKuwo:"酷我",
         sourceJoox:"JOOX",
         modalNewPlaylistTitle:"新建歌单",
-        modalNewPlaylistDesc:"给你的歌单取一个可爱的名字吧～",
+        modalNewPlaylistDesc:"给这份歌单起个名字。",
         modalConfirm:"确定",
         modalCancel:"取消"
       },
@@ -473,11 +467,11 @@
         lyricsEmpty:"No lyrics yet. Try a song with LRC lyrics.",
         playlistTitle:"Discover & collect",
         tabFeatured:"Featured",
-        tabResults:"Default",
+        tabResults:"Search results",
         tabFavorites:"Favorites",
         tabCustomLists:"Playlists",
-        playlistInfoResults:"Search Result List",
-        playlistInfoFavorites:"Favorites List",
+        playlistInfoResults:"Search results",
+        playlistInfoFavorites:"Favorites",
         playlistInfoPlaylist:"Playlist",
         newPlaylist:"Create",
         importPlaylist:"Import",
@@ -516,7 +510,7 @@
         sourceKuwo:"Kuwo",
         sourceJoox:"JOOX",
         modalNewPlaylistTitle:"Create Playlist",
-        modalNewPlaylistDesc:"Give your playlist a cute name!",
+        modalNewPlaylistDesc:"Give this playlist a name.",
         modalConfirm:"Confirm",
         modalCancel:"Cancel"
       }
@@ -601,9 +595,34 @@
       dom.searchInput.placeholder = lang==='zh'
         ? '输入歌名 / 歌手，回车搜索…'
         : 'Type song / artist, press Enter…';
+      if(!state.currentTrack)dom.trackTitle.textContent=featuredText('暂未选择歌曲','No track selected');
       dom.playlistNameInput.placeholder = lang==='zh'
-        ? '例如：通勤歌单 / 宝可梦歌单'
-        : 'e.g. Commute mix / Pokemon list';
+        ? '例如：通勤路上 / 午后阅读'
+        : 'e.g. On my commute / Afternoon reading';
+      for(const [element,zh,en,shortcut] of [
+        [dom.playlistNameInput,'歌单名称','Playlist name'],
+        [dom.playlistCloseBtn,'关闭新建歌单','Close new playlist'],
+        [dom.shortcutCloseBtn,'关闭快捷键说明','Close keyboard shortcuts'],
+        [dom.shortcutToggleBtn,'快捷键说明','Keyboard shortcuts'],
+        [dom.favBtn,'收藏当前歌曲','Favorite current track','F'],
+        [dom.downloadBtn,'下载当前歌曲','Download current track'],
+        [dom.lyricsToggleBtn,'显示 / 隐藏歌词','Show / hide lyrics','L'],
+        [dom.prevBtn,'上一首','Previous track','P'],
+        [dom.nextBtn,'下一首','Next track','N'],
+        [dom.volumeSlider,'音量','Volume'],
+        [dom.limitSelect,'每个源加载数量','Results per source'],
+        [dom.playlistSelect,'选择歌单','Choose playlist'],
+        [dom.addCurrentBtn,'把当前歌曲加入歌单','Add current track to playlist']
+      ]){
+        const label=featuredText(zh,en);
+        element.setAttribute('aria-label',label);
+        if(element.tagName==='BUTTON')element.title=label+(shortcut?' ('+shortcut+')':'');
+      }
+      const modeLabels={list:['列表循环','Repeat playlist'],single:['单曲循环','Repeat track'],shuffle:['随机播放','Shuffle']};
+      document.querySelectorAll('.playmode-btn').forEach(button=>{
+        const label=featuredText(...modeLabels[button.dataset.mode]);
+        button.title=label;button.setAttribute('aria-label',label);
+      });
       if(dom.playlistSelect) renderPlaylistOptions();
       updatePlayButton(state.isPlaying);
       updatePlaylistInfoLabel();
@@ -731,7 +750,7 @@
       const a=document.createElement('a');
       const date=new Date().toISOString().slice(0,10);
       a.href=url;
-      a.download='pikachu-music-playlists-'+date+'.json';
+      a.download='music-station-playlists-'+date+'.json';
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1933,10 +1952,14 @@
       const grid=document.createElement('div');grid.className='featured-grid';
       for(const playlist of visible){
         const card=document.createElement('button');card.className='featured-card';
-        const cover=document.createElement('div');cover.className='card-cover';
-        if(playlist.cover){const img=document.createElement('img');img.src=playlist.cover;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';cover.appendChild(img);}
-        else{cover.classList.add('cover-missing');cover.textContent='♪';}
-        const arrow=document.createElement('span');arrow.className='card-open';arrow.setAttribute('aria-hidden','true');arrow.textContent='→';cover.appendChild(arrow);
+        const cover=document.createElement('div');cover.className='card-cover cover-missing';
+        cover.appendChild(document.querySelector('.blog-nav a[aria-current] svg').cloneNode(true));
+        if(playlist.cover){
+          const img=document.createElement('img');img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';
+          img.addEventListener('error',()=>{img.hidden=true;});img.src=playlist.cover;cover.appendChild(img);
+        }
+        const arrow=document.createElement('span');arrow.className='card-open';arrow.setAttribute('aria-hidden','true');
+        arrow.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>';cover.appendChild(arrow);
         card.appendChild(cover);
         const name=document.createElement('strong');name.textContent=playlist.name;card.appendChild(name);
         const meta=document.createElement('small');meta.className='card-meta';
@@ -1948,6 +1971,7 @@
         grid.appendChild(card);
       }
       if(!visible.length && !featured.loading){
+        grid.className='empty-state';
         grid.textContent=featuredText('暂无歌单，点击刷新重试。','No playlists available. Click Refresh to retry.');
       }
       dom.playlistList.appendChild(grid);
@@ -1990,15 +2014,26 @@
       }else{
         dom.playlistSelectRow.style.display='flex';
         renderPlaylistOptions();
-        if(!state.playlists.length){
-          updatePlaylistInfoLabel();
-          return;
+        if(state.playlists.length){
+          const pl=state.playlists.find(p=>p.id===dom.playlistSelect.value)||state.playlists[0];
+          dom.playlistSelect.value=pl.id;
+          list=pl.tracks;
         }
-        const pl=state.playlists.find(p=>p.id===dom.playlistSelect.value)||state.playlists[0];
-        dom.playlistSelect.value=pl.id;
-        list=pl.tracks;
       }
       updatePlaylistInfoLabel();
+
+      if(!list.length){
+        const messages={
+          results:['还没有搜索结果。输入歌名或歌手，发现想听的音乐。','No results yet. Search for a song or artist.'],
+          favorites:['还没有收藏。听到喜欢的歌，点一下爱心。','No favorites yet. Tap the heart on a song you like.'],
+          playlists:state.playlists.length
+            ? ['歌单还是空的。播放一首歌，再点加号加入歌单。','This playlist is empty. Play a song, then tap the plus to add it.']
+            : ['还没有自建歌单。新建一份，收好喜欢的音乐。','No playlists yet. Create one for the music you love.'],
+          featured:['这份歌单暂时没有歌曲。','This playlist has no tracks yet.']
+        };
+        const empty=document.createElement('p');empty.className='empty-state';
+        empty.textContent=featuredText(...messages[activeTab]);wrap.appendChild(empty);return;
+      }
 
       list.forEach((track,idx)=>{
         const item=document.createElement('div');
@@ -2211,6 +2246,10 @@
     }
 
     function setupEvents(){
+      dom.coverImg.addEventListener('error',()=>{
+        if(!dom.coverImg.complete || dom.coverImg.naturalWidth)return;
+        dom.coverImg.style.display='none';dom.coverPlaceholder.style.display='flex';
+      });
       dom.featuredSource.addEventListener('click',event=>{
         const button=event.target.closest('[data-platform]');
         if(!button || button.dataset.platform===state.featured.source)return;
