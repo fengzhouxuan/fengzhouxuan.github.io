@@ -31,6 +31,7 @@
 
 ## 浏览体验
 
+- 三个壁纸仓库的画廊、首屏推荐和弹窗优先使用构建生成的 WebP 预览；最长边 1280 像素，保留完整画面、比例及透明区域。高清下载继续打开作者原图，作者、许可和来源页保持不变。预览不可用时依次尝试原图和备用 CDN。
 - 画廊保留横竖屏的原始比例，桌面四列、平板三列、手机两列；各来源按当天日期确定性轮换并交错推荐，每次显示 24 张，再按需加载更多。新增分类可与图源、设备、搜索组合筛选；首屏推荐从已收录图片中挑选横竖屏作品，加载失败回退到原创图案。
 - 可按设备、主题、配色和关键字组合筛选，按名称或分辨率排序。主题与配色适用于原创；艺术馆隐藏这两项。
 - 首屏的山野、柔光、夜色、艺术馆入口直接应用对应筛选；支持随机挑选和一键清除筛选。
@@ -39,21 +40,32 @@
 - 可以看完整壁纸，也可以切换桌面和锁屏示意。原创切换设备时同步下载比例；下载尺寸变更会同步示意设备。艺术作品示意可能裁切，高清原图始终保持原作。
 - 手机预览的下载和收藏固定在底部，提示与撤销保持可操作。动效遵循系统减少动态效果设置。
 
+## 自动生成预览
+
+`scripts/build-wallpaper-previews.cjs` 在每日图源同步之后运行，将已收录仓库图片缩小为 WebP。先验证完整原图的 Git blob 摘要，避免把 CDN 旧版本误当作新文件。每次最多处理 120 张尚未缓存的图片，三路并发；未完成部分在后续构建继续。已有预览只有在文件存在、格式、尺寸与记录一致时才复用；缺失或损坏时重建。已退出图库的预览会清理。
+
+生成的 `source/wallpapers/previews/` 和 `source/wallpapers/data/previews.json` 不进入 Git，通过 Actions cache 跨构建复用，并随 Hexo 页面一起发布到 GitHub Pages。缓存丢失时自动重新生成；单张处理失败仍可浏览来源图片。浏览器不需要 API Key，也不需要人工上传。初次生成会下载原图；每张限 32 MiB、6000 万像素、25 秒请求时间，以限制构建资源消耗。
+
+在本地初次启动或要补齐预览时，运行 `node scripts/build-wallpaper-previews.cjs`；已有生成结果会复用。每天的站点构建已配置该命令，实际 GitHub Actions 和 Pages 效果仍需发布后验证。
+
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
 node test/wallpapers.feeds.browser.cjs
 node scripts/refresh-wallpaper-feeds.cjs
 node scripts/refresh-wallpaper-commons.cjs
+node scripts/build-wallpaper-previews.cjs
 npm run build -- --config _config.yml,_config.flatpaper.yml
 npm run server -- --config _config.yml,_config.flatpaper.yml --port 4011
 ```
 
-测试覆盖日期边界、生成一致性、组合筛选、来源许可验证、图片头部尺寸、分页续传、移除失效文件、缓存去重、存储故障、请求错误和超时回退；浏览器验收包括 PNG 实际尺寸、收藏恢复与撤销、分页、预览导航、设备比例、手机固定操作和轻扫切图。页面路径被 `skip_render` 排除，因此 Hexo 会原样复制 HTML/JS/CSS。
+测试覆盖日期边界、生成一致性、组合筛选、来源许可验证、图片头部尺寸、分页续传、移除失效文件、缓存去重、存储故障、请求错误和超时回退；预览生成测试使用真实 Sharp 编码验证横竖屏比例、透明度、完整构图、摘要核验、缺失或损坏重建与处理预算。浏览器验收包括 PNG 实际尺寸、收藏恢复与撤销、分页、预览导航、设备比例、手机固定操作和轻扫切图。页面路径被 `skip_render` 排除，因此 Hexo 会原样复制 HTML/JS/CSS/WebP。
+
+2026-10-02 的本机预览增量验证：51 项测试通过，所加载模块行覆盖率 97.10%；三个仓库的 283 张预览全部实际生成，总计 21,515,884 字节，平均约 76 KB。`Green Glass Sheets` 原图 9,592,263 字节，预览 34,768 字节；体积降低不等同于已测得相同比例的访问提速。浏览器已验证画廊和弹窗使用本地预览，高清入口仍保留原始 3840×2160 文件；隔离测试页对一个预览返回 404 时，卡片与弹窗均成功显示来源原图。新增预览流程尚未在实际 GitHub Actions/Pages 环境验证，本轮未新增手机实机验收。
 
 浏览器验收脚本需先启动 4011 端口服务，使用本机 Chrome 和 Codex 内置 Playwright；可通过 `WALLPAPER_PLAYWRIGHT` 指定其他 Playwright 模块路径。
 
@@ -69,6 +81,6 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 
 ## 目标与剩余缺口
 
-目标是博客内内容丰富、二次元足够充实、体验好且持续自动更新的壁纸站。新增小型开放仓库只是推进步骤，不能据此宣称目标完成。还需扩大具有明确图片许可的动漫内容、解决大型图库的可靠接入、降低原图加载成本，并验证默认分支上的每日更新与 Pages 部署。原站链接不计入站内图库数量。
+目标是博客内内容丰富、二次元足够充实、体验好且持续自动更新的壁纸站。新增小型开放仓库只是推进步骤，不能据此宣称目标完成。还需扩大具有明确图片许可的动漫内容、解决大型图库的可靠接入，并验证实际 Pages 环境的预览覆盖率、访问速度与默认分支上的每日更新。原站链接不计入站内图库数量。
 
 本机首轮 Commons 分页同步因网络连接失败保留了 29 张初始图片；分页逻辑已有模拟测试，但本机未验证完整精选目录的规模。仓库图片的首次同步已实际执行。浏览器加载数量可能随艺术馆实时结果、已有缓存和加载失败而变化。

@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Test wallpaper ingestion and fallback
-        run: node --test test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs
+        run: node --test test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs
 
       - name: Checkout music station
         uses: actions/checkout@v4
@@ -53,8 +53,12 @@ jobs:
           path: |
             source/wallpapers/data/official-feeds.json
             source/wallpapers/data/open-images.json
-          key: wallpaper-catalog-v2-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: wallpaper-catalog-v2-${{ github.ref_name }}-
+            source/wallpapers/data/previews.json
+            source/wallpapers/previews
+          key: wallpaper-catalog-v3-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            wallpaper-catalog-v3-${{ github.ref_name }}-
+            wallpaper-catalog-v2-${{ github.ref_name }}-
 
       - name: Refresh open wallpaper catalogs
         run: node scripts/refresh-wallpaper-feeds.cjs
@@ -62,13 +66,18 @@ jobs:
       - name: Refresh open wallpaper photography
         run: node scripts/refresh-wallpaper-commons.cjs
 
+      - name: Build optimized wallpaper previews
+        run: node scripts/build-wallpaper-previews.cjs
+
       - name: Save validated wallpaper catalog
         uses: actions/cache/save@v4
         with:
           path: |
             source/wallpapers/data/official-feeds.json
             source/wallpapers/data/open-images.json
-          key: wallpaper-catalog-v2-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+            source/wallpapers/data/previews.json
+            source/wallpapers/previews
+          key: wallpaper-catalog-v3-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Build Hexo
         run: npm run build

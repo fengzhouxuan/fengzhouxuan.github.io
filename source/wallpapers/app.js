@@ -1,18 +1,31 @@
 (function(){
   'use strict';
-  const core=window.WallpaperStation,commons=window.WallpaperCommons,feeds=window.WallpaperFeeds,$=id=>document.getElementById(id);
+  const core=window.WallpaperStation,commons=window.WallpaperCommons,feeds=window.WallpaperFeeds,previews=window.WallpaperPreviews,$=id=>document.getElementById(id);
   const favoritesKey='rabbit-wallpapers-favorites-v1';
   const state={day:core.dayKey(),batch:0,originals:core.dailyWallpapers(),artworks:[],source:'all',orientation:'all',query:'',style:'',palette:'',sort:'recommended',limit:24,favorites:new Map(),failed:new Set(),current:null,queue:[],loading:false,view:'image',downloading:false};
   state.category='';state.commons=new Map();state.commonsLoading=new Set();state.commonsStatus=new Map();
   state.official=[];state.provider='';
   const catalogKey='rabbit-wallpapers-official-v1';
-  let storage,toastTimer,undoAction,touchStart,fallbackPromise;
+  let storage,toastTimer,undoAction,touchStart,fallbackPromise,previewPromise;
   const columnCount=()=>window.innerWidth<=600?2:window.innerWidth<=1100?3:4;
   let columns=columnCount();
   try{storage=window.localStorage;}catch(e){/* Private browsing may disable storage. */}
 
   function svgURL(item,width=640,height=Math.round(width*item.height/item.width)){
     return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(core.renderSVG(item,width,height));
+  }
+
+  function imageURL(item){return previews.imageCandidates(item,state.previews)[0];}
+
+  function nextImage(image,item){
+    const candidates=previews.imageCandidates(item,state.previews),next=candidates[candidates.indexOf(image.getAttribute('src'))+1];
+    if(!next)return false;
+    image.src=next;return true;
+  }
+
+  async function ensurePreviews(){
+    if(!previewPromise)previewPromise=fetch('./data/previews.json',{cache:'no-cache',signal:AbortSignal.timeout(5000)}).then(response=>{if(!response.ok)throw Error('预览目录暂时不可用');return response.json();}).catch(()=>null);
+    state.previews=await previewPromise;
   }
 
   function restoreFavorites(){
@@ -160,10 +173,10 @@
       const open=element('button','card-open');open.type='button';open.setAttribute('aria-label','预览 '+item.title);
       const image=element('img','card-image');image.alt=item.title;image.loading='lazy';image.decoding='async';
       image.width=640;image.height=Math.round(640*item.height/item.width);
-      image.src=item.source==='original'?svgURL(item):item.image;
+      image.src=item.source==='original'?svgURL(item):imageURL(item);
       image.addEventListener('load',()=>card.classList.add('loaded'),{once:true});
       image.addEventListener('error',()=>{
-        if(item.fallbackImage&&!image.dataset.usedFallback){image.dataset.usedFallback='true';image.src=item.fallbackImage;if(quick?.tagName==='A')quick.href=item.fallbackImage;return;}
+        if(item.source!=='original'&&nextImage(image,item)){if(image.getAttribute('src')===item.fallbackImage&&quick?.tagName==='A')quick.href=item.fallbackImage;return;}
         state.failed.add(item.id);card.remove();syncFilters();updateResults();
         if(item.source==='art'&&state.artworks.every(art=>state.failed.has(art.id)))$('source-status').textContent='艺术图片暂时无法加载，原创壁纸照常浏览和下载。';
       });
@@ -192,8 +205,8 @@
     const selected=originalOnly?[]:feeds.mixSources(state.official,state.day);
     state.hero=selected.find(item=>item.width>=item.height)||state.originals[0];
     state.heroPhone=selected.find(item=>item.height>item.width)||state.originals[13];
-    $('hero-image').src=state.hero.source==='original'?svgURL(state.hero,1280,720):state.hero.image;
-    $('hero-phone-image').src=state.heroPhone.source==='original'?svgURL(state.heroPhone,540,960):state.heroPhone.image;
+    $('hero-image').src=state.hero.source==='original'?svgURL(state.hero,1280,720):imageURL(state.hero);
+    $('hero-phone-image').src=state.heroPhone.source==='original'?svgURL(state.heroPhone,540,960):imageURL(state.heroPhone);
     $('hero-title').textContent=state.hero.title;
     $('daily-note').textContent=selected.length?'持续收录 · 原图下载 · 保留作者署名':'每日原创 · 高清下载 · 无水印';
     $('hero-date').textContent=state.day.replaceAll('-','.');
@@ -212,7 +225,7 @@
     let ratioWidth=original?width:item.width,ratioHeight=original?height:item.height;
     if(state.view==='phone'){ratioWidth=9;ratioHeight=16;}
     else if(state.view==='desktop'){ratioWidth=16;ratioHeight=9;}
-    $('preview-image').src=original?svgURL(item,Math.round(1200*ratioWidth/Math.max(ratioWidth,ratioHeight)),Math.round(1200*ratioHeight/Math.max(ratioWidth,ratioHeight))):item.image;
+    $('preview-image').src=original?svgURL(item,Math.round(1200*ratioWidth/Math.max(ratioWidth,ratioHeight)),Math.round(1200*ratioHeight/Math.max(ratioWidth,ratioHeight))):imageURL(item);
     $('device-screen').style.setProperty('--preview-ratio',ratioWidth+'/'+ratioHeight);
     $('device-screen').style.setProperty('--preview-width',ratioHeight>ratioWidth?'240px':'100%');
     $('device-screen').classList.toggle('portrait',ratioHeight>ratioWidth);
@@ -231,7 +244,6 @@
       state.view='image';
     }
     state.current=item;
-    delete $('preview-image').dataset.usedFallback;
     $('preview-title').textContent=item.title;$('preview-artist').textContent=item.artist;$('preview-image').alt=item.title;
     const providerName=feeds.providers[item.provider]?.name||(item.source==='commons'?'Wikimedia Commons':'克利夫兰艺术博物馆');
     $('preview-source').textContent=item.source==='original'?'每日原创 / '+item.day:'开放图库 / '+providerName;
@@ -294,6 +306,7 @@
 
   async function refreshOfficial(){
     try{
+      await ensurePreviews();
       const response=await fetch('./data/official-feeds.json',{cache:'no-cache',signal:AbortSignal.timeout(10000)});
       if(!response.ok)throw Error('图库目录暂时不可用');
       const catalog=await response.json(),items=feeds.normalizeCatalog(catalog);
@@ -331,10 +344,11 @@
     render();
   }
 
-  function checkDay(){
+  async function checkDay(){
     if(document.hidden)return;
     const today=core.dayKey();if(today===state.day)return;
     state.day=today;state.batch=0;state.originals=core.dailyWallpapers();state.failed.clear();
+    previewPromise=null;await ensurePreviews();
     updateHero();render();refreshArtwork();refreshOfficial();
     if(state.category)refreshCommons(state.category);
   }
@@ -389,8 +403,8 @@
   $('random').addEventListener('click',()=>{const items=visibleItems();if(items.length)showPreview(items[Math.floor(Math.random()*items.length)]);});
   $('hero-open').addEventListener('click',()=>showPreview(state.hero));
   $('hero-phone-open').addEventListener('click',()=>{showPreview(state.heroPhone);state.view='phone';updatePreview();});
-  $('hero-image').addEventListener('error',()=>{state.hero=state.originals[0];$('hero-image').src=svgURL(state.hero,1280,720);$('hero-title').textContent=state.hero.title;});
-  $('hero-phone-image').addEventListener('error',()=>{state.heroPhone=state.originals[13];$('hero-phone-image').src=svgURL(state.heroPhone,540,960);});
+  $('hero-image').addEventListener('error',()=>{if(state.hero.source!=='original'&&nextImage($('hero-image'),state.hero))return;state.hero=state.originals[0];$('hero-image').src=svgURL(state.hero,1280,720);$('hero-title').textContent=state.hero.title;});
+  $('hero-phone-image').addEventListener('error',()=>{if(state.heroPhone.source!=='original'&&nextImage($('hero-phone-image'),state.heroPhone))return;state.heroPhone=state.originals[13];$('hero-phone-image').src=svgURL(state.heroPhone,540,960);});
   $('close-preview').addEventListener('click',()=>$('preview').close());
   $('preview').addEventListener('close',()=>{document.body.append($('toast'));document.body.classList.remove('preview-open');});
   $('preview').addEventListener('click',event=>{
@@ -409,7 +423,7 @@
     updatePreview();
   });
   $('preview-image').addEventListener('error',()=>{
-    if(state.current?.fallbackImage&&!$('preview-image').dataset.usedFallback){$('preview-image').dataset.usedFallback='true';$('preview-image').src=state.current.fallbackImage;$('art-download').href=state.current.fallbackImage;return;}
+    if(state.current?.source!=='original'&&nextImage($('preview-image'),state.current)){if($('preview-image').getAttribute('src')===state.current.fallbackImage)$('art-download').href=state.current.fallbackImage;return;}
     $('download-status').textContent='图片暂时无法加载，可以打开来源页面查看。';
   });
   $('download').addEventListener('click',()=>downloadItem(state.current,$('download-size').value));
@@ -436,10 +450,14 @@
   },{passive:true});
   document.addEventListener('visibilitychange',checkDay);setInterval(checkDay,60000);
   window.addEventListener('resize',()=>{const nextColumns=columnCount();if(nextColumns!==columns){columns=nextColumns;render();}});
-  try{state.official=feeds.normalizeCatalog(JSON.parse(storage?.getItem(catalogKey)||'null'));}catch(e){/* Ignore malformed cached catalogs. */}
   for(const [provider,definition] of Object.entries(feeds.providers)){
     if([...$('provider').options].some(option=>option.value===provider))continue;
     const option=element('option','',definition.name);option.value=provider;option.dataset.label=definition.name;$('provider').append(option);
   }
-  restoreFavorites();updateHero();render();refreshArtwork();refreshOfficial();primeCommons();
+  async function start(){
+    await ensurePreviews();
+    try{state.official=feeds.normalizeCatalog(JSON.parse(storage?.getItem(catalogKey)||'null'));}catch(e){/* Ignore malformed cached catalogs. */}
+    restoreFavorites();updateHero();render();refreshArtwork();refreshOfficial();primeCommons();
+  }
+  updateHero();render();start();
 })();
