@@ -7,6 +7,8 @@ const crypto=require('node:crypto');
 const sharp=require('sharp');
 const repositories=require('../source/wallpapers/repositories.js');
 const ayomi=require('../source/wallpapers/ayomi.js');
+const feeds=require('../source/wallpapers/feeds.js');
+const morevna=require('../source/wallpapers/morevna.js');
 const previews=require('../source/wallpapers/previews.js');
 const {readImage,encodePreview,copyAuthorPreview,buildPreviews}=require('../scripts/build-wallpaper-previews.cjs');
 const now=new Date('2026-10-02T00:00:00Z'),logger={log(){},warn(){}};
@@ -22,6 +24,90 @@ function authorItem(id='one',original=false){
 }
 const authorBytes=()=>sharp({create:{width:640,height:960,channels:3,background:'#ab8acd'}}).webp({quality:90}).toBuffer();
 async function directory(t){const dir=await fs.mkdtemp(path.join(os.tmpdir(),'wallpaper-preview-test-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));return dir;}
+function pepperItem(kind='wallpaper'){
+  const filename='2023-04-26_The-Healer_by-David-Revoy.jpg',directory='https://www.peppercarrot.com/0_sources/0ther/'+(kind==='artwork'?'artworks':'wallpapers')+'/';
+  return feeds.normalizeFeed([{filename,download:directory+'hi-res/'+filename,image:kind==='artwork'?directory+'low-res/'+filename:'https://www.peppercarrot.com/cache/Healer_900x400px.jpg',artist:'David Revoy',license:'CC BY 4.0',licenseUrl:'https://creativecommons.org/licenses/by/4.0/',pageUrl:kind==='artwork'?'https://www.peppercarrot.com/en/viewer/artworks__'+filename.slice(0,-4)+'.html':feeds.pepperPage,width:2000,height:1250,...(kind==='artwork'?{kind,title:'The Healer'}:{})}],'pepper')[0];
+}
+function morevnaItem(){
+  const upload='https://morevnaproject.org/wp-content/uploads/2025/10/';
+  return morevna.normalizeRecords([{workID:1,mediaID:1001,kind:'background',title:'Sunset',artist:'Artist',artistUrls:['https://morevnaproject.org/artist/original-artist/'],pageUrl:'https://morevnaproject.org/artwork/work-1/',download:upload+'work-1.jpg',image:upload+'work-1-1024x640.jpg',width:2000,height:1250,mediaWidth:1600,mediaHeight:1000,imageWidth:1024,imageHeight:640,revision:'2025-10-01T00:00:00',license:morevna.source.license,licenseUrl:morevna.source.licenseUrl,licenseSource:morevna.source.gallery}])[0];
+}
+
+test('Pepper and Morevna previews bind licensed source files, uncropped ratios and bounded metadata',()=>{
+  for(const image of [pepperItem(),pepperItem('artwork'),morevnaItem()]){
+    const entry={revision:previews.revisionFor(image),url:image.provider==='pepper'?image.download:image.image,width:1024,height:640,bytes:1000,digest:'a'.repeat(64),checkedAt:now.toISOString()},manifest={version:1,images:{[image.id]:entry}};
+    assert.ok(previews.filenameFor(image).startsWith(image.provider+'/'));assert.equal(previews.previewFor(image,manifest),'./previews/'+previews.filenameFor(image));
+    for(const changes of [{revision:'wrong'},{url:'https://evil.example/file.jpg'},{digest:undefined},{digest:'unsafe'},{width:900,height:400},{width:1281},{height:0},{bytes:previews.maxBytes+1},...(image.provider==='pepper'?[{checkedAt:undefined},{checkedAt:'invalid'}]:[{width:1280,height:800}])])assert.equal(previews.previewFor(image,{version:1,images:{[image.id]:{...entry,...changes}}}),null);
+    for(const invalid of [null,{...image,id:'forged'},{...image,feedRecord:{...image.feedRecord,license:'MIT'}},{...image,feedRecord:{...image.feedRecord,download:'https://evil.example/file.jpg'}}]){assert.equal(previews.filenameFor(invalid),null);assert.equal(previews.revisionFor(invalid),null);assert.equal(previews.previewFor(invalid,manifest),null);}
+    assert.equal(previews.revisionFor(image),image.provider==='pepper'?JSON.stringify([image.download,image.width,image.height]):image.feedRecord.revision);
+    assert.deepEqual(previews.imageCandidates(image,manifest),[previews.previewFor(image,manifest),image.provider==='pepper'?image.download:image.image]);
+  }
+  const pepper=pepperItem(),manga=morevnaItem();
+  assert.deepEqual(previews.imageCandidates(pepper,null),[pepper.download]);assert.deepEqual(previews.imageCandidates({...pepper,id:'forged'}),[]);
+  assert.equal(previews.filenameFor({...manga,feedRecord:{...manga.feedRecord,revision:'2025-99-01T00:00:00'}}),null);
+  assert.equal(previews.filenameFor(manga),'morevna/2025/10/work-1.jpg.1759276800000-v1.webp');
+  assert.equal(previews.revisionFor(authorItem()),authorItem().revision);
+  const longName='2023-04-26_'+ 'a'.repeat(220)+'_by-David-Revoy.jpg';
+  assert.equal(previews.filenameFor({...pepper,id:'pepper-'+longName.slice(0,-4),feedRecord:{...pepper.feedRecord,filename:longName,download:pepper.download.replace(pepper.feedRecord.filename,longName)}}),null);
+  const longOriginal='a'.repeat(220)+'.jpg';
+  assert.equal(previews.filenameFor({...manga,feedRecord:{...manga.feedRecord,download:manga.download.replace('work-1.jpg',longOriginal),image:manga.image.replace('work-1-',longOriginal.slice(0,-4)+'-')}}),null);
+});
+
+test('Pepper uses native JPEGs rather than cropped thumbnails and preserves the full frame',async t=>{
+  const outputDir=await directory(t),image=pepperItem(),pixels=Buffer.alloc(2000*1250*3);
+  for(let y=0;y<1250;y++)for(let x=0;x<2000;x++){const offset=(y*2000+x)*3;pixels[offset]=y<100?255:0;pixels[offset+2]=y>=1150?255:0;}
+  const bytes=await sharp(pixels,{raw:{width:2000,height:1250,channels:3}}).jpeg().toBuffer();
+  const first=await buildPreviews({items:[image,{...image,id:'forged'}, {...image,feedRecord:{...image.feedRecord,license:'All rights reserved'}}],outputDir,now,logger,fetcher:async url=>{assert.equal(url,image.download);return new Response(bytes);}});
+  assert.equal(first.created,1);assert.equal(first.failures,0);const entry=first.manifest.images[image.id];assert.equal(entry.width,1280);assert.equal(entry.height,800);assert.equal(entry.url,image.download);assert.equal(entry.checkedAt,now.toISOString());
+  const data=await fs.readFile(path.join(outputDir,previews.filenameFor(image)));assert.equal(entry.digest,crypto.createHash('sha256').update(data).digest('hex'));
+  const top=await sharp(data).extract({left:0,top:0,width:1,height:1}).raw().toBuffer(),bottom=await sharp(data).extract({left:1279,top:799,width:1,height:1}).raw().toBuffer();assert.ok(top[0]>200&&top[2]<30);assert.ok(bottom[2]>200&&bottom[0]<30);
+  assert.deepEqual(previews.imageCandidates(image,first.manifest),[previews.previewFor(image,first.manifest),image.download]);assert.equal(image.license,'CC BY 4.0');
+});
+
+test('Pepper rejects changed native dimensions, non-JPEG files and rotated metadata',async t=>{
+  const outputDir=await directory(t),image=pepperItem(),create=()=>sharp({create:{width:2000,height:1250,channels:3,background:'#465ca2'}});
+  for(const bytes of [await create().png().toBuffer(),await create().resize(1600,1000).jpeg().toBuffer(),await create().withMetadata({orientation:6}).jpeg().toBuffer()]){
+    const result=await buildPreviews({items:[image],outputDir,now,logger,fetcher:async()=>new Response(bytes)});assert.equal(result.created,0);assert.equal(result.failures,1);assert.deepEqual(result.manifest.images,{});
+  }
+});
+
+test('Pepper rechecks unchanged source URLs weekly and retains verified files during failure or a zero budget',async t=>{
+  const outputDir=await directory(t),image=pepperItem(),bytes=await sharp({create:{width:2000,height:1250,channels:3,background:'#235c91'}}).jpeg().toBuffer(),options={items:[image],outputDir,now,logger,fetcher:async()=>new Response(bytes)};
+  const first=await buildPreviews(options),file=path.join(outputDir,previews.filenameFor(image)),data=await fs.readFile(file);
+  const before=await buildPreviews({...options,previous:first.manifest,now:new Date(now.getTime()+previews.recheckAfterMs-1),fetcher:()=>assert.fail('weekly validation is not due')});assert.equal(before.reused,1);assert.equal(before.created,0);
+  const due=new Date(now.getTime()+previews.recheckAfterMs);
+  const paused=await buildPreviews({...options,previous:first.manifest,now:due,maxNew:0,fetcher:()=>assert.fail('budget is zero')});assert.equal(paused.reused,1);assert.equal(paused.deferred,1);assert.deepEqual(paused.manifest.images,first.manifest.images);
+  const failed=await buildPreviews({...options,previous:paused.manifest,now:due,fetcher:async()=>new Response('busy',{status:503})});assert.equal(failed.failures,1);assert.equal(failed.reused,1);assert.deepEqual(await fs.readFile(file),data);assert.ok(previews.previewFor(image,failed.manifest));assert.equal(failed.manifest.images[image.id].checkedAt,now.toISOString());
+  const changed=await sharp(bytes).modulate({brightness:0.8}).jpeg().toBuffer();
+  const refreshed=await buildPreviews({...options,previous:failed.manifest,now:due,fetcher:async()=>new Response(changed)});assert.equal(refreshed.created,1);assert.equal(refreshed.reused,0);assert.equal(refreshed.manifest.images[image.id].checkedAt,due.toISOString());assert.notEqual(refreshed.manifest.images[image.id].digest,first.manifest.images[image.id].digest);
+  const future={...refreshed.manifest,images:{[image.id]:{...refreshed.manifest.images[image.id],checkedAt:new Date(due.getTime()+1000).toISOString()}}};
+  assert.equal((await buildPreviews({...options,previous:future,now:due})).created,1);
+});
+
+test('Morevna caches and verifies the author thumbnail before encoding, while retaining native download and credits',async t=>{
+  const outputDir=await directory(t),image=morevnaItem(),bytes=await sharp({create:{width:1024,height:640,channels:3,background:'#845bb2'}}).jpeg().toBuffer();
+  assert.deepEqual((await copyAuthorPreview(bytes,image)).data,bytes);
+  const options={items:[image],outputDir,now,logger,fetcher:async url=>{assert.equal(url,image.image);return new Response(bytes);}};
+  const first=await buildPreviews(options),entry=first.manifest.images[image.id],file=path.join(outputDir,previews.filenameFor(image)),data=await fs.readFile(file);
+  assert.equal(first.created,1);assert.equal(entry.width,1024);assert.equal(entry.height,640);assert.equal((await sharp(data).metadata()).format,'webp');assert.equal(entry.digest,crypto.createHash('sha256').update(data).digest('hex'));
+  assert.ok(previews.previewFor(image,first.manifest));assert.equal(image.download,image.feedRecord.download);assert.equal(image.artist,'Artist');assert.equal(image.license,'CC BY 4.0');
+  const cached=await buildPreviews({...options,previous:first.manifest,fetcher:()=>assert.fail('same WordPress revision is cached')});assert.equal(cached.reused,1);
+  const bad=Buffer.from(data);bad[bad.length-1]^=1;await fs.writeFile(file,bad);assert.equal((await buildPreviews({...options,previous:first.manifest})).created,1);
+  for(const input of [await sharp(bytes).resize(512,320).jpeg().toBuffer(),await sharp(bytes).png().toBuffer()])await assert.rejects(copyAuthorPreview(input,image),/格式或尺寸/);
+  const failed=await buildPreviews({...options,previous:null,fetcher:async()=>new Response(await sharp(bytes).resize(512,320).jpeg().toBuffer())});assert.equal(failed.failures,1);assert.equal(failed.created,0);
+});
+
+test('changed revisions and removed works clean only managed Pepper and Morevna previews',async t=>{
+  const outputDir=await directory(t),pepper=pepperItem('artwork'),manga=morevnaItem(),native=await sharp({create:{width:2000,height:1250,channels:3,background:'#7435aa'}}).jpeg().toBuffer(),thumbnail=await sharp(native).resize(1024,640).jpeg().toBuffer();
+  const options={items:[pepper,manga],outputDir,now,logger,fetcher:async url=>new Response(url===pepper.download?native:thumbnail)};
+  const first=await buildPreviews(options);assert.equal(first.created,2);
+  const updated=feeds.normalizeFeed([{...manga.feedRecord,revision:'2025-10-02T00:00:00'}],'morevna')[0];assert.notEqual(previews.filenameFor(updated),previews.filenameFor(manga));assert.equal(previews.previewFor(updated,first.manifest),null);
+  const second=await buildPreviews({...options,items:[pepper,updated],previous:first.manifest});assert.equal(second.created,1);assert.equal(second.reused,1);await assert.rejects(fs.readFile(path.join(outputDir,previews.filenameFor(manga))),/ENOENT/);
+  for(const provider of ['pepper','morevna'])await fs.writeFile(path.join(outputDir,provider,'keep-user-file.webp'),'untouched');
+  const empty=await buildPreviews({...options,items:[],previous:second.manifest});assert.deepEqual(empty.manifest.images,{});
+  for(const image of [pepper,updated])await assert.rejects(fs.readFile(path.join(outputDir,previews.filenameFor(image))),/ENOENT/);
+  for(const provider of ['pepper','morevna'])assert.equal(await fs.readFile(path.join(outputDir,provider,'keep-user-file.webp'),'utf8'),'untouched');
+});
 
 test('preview URLs require a licensed repository item and matching bounded metadata',async()=>{
   const image=item(await png()),entry={revision:image.feedRecord.revision,width:1280,height:640,bytes:50000};
