@@ -6,8 +6,9 @@ const os=require('node:os');
 const crypto=require('node:crypto');
 const sharp=require('sharp');
 const repositories=require('../source/wallpapers/repositories.js');
+const ayomi=require('../source/wallpapers/ayomi.js');
 const previews=require('../source/wallpapers/previews.js');
-const {readImage,encodePreview,buildPreviews}=require('../scripts/build-wallpaper-previews.cjs');
+const {readImage,encodePreview,copyAuthorPreview,buildPreviews}=require('../scripts/build-wallpaper-previews.cjs');
 const now=new Date('2026-10-02T00:00:00Z'),logger={log(){},warn(){}};
 const revision=bytes=>crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
 function item(bytes,provider='folium',filename='Abstract/test.png',width=2000,height=1000){
@@ -15,6 +16,11 @@ function item(bytes,provider='folium',filename='Abstract/test.png',width=2000,he
   return repositories.normalizeRepository([{path:filename,revision:revision(bytes),width,height,license:source.license,licenseUrl:source.licenseUrl}],provider)[0];
 }
 const png=()=>sharp({create:{width:2000,height:1000,channels:3,background:'#658cad'}}).png().toBuffer();
+function authorItem(id='one',original=false){
+  const download='https://oc.nekosia.cat/images/gallery/snowy-park/girl-'+id+'.png';
+  return ayomi.normalizeRecords([{artist:ayomi.source.artist,title:'Catgirl at the snowy park',context:'Original winter illustration',copyrightNotice:'© AyomiCat · CC BY-NC-ND 4.0',download,image:original?download:download.replace('/images/gallery/','/images/thumbs/')+'.webp',pageUrl:'https://oc.nekosia.cat/gallery/snowy-park',revision:'2026-04-18T02:41:35.875Z',license:ayomi.source.license,licenseUrl:ayomi.source.licenseUrl,width:1024,height:1536,imageWidth:original?1024:640,imageHeight:original?1536:960}])[0];
+}
+const authorBytes=()=>sharp({create:{width:640,height:960,channels:3,background:'#ab8acd'}}).webp({quality:90}).toBuffer();
 async function directory(t){const dir=await fs.mkdtemp(path.join(os.tmpdir(),'wallpaper-preview-test-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));return dir;}
 
 test('preview URLs require a licensed repository item and matching bounded metadata',async()=>{
@@ -32,6 +38,59 @@ test('preview URLs require a licensed repository item and matching bounded metad
   assert.deepEqual(previews.imageCandidates(image,manifest),[previews.previewFor(image,manifest),image.image,image.fallbackImage]);
   assert.deepEqual(previews.imageCandidates({...image,fallbackImage:image.image},null),[image.image]);assert.deepEqual(previews.imageCandidates(null),[]);
   assert.equal(image.download,image.image);
+});
+
+test('author preview URLs bind the exact licensed file, revision, dimensions and digest',()=>{
+  const image=authorItem(),entry={revision:image.revision,url:image.image,width:640,height:960,bytes:1000,digest:'a'.repeat(64)},manifest={version:1,images:{[image.id]:entry}};
+  assert.match(previews.filenameFor(image),/^ayomi\/snowy-park\/girl-one\.png\.\d+\.webp$/);assert.equal(previews.previewFor(image,manifest),'./previews/'+previews.filenameFor(image));
+  for(const changes of [{url:image.download},{revision:'2026-04-19T02:41:35.875Z'},{width:641},{height:961},{bytes:previews.authorMaxBytes+1},{digest:'../unsafe'},{digest:undefined}])assert.equal(previews.previewFor(image,{version:1,images:{[image.id]:{...entry,...changes}}}),null);
+  assert.equal(previews.filenameFor({...image,id:'forged'}),null);assert.equal(previews.filenameFor({...image,feedRecord:{...image.feedRecord,license:'MIT'}}),null);
+});
+
+test('noncommercial no-derivative previews preserve every source byte without reencoding',async()=>{
+  const image=authorItem(),bytes=await authorBytes(),copied=await copyAuthorPreview(bytes,image);
+  assert.deepEqual(copied.data,bytes);assert.equal(copied.width,640);assert.equal(copied.height,960);assert.equal(copied.digest,crypto.createHash('sha256').update(bytes).digest('hex'));
+  const original=authorItem('original',true),pngBytes=await sharp({create:{width:1024,height:1536,channels:3,background:'#3a654b'}}).png().toBuffer();
+  assert.deepEqual((await copyAuthorPreview(pngBytes,original)).data,pngBytes);assert.match(previews.filenameFor(original),/\.png\.\d+\.png$/);
+  for(const invalid of [null,{...image,id:'forged'}, {...image,feedRecord:{...image.feedRecord,license:'MIT'}}])await assert.rejects(copyAuthorPreview(bytes,invalid),/许可无效/);
+  await assert.rejects(copyAuthorPreview(Buffer.alloc(previews.authorMaxBytes+1),image),/许可无效/);
+  await assert.rejects(copyAuthorPreview(pngBytes,image),/格式或尺寸/);
+  await assert.rejects(copyAuthorPreview(await sharp(bytes).resize(320,480).webp().toBuffer(),image),/格式或尺寸/);
+});
+
+test('author copies cache by byte digest and repair changed bytes without touching unrelated files',async t=>{
+  const outputDir=await directory(t),image=authorItem(),bytes=await authorBytes(),options={items:[image],fetcher:async url=>{assert.equal(url,image.image);return new Response(bytes);},outputDir,now,logger,wait:async()=>{}};
+  const first=await buildPreviews(options),file=path.join(outputDir,previews.filenameFor(image));assert.equal(first.created,1);assert.deepEqual(await fs.readFile(file),bytes);
+  const cached=await buildPreviews({...options,previous:first.manifest,fetcher:()=>assert.fail('unchanged author bytes are cached')});assert.equal(cached.reused,1);
+  const changed=Buffer.from(bytes);changed[changed.length-1]^=1;await fs.writeFile(file,changed);
+  const repaired=await buildPreviews({...options,previous:first.manifest});assert.equal(repaired.created,1);assert.deepEqual(await fs.readFile(file),bytes);
+  const unrelated=path.join(outputDir,'ayomi','keep-user-file.txt');await fs.writeFile(unrelated,'untouched');
+  await buildPreviews({...options,items:[],previous:repaired.manifest});await assert.rejects(fs.readFile(file),/ENOENT/);assert.equal(await fs.readFile(unrelated,'utf8'),'untouched');
+});
+
+test('author copying is sequential, paced and bounded alongside generated repository previews',async t=>{
+  const outputDir=await directory(t),bytes=await authorBytes(),repoBytes=await png(),authors=[authorItem('one'),authorItem('two')],repo=item(repoBytes),waits=[];
+  let active=0,peak=0;
+  const fetcher=async url=>{active++;peak=Math.max(peak,active);await new Promise(resolve=>setImmediate(resolve));active--;return new Response(url===repo.image?repoBytes:bytes);};
+  const options={items:[repo,...authors],fetcher,outputDir,now,logger,wait:async ms=>waits.push(ms),maxNew:1};
+  const first=await buildPreviews(options);assert.equal(first.created,1);assert.equal(first.deferred,2);assert.equal(peak,1);
+  const next=await buildPreviews({...options,previous:first.manifest,maxNew:3});assert.equal(next.created,2);assert.equal(next.reused,1);assert.equal(next.deferred,0);assert.ok(next.manifest.images[repo.id]);
+  const all=await buildPreviews({...options,previous:null,maxNew:2});assert.equal(all.created,2);assert.deepEqual(waits,[1500]);
+});
+
+test('copying stops on HTTP 429 and persists the cooldown while other sources still build',async t=>{
+  const outputDir=await directory(t),bytes=await authorBytes(),repoBytes=await png(),authors=[authorItem('one'),authorItem('two'),authorItem('three')],repo=item(repoBytes),calls=[],waits=[];
+  let count=0;
+  const options={items:[repo,...authors],outputDir,now,logger,wait:async ms=>waits.push(ms),fetcher:async url=>{calls.push(url);if(url===repo.image)return new Response(repoBytes);if(++count===2)return new Response('rate limited',{status:429,headers:{'retry-after':'120'}});return new Response(bytes);}};
+  const first=await buildPreviews(options);assert.equal(first.created,2);assert.equal(first.failures,1);assert.equal(first.deferred,1);assert.equal(count,2);assert.equal(first.manifest.authorRetryAt,'2026-10-02T00:02:00.000Z');assert.deepEqual(waits,[1500]);
+  const paused=await buildPreviews({...options,previous:first.manifest,fetcher:()=>assert.fail('cooldown cannot request source images')});assert.equal(paused.reused,2);assert.equal(paused.deferred,2);assert.equal(paused.manifest.authorRetryAt,first.manifest.authorRetryAt);
+  const resumed=await buildPreviews({...options,previous:paused.manifest,now:new Date(first.manifest.authorRetryAt),fetcher:async()=>new Response(bytes)});assert.equal(resumed.created,2);assert.equal(resumed.failures,0);assert.equal(resumed.manifest.authorRetryAt,undefined);assert.equal(resumed.deferred,0);
+});
+
+test('a directory cooldown also pauses uncached author images while repository files can build',async t=>{
+  const outputDir=await directory(t),bytes=await png(),repo=item(bytes),author=authorItem();let requested=0;
+  const result=await buildPreviews({items:[author,repo],outputDir,now,logger,sourceRetryAt:'2026-10-02T04:00:00Z',previous:{authorRetryAt:'2026-10-02T02:00:00Z'},fetcher:async url=>{requested++;assert.equal(url,repo.image);return new Response(bytes);}});
+  assert.equal(result.created,1);assert.equal(requested,1);assert.equal(result.deferred,1);assert.equal(result.manifest.authorRetryAt,'2026-10-02T04:00:00.000Z');
 });
 
 test('downloads are bounded, errors cancel streams, and a hanging body is aborted',async()=>{

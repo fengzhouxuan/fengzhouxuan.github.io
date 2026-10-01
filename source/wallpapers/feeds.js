@@ -4,7 +4,8 @@
   const repositories=typeof module!=='undefined'&&module.exports?require('./repositories.js'):root.WallpaperRepositories;
   const commons=typeof module!=='undefined'&&module.exports?require('./commons.js'):root.WallpaperCommons;
   const morevna=typeof module!=='undefined'&&module.exports?require('./morevna.js'):root.WallpaperMorevna;
-  const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']},morevna:morevna.source,...repositories.sources});
+  const ayomi=typeof module!=='undefined'&&module.exports?require('./ayomi.js'):root.WallpaperAyomi;
+  const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']},morevna:morevna.source,ayomi:ayomi.source,...repositories.sources});
   const pepperPage='https://www.peppercarrot.com/en/wallpapers/index.html';
   const pepperArtworkPage='https://www.peppercarrot.com/en/artworks/artworks.html';
   const pepperFilename=/^\d{4}-\d{2}-\d{2}_[a-z0-9_-]+_by-David-Revoy\.jpg$/i;
@@ -63,6 +64,7 @@
     if(!Object.hasOwn(providers,provider))return [];
     if(Object.hasOwn(repositories.sources,provider))return repositories.normalizeRepository(records,provider);
     if(provider==='morevna')return morevna.normalizeRecords(records);
+    if(provider==='ayomi')return ayomi.normalizeRecords(records);
     const items=[],seen=new Set(),input=Array.isArray(records)?records.slice():[];
     if(provider==='pepper')input.sort((a,b)=>Number(a?.kind==='artwork')-Number(b?.kind==='artwork'));
     for(const raw of input){
@@ -124,6 +126,11 @@
     return result;
   }
 
-  const api={providers,pepperPage,pepperArtworkPage,parsePepperIndex,pepperWorkKey,parsePepperGallery,parsePepperArtwork,normalizeFeed,normalizeCatalog,mergeItems,mixSources};
+  function licenseHint(license){
+    if(typeof license==='string'&&license.startsWith('CC BY'))return ['署名',...(license.includes('-NC')?['非商业']:[]),...(license.includes('-ND')?['不可改作']:[]),...(license.includes('-SA')?['相同方式共享']:[])].join(' · ');
+    return ['CC0','Public domain'].includes(license)?'可自由使用':'查看使用许可';
+  }
+
+  const api={providers,pepperPage,pepperArtworkPage,parsePepperIndex,pepperWorkKey,parsePepperGallery,parsePepperArtwork,normalizeFeed,normalizeCatalog,mergeItems,mixSources,licenseHint};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperFeeds=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

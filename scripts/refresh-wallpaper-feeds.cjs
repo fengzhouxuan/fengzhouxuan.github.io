@@ -3,6 +3,7 @@ const path=require('node:path');
 const feeds=require('../source/wallpapers/feeds.js');
 const repositories=require('../source/wallpapers/repositories.js');
 const morevna=require('../source/wallpapers/morevna.js');
+const {collectAyomi}=require('./collect-ayomi.cjs');
 const catalogPath=path.resolve(__dirname,'../source/wallpapers/data/official-feeds.json');
 const userAgent='RabbitWallpaperStation/1.0 (static open-license catalog)';
 
@@ -187,20 +188,23 @@ async function collectMorevna({fetcher=fetch,dimensions=readDimensions,old=[],lo
   return records.filter(Boolean);
 }
 
-async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers)}={}){
+async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers),ayomiOptions={}}={}){
   if(providerIds.some(provider=>!Object.hasOwn(feeds.providers,provider)))throw Error('壁纸来源不存在');
-  const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},records:{}};
+  const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},continuation:{},records:{}};
   let failures=0;
   for(const provider of providerIds){
     const old=feeds.normalizeFeed(previous?.version===1?previous.records?.[provider]:[],provider);
     try{
-      let records;
+      let records,ayomiResult;
       if(Object.hasOwn(repositories.sources,provider)){
         records=await collectRepository(provider,{fetcher,dimensions,old,logger});
       }else if(provider==='pepper'){
         records=await collectPepper({fetcher,dimensions,old,logger});
       }else if(provider==='morevna'){
         records=await collectMorevna({fetcher,dimensions,old,logger});
+      }else if(provider==='ayomi'){
+        ayomiResult=await collectAyomi({...ayomiOptions,fetcher,dimensions,old,logger,now,continuation:previous?.version===1?previous.continuation?.ayomi:null});
+        records=ayomiResult.records;catalog.continuation.ayomi=ayomiResult.continuation;if(ayomiResult.interrupted)failures++;
       }else{
         const response=await request(fetcher,metURL(now)),payload=await response.json();records=[];
         const known=new Map(old.map(item=>[item.feedRecord.objectID,item.feedRecord]));
@@ -214,12 +218,13 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
           }catch(e){logger.warn('跳过无法读取的馆藏作品：'+id);}
         }
       }
-      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
+      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
       if(provider==='met')items=[...new Map([...old,...items].map(item=>[item.id,item])).values()];
-      catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=now.toISOString();
+      catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=ayomiResult&&!ayomiResult.updated?previous?.updatedAt?.[provider]||null:now.toISOString();
       logger.log(feeds.providers[provider].name+'：'+items.length+' 张');
     }catch(e){
       failures++;catalog.records[provider]=old.map(item=>item.feedRecord);catalog.updatedAt[provider]=previous?.updatedAt?.[provider]||null;
+      if(provider==='ayomi')catalog.continuation.ayomi=previous?.version===1?previous.continuation?.ayomi||null:null;
       logger.warn(feeds.providers[provider].name+'更新失败，保留 '+old.length+' 张已有图片：'+e.message);
     }
   }
@@ -227,7 +232,7 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
 }
 
 function mergeCatalogs(seed,cached){
-  const catalog={version:1,updatedAt:{},records:{}};
+  const catalog={version:1,updatedAt:{},continuation:{},records:{}};
   const timestamp=(value,provider)=>value?.version===1&&typeof value.updatedAt?.[provider]==='string'?Date.parse(value.updatedAt[provider]):NaN;
   for(const provider of Object.keys(feeds.providers)){
     const seeded=feeds.normalizeFeed(seed?.version===1?seed.records?.[provider]:[],provider),restored=feeds.normalizeFeed(cached?.version===1?cached.records?.[provider]:[],provider);
@@ -237,6 +242,7 @@ function mergeCatalogs(seed,cached){
     const useSeed=hasSeed&&(!hasCached||seedTime>cachedTime);
     catalog.records[provider]=(useSeed?seeded:restored).map(item=>item.feedRecord);
     catalog.updatedAt[provider]=(useSeed?seed:cached)?.updatedAt?.[provider]||null;
+    if(provider==='ayomi')catalog.continuation.ayomi=(useSeed?seed:cached)?.continuation?.ayomi||null;
   }
   return catalog;
 }
@@ -247,7 +253,10 @@ async function main(){
   if(process.env.WALLPAPER_SEED_CATALOG){
     const seed=JSON.parse(await fs.readFile(process.env.WALLPAPER_SEED_CATALOG,'utf8'));previous=mergeCatalogs(seed,previous);
   }
-  const {catalog,failures}=await refreshCatalog({previous});
+  let previewRetryAt;
+  try{previewRetryAt=JSON.parse(await fs.readFile(path.join(path.dirname(catalogPath),'previews.json'),'utf8')).authorRetryAt;}
+  catch(error){if(error.code!=='ENOENT')console.warn('预览缓存冷却信息无法读取，继续核对图源目录');}
+  const {catalog,failures}=await refreshCatalog({previous,ayomiOptions:{retryAt:previewRetryAt}});
   if(!feeds.normalizeCatalog(catalog).length)throw Error('所有图源均不可用，目录未改写');
   const temporary=catalogPath+'.tmp';await fs.writeFile(temporary,JSON.stringify(catalog,null,2)+'\n');await fs.rename(temporary,catalogPath);
   if(failures)console.warn('部分图源未更新，站点构建可继续使用已有目录。');

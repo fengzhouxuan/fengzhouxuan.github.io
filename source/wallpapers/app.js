@@ -253,9 +253,9 @@
     $('download-status').textContent='';$('source-link').hidden=original;
     if(!original){$('source-link').href=item.pageUrl;$('art-download').href=item.download;$('source-link').textContent=providerName+' · 查看作品与作者 ↗';}
     $('license-link').href=item.licenseUrl;
-    $('license-link').textContent=item.license+' · '+(item.license.startsWith('CC BY-SA')?'署名 · 相同方式共享':item.license.startsWith('CC BY')?'使用时署名':'可自由使用')+' ↗';
+    $('license-link').textContent=item.license+' · '+feeds.licenseHint(item.license)+' ↗';
     $('credit-block').hidden=original;
-    $('credit-text').textContent=original?'':item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl;
+    $('credit-text').textContent=original?'':item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl+(item.copyrightNotice?'\n'+item.copyrightNotice:'');
     $('preview-tags').replaceChildren(...item.tags.filter(tag=>!['横屏','竖屏','原创'].includes(tag)).map(tag=>element('span','',tag)));
     const position=state.queue.findIndex(entry=>entry.id===item.id);
     $('preview-position').textContent=(position+1)+' / '+state.queue.length;

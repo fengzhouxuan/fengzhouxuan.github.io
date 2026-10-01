@@ -19,6 +19,8 @@
 - Pepper&Carrot 的壁纸目录与正式插画目录分别更新；一个目录请求失败时保留该部分已有图片，另一个仍可更新。插画最多三路并发读取作品页，每次重新核对 David Revoy 作者署名、该作品的 CC BY 4.0 声明和同名高清/预览文件。新图再读取实际尺寸；已有相同原图链接的尺寸可以复用。来源页暂时不可访问时保留已验证记录，成功读到的页面若不再满足许可要求则移除；完整目录中消失的插画也移除。与壁纸同题的版本去重，比较时忽略日期、大小写、连字符和下划线，优先保留壁纸版本。
 - Morevna Project 官方动漫画廊的图片集合声明为 CC BY 4.0。同步先核对该声明，再通过官方 WordPress REST API 完整读取正式插画和场景两个分类，绑定每件作品的作者、作品页、特色图片及预览版本；不收录练习、草稿、概念表、缺少作者或尺寸不足的作品。初次实际读取 34 件作品，26 件通过尺寸与作者验证，其中插画 22 张、场景 4 张、竖屏 6 张，作者为 Anastasia Mayzhegisheva 和 Nikolai Mamashev。许可依据是官方画廊集合声明，API 没有逐图许可字段，因此不能推及网站上的其他图片或动画源文件。
 - Morevna 新增或修改作品最多三路并发读取原始 JPEG/PNG/WebP 头部取得真实尺寸，预览选用官方不裁切的缩小版本。只有 API 明确提供 `original_image` 时才使用该原图文件，不猜测更高清的地址。作品修改时间、媒体 ID、原图链接及展示尺寸均不变时复用已验证尺寸；修改时间不是图片内容摘要。分页不完整、画廊许可或分类变化时保留上次目录和时间；已成功完整读取的目录中缺失、缺少作者或不再满足许可/尺寸要求的图片移除。原图暂时无法读取时保留相同原图链接的已验证记录。
+- AyomiArt 作者画廊补充 AI 动漫角色插画，采用 CC BY-NC-ND 4.0。这是附带非商业与不可改作条件的共享许可，不能称为允许任意用途的开源素材。首次实际验证并收录 213 张，竖屏 196 张、横屏 17 张；长边范围 1536–2919 像素，常见尺寸为 1024×1536。该来源要求短边至少 1024、长边至少 1536，页面保留原始尺寸，不标为 4K 或人为放大。逐图绑定作者 AyomiCat、版权声明、许可、原图地址和目录中的可见图片；根目录中缺少逐图许可数据的独立图片不收录。排除已识别到的 Pikachu/Pokemon、Kanade/Beast Tamer、Arona/Blue Archive 等现成角色名称、非动漫目录和显式成人关键词。作者称作品为原创，但目录中发现了现成角色名称，因此不能将其声明直接当作全部作品已清除第三方权利的证明。这仍依赖作者声明、结构化元数据与文本筛选，不是独立的逐像素权利或内容核查。
+- Ayomi 同步使用串行请求，两次请求至少间隔 1.5 秒；每次构建最多 150 次请求、30 个目录，HTML 与原图/预览头部共用预算。未读完时将待处理目录写入同一官方目录 JSON 的 `continuation.ayomi`，下次构建继续；原图和官方预览地址、修改时间不变时复用已经验证的尺寸。遇到 HTTP 429 立即停止本轮请求，保存已验证图片及待处理目录，遵循 `Retry-After` 的冷却时间，无有效值时至少等待一小时再尝试。只有完整读取并检查了一个目录才能移除该目录旧图片；未访问的目录和暂时故障的目录保留。顶层完整分页确认已删除的目录可以移除其旧图片。全部目录读完后，下轮再重新核对顶层目录；因此不承诺每天扫描完整图库或每天有新图。初次请求因限流只得到部分图库，已保存 168 个待处理目录；源站首页作品总数不是本站收录量。
 - 一个来源同步失败时，另一个仍会更新；失败来源保留已有目录及上次记录时间。CI 通过 Actions cache 在同一分支的每日构建间保存目录，不自动提交回仓库。缓存被清理或过期时回退到仓库内的初始目录；它不是永久云端档案。页面另保存浏览器缓存，目录请求失败时仍可使用。此流程要在改动发布到默认分支后才开始运行。
 - CI 恢复缓存前保存提交中的官方图源初始目录，再按各来源最后成功更新时间选择较新的已验证目录，避免旧缓存覆盖本次新增图源。较新的空目录仍然保留，不用旧初始图片恢复上游已删除的作品。此合并行为已通过模拟缓存与断网测试，实际 Actions 执行尚待发布后验证。
 - 新增三个作者发布的壁纸仓库：LibrePixels（AI 风景、幻想和动漫风场景，CC0）、Folium Creations（3D、抽象、自然摄影，CC BY 4.0）、metaory/Midjourney（AI 赛博朋克、像素城市等，CC0）。首轮实际收录分别为 107、30、146 张；网络超时或尺寸不合格的文件不计入。每次同步先核对图片许可声明，再完整读取目录；保留作者和文件页，并检查真实 JPEG、PNG、WebP 尺寸。图库只保存元数据，GitHub 仓库原图通过 jsDelivr 访问，失败时尝试 Fastly CDN 上的同一文件；GitLab 原图通过官方文件 API 访问。首次同步以三路并发检查，之后用 Git blob 摘要判断文件是否变化；相同摘要图片去重。LibrePixels 只收录 `_librepixels_` 作者文件，并排除目前识别到的路飞和马里奥角色文件及显式成人关键词。此筛选依赖作者声明和文件命名，不能证明所有未声明的第三方权利均已清除。
@@ -31,13 +33,14 @@
 
 外部图源仍受网络、API 和博物馆图像服务可用性影响。艺术馆不是实时上新承诺：轮换的是馆藏搜索页。源标签基于提供方的授权数据，不是独立的版权核查。
 
-外部作品保留标题、作者、来源页和具体许可，不统一标为 CC0。提供复制署名信息按钮，CC BY 提示署名，CC BY-SA 同时提示相同方式共享；下载入口打开未修改原图。桌面与手机的裁切只用于效果示意。
+外部作品保留标题、作者、来源页和具体许可，不统一标为 CC0。提供复制署名信息按钮，CC BY 提示署名，CC BY-SA 同时提示相同方式共享；CC BY-NC-ND 提示署名、非商业及不可改作，复制信息也保留作者提供的版权声明。下载入口打开未修改原图。桌面与手机的裁切只用于效果示意。
 
 ## 浏览体验
 
 - 三个壁纸仓库的画廊、首屏推荐和弹窗优先使用构建生成的 WebP 预览；最长边 1280 像素，保留完整画面、比例及透明区域。高清下载继续打开作者原图，作者、许可和来源页保持不变。预览不可用时依次尝试原图和备用 CDN。
 - Pepper&Carrot 的新增插画使用作者提供的低清 JPEG 预览，高清入口指向同一作品的原始 JPEG；保留原作比例、逐图来源页和 CC BY 4.0 署名信息。
 - Morevna 使用官方同名图片的缩小版本预览，画廊和高清入口保留作品原始比例；作品作者及 `Morevna and Pepper` 的 David Revoy 角色署名也保留。
+- Ayomi 图片响应有 `Cross-Origin-Resource-Policy: same-origin`，原站图片无法直接嵌入博客。构建时将作者提供的预览按原始字节缓存到本站，核对格式、尺寸和 SHA-256 摘要；不裁切、重编码或生成改作。预览优先使用本站缓存，下载入口继续打开作者原始 PNG/JPEG/WebP。标签和图源名称明确标注 AI 插画。该来源只可用于符合许可的非商业展示，未来启用广告或其他商业用途前需重新处理该来源。
 - 画廊保留横竖屏的原始比例，桌面四列、平板三列、手机两列；各来源按当天日期确定性轮换并交错推荐，每次显示 24 张，再按需加载更多。相同文件在画廊只出现一次，分类和标签会合并，使同时属于风景与城市的图片仍可从任一分类找到。新增分类可与图源、设备、搜索组合筛选；首屏推荐从已收录图片中挑选横竖屏作品，加载失败回退到原创图案。
 - 可按设备、主题、配色和关键字组合筛选，按名称或分辨率排序。主题与配色适用于原创；艺术馆隐藏这两项。
 - 首屏的山野、柔光、夜色、艺术馆入口直接应用对应筛选；支持随机挑选和一键清除筛选。
@@ -52,12 +55,14 @@
 
 生成的 `source/wallpapers/previews/` 和 `source/wallpapers/data/previews.json` 不进入 Git，通过 Actions cache 跨构建复用，并随 Hexo 页面一起发布到 GitHub Pages。缓存丢失时自动重新生成；单张处理失败仍可浏览来源图片。浏览器不需要 API Key，也不需要人工上传。初次生成会下载原图；每张限 32 MiB、6000 万像素、25 秒请求时间，以限制构建资源消耗。
 
+该构建脚本也缓存 Ayomi 作者提供的预览，采用单路请求、1.5 秒间隔，与仓库预览共用每次 120 张的新文件预算。缓存保留作者发布的原始字节，最多 8 MiB、6000 万像素和 25 秒；没有作者缩小预览时只能按未修改原图尝试，不转码。文件按作者原始目录和作品修改时间保存，清理退出图库的已管理文件时保留其他文件。已有缓存每次检查格式、尺寸、字节数和 SHA-256；许可、链接或修改时间变化时重新读取。遇到 HTTP 429 立即停止该来源的缓存请求并把冷却时间写入预览 JSON，其他来源仍可处理。目录同步和图片缓存会读取彼此保存的冷却时间，采用较晚的有效时间，避免一项刚被限流而另一项立即继续请求。缓存丢失或首次构建时可能需要多次每日构建补齐，缺少缓存的 Ayomi 卡片可能无法显示，原图入口仍可在原站打开；不能承诺未缓存图片也能跨站嵌入。
+
 在本地初次启动或要补齐预览时，运行 `node scripts/build-wallpaper-previews.cjs`；已有生成结果会复用。每天的站点构建已配置该命令，实际 GitHub Actions 和 Pages 效果仍需发布后验证。
 
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
@@ -83,6 +88,8 @@ Pepper&Carrot 官方壁纸：<https://www.peppercarrot.com/en/wallpapers/index.h
 
 Morevna 官方画廊与集合许可：<https://morevnaproject.org/anime/gallery/>；正式插画：<https://morevnaproject.org/anime/gallery/artworks/>；场景：<https://morevnaproject.org/anime/gallery/backgrounds/>；作品与作者示例：<https://morevnaproject.org/artwork/sister-priestess-wind/>；结构化目录：<https://morevnaproject.org/wp-json/wp/v2/artwork>。WordPress REST 媒体结构：<https://developer.wordpress.org/rest-api/reference/media/>。
 
+AyomiArt 作者与 AI 说明、默认非商业共享许可：<https://oc.nekosia.cat/>；作者图库：<https://oc.nekosia.cat/gallery?page=1>；逐图许可数据示例：<https://oc.nekosia.cat/gallery/anime-catgirl-black-dress-red-bow?page=1>；许可条件：<https://creativecommons.org/licenses/by-nc-nd/4.0/>。Creative Commons 的集合与改作说明：<https://creativecommons.org/faq/>。未接入聚合其他作者作品的 Nekosia 通用动漫 API，也未使用付费下载许可。
+
 Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个人及非商业许可说明：<https://wallpapers.com/faq/licensing-and-help/can-i-use-wallpaperscom-wallpapers-commercially/>。原站入口不代表其中全部图片为开放授权。
 
 仓库图源：<https://gitlab.com/librepixels/ia.Wallpapers>；<https://github.com/FoliumCreations/Wallpapers>；<https://github.com/metaory/midjourney>。许可声明分别位于 LibrePixels README/LICENCE、Folium README/CC:BY 4.0 Licence、metaory LICENSE。
@@ -96,5 +103,7 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 本次插画增量后共 64 项测试通过，所加载模块行覆盖率 97.49%，Hexo 构建通过且发布目录中的脚本与图源 JSON 与源文件一致。本机浏览器载入艺术馆结果和 Commons 分类缓存后显示合计 1,338 张，二次元筛选 115 张，Pepper&Carrot 筛选 90 张、其中手机方向 15 张。已实际验证 `Enchanted Pages` 的 1701×1080 作者预览成功解码、2500×1587 高清入口与逐图署名信息正确、收藏在刷新后恢复；`A Dreamer s Lake` 的 871×1080 竖屏预览和锁屏示意成功显示，高清入口保留 2800×3472 原图。该锁屏示意是在桌面浏览器验证，本轮没有新增手机实机验收或 GitHub Actions/Pages 发布验证。
 
 2026-10-02 的 Morevna 增量实际验证了 26 张原始图片的 JPEG/PNG 尺寸，长边范围 1605–7550 像素；未计入作者缺失的两件场景及尺寸不足的六件作品。77 项测试通过，所加载模块行覆盖率 97.51%，新图源模块行覆盖率 100%；Hexo 构建通过，发布目录中的新增脚本和图源 JSON 与源文件一致。本机浏览器在加载 Commons 二次元分类缓存后显示合计 1364 张、二次元 141 张、Morevna 26 张，其中竖屏 6 张。已验证 `Sunset Wallpaper` 的 1024×576 作者预览成功解码、3555×2000 高清入口与署名许可正确、收藏刷新后恢复；另一位作者的 `Laboratory` 1536×862 预览及 4698×2638 原图入口也验证通过。没有新增手机实机验收，也尚未验证实际 Actions/Pages 发布。以上数量会随实时图库缓存及加载失败变化。
+
+2026-10-02 的 Ayomi 增量先实际验证了 216 张原图和预览的文件尺寸，最终目录核查排除 Arona/Blue Archive 的三张同人候选，收录 213 张。213 个作者预览按原始字节实际缓存完成，总计 13,551,874 字节；与三个仓库原有的 283 个预览合计 496 个文件。重新构建后核对了所有 Ayomi 缓存的 SHA-256、源文件与发布文件字节一致性，以及七个相关脚本/目录文件的构建一致性。限速后的真实目录同步使用 20 次请求后正确停止，保存 168 个待处理目录；该待处理数量不能当作尚未收录的图片数。102 项测试通过，所加载模块行覆盖率 97.74%，新图源和目录同步模块行覆盖率均为 100%。本机浏览器二次元筛选显示 354 张，Ayomi 为 213 张，竖屏 196、横屏 17；已验证本地预览成功显示、AI 标签、真实 1024×1536 原图入口、署名/非商业/不可改作提示及作者版权声明。收藏刷新后恢复，测试收藏随后清理。没有新增手机实机验收，也没有推送或验证真实 Actions/Pages 发布。
 
 2026-10-02 真实同步已收录 Commons 分类记录 875 条，按文件 ID 去重后为 862 张图片。各分类记录数为风景 498、城市 258、星空 100、动物 10、二次元 9，一张图片可以属于多个分类。城市分类在第六页之后遭遇 HTTP 429，已保存这些页面和续传游标；二次元分类本轮连接失败，保留已有目录。不能把未读取的后续页面计入图库，也不保证上游图片服务持续可用。新增恢复和分类合并逻辑后共 55 项测试通过；请求重试、正文超时、部分进度保存及游标续传有模拟测试，部分进度保存也已经在真实城市目录上验证。浏览器已验证 Commons 风景筛选为 498 张，与已验证的目录一致。仓库图片的首次同步和预览生成已实际执行。浏览器加载数量可能随艺术馆实时结果、已有缓存和加载失败而变化。
