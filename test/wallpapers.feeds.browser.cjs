@@ -9,13 +9,21 @@ const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"
   const browser=await chromium.launch({headless:true,channel:'chrome'});
   try{
     const context=await browser.newContext({viewport:{width:1440,height:1080},permissions:['clipboard-read','clipboard-write']});
-    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    const page=await context.newPage(),errors=[],externalRequests=[];page.on('pageerror',error=>errors.push(error.message));
+    await context.route('https://wallpapers.com/**',route=>{externalRequests.push(route.request().url());return route.fulfill({contentType:'text/html',body:'<title>原站分类</title>'});});
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.route('https://openaccess-api.clevelandart.org/**',route=>route.abort());
     await page.route('https://commons.wikimedia.org/w/api.php**',route=>route.abort());
     for(const url of ['https://www.peppercarrot.com/cache/**','https://images.metmuseum.org/**','https://thumb.wikimedia.org/**','https://upload.wikimedia.org/**'])await page.route(url,route=>route.fulfill({contentType:'image/svg+xml',body:imageSVG}));
     await page.goto('http://localhost:4011/wallpapers/');
     await page.waitForFunction(total=>document.querySelector('#count').textContent===total+' 张壁纸',items.length+24);
+    assert.deepEqual(externalRequests,[]);
+    assert.equal(await page.locator('#provider option[value="wallpaperscom"]').count(),0);
+    assert.equal(await page.locator('#external-category').getAttribute('href'),'#more-wallpapers');
+    await page.locator('#external-category').click();assert.equal(await page.locator('#more-wallpapers').isVisible(),true);
+    assert.equal(await page.locator('.source-destination').count(),5);
+    assert.equal(await page.locator('#more-wallpapers a').evaluateAll(nodes=>nodes.every(node=>node.target==='_blank'&&node.rel.includes('noopener')&&node.rel.includes('noreferrer')&&new URL(node.href).hostname==='wallpapers.com')),true);
+    assert.equal(await page.locator('#more-wallpapers img,#more-wallpapers script').count(),0);
     assert.match(await page.locator('#provider option[value="pepper"]').textContent(),new RegExp(pepper.length+' 张'));
     assert.match(await page.locator('#provider option[value="met"]').textContent(),new RegExp(met.length+' 张'));
     await page.locator('#provider').selectOption('pepper');
@@ -36,10 +44,22 @@ const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"
     await page.locator('[data-source="all"]').click();
     await page.locator('[data-category="anime"]').click();await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('暂时连接不上'));
     assert.equal(await page.locator('#count').textContent(),(pepper.length+9)+' 张壁纸');
+    assert.equal(await page.locator('#external-category').getAttribute('href'),'https://wallpapers.com/anime');
+    assert.deepEqual(externalRequests,[]);
+    const popupPromise=context.waitForEvent('page');await page.locator('#external-category').click();const popup=await popupPromise;
+    await popup.waitForLoadState();assert.equal(popup.url(),'https://wallpapers.com/anime');await popup.close();
+    assert.deepEqual(externalRequests,['https://wallpapers.com/anime']);
+    assert.equal(await page.locator('#count').textContent(),(pepper.length+9)+' 张壁纸');
     await page.locator('#provider').selectOption('pepper');assert.equal(await page.locator('#count').textContent(),pepper.length+' 张壁纸');
     await page.locator('#orientation').selectOption('portrait');assert.equal(await page.locator('#count').textContent(),pepper.filter(item=>item.height>item.width).length+' 张壁纸');
     await page.locator('#empty-reset').click();assert.equal(await page.locator('#provider').inputValue(),'');
+    await page.locator('#orientation').selectOption('portrait');assert.equal(await page.locator('#external-category').getAttribute('href'),'https://wallpapers.com/mobile');
+    await page.locator('#orientation').selectOption('landscape');assert.equal(await page.locator('#external-category').getAttribute('href'),'https://wallpapers.com/desktop');
+    await page.locator('#orientation').selectOption('all');assert.equal(await page.locator('#external-category').getAttribute('href'),'#more-wallpapers');
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.locator('#more-wallpapers').scrollIntoViewIfNeeded();
+    assert.equal(await page.locator('.source-destination').evaluateAll(nodes=>nodes.every(node=>{const r=node.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth;})),true);
+    await page.screenshot({path:'test-results/wallpaper-recommendations-mobile.png'});
     await page.locator('#provider').selectOption('pepper');await page.locator('#collection').scrollIntoViewIfNeeded();
     await page.screenshot({path:'test-results/wallpaper-sources-mobile.png'});
     await page.route('**/wallpapers/data/official-feeds.json',route=>route.abort());await page.reload();
@@ -48,6 +68,6 @@ const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"
     await page.route(pepper[0].image,route=>route.abort());await page.reload();await page.locator('#provider').selectOption('pepper');
     await page.waitForFunction(count=>document.querySelector('#count').textContent===count+' 张壁纸',pepper.length-1);
     assert.match(await page.locator('#provider option[value="pepper"]').textContent(),new RegExp((pepper.length-1)+' 张'));
-    assert.deepEqual(errors,[]);console.log('PASS: official catalogs, per-source counts and filters, attribution, native originals, favorite restoration, category merging, orientation, mobile layout and offline cached catalog.');
+    assert.deepEqual(errors,[]);console.log('PASS: official catalogs, attribution, favorites, filters, offline fallback; original-site recommendations open separately, never preload unlicensed assets, and preserve gallery counts on desktop and mobile.');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

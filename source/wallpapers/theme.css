@@ -72,6 +72,20 @@ h1 { font-size:clamp(32px,2.8vw,40px);line-height:1.3;letter-spacing:1px;font-we
 .content-categories button { border:1px solid var(--line);background:var(--paper);color:#707c6b;font-size:12px;min-height:39px;padding:7px 18px;border-radius:22px;white-space:nowrap;flex-shrink:0; }
 .content-categories button[aria-pressed=true] { border-color:var(--accent);background:var(--accent);color:white; }
 .category-notice { display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);min-height:10px;margin-bottom:8px; }
+.category-notice #external-category { margin-left:auto;white-space:nowrap;font-size:11px;min-height:36px;display:flex;align-items:center; }
+.more-wallpapers { margin:28px 0 12px;padding:25px;border:1px solid var(--line);border-radius:12px;background:var(--paper);scroll-margin-top:25px; }
+.more-heading { display:flex;align-items:center;justify-content:space-between;gap:16px; }
+.more-heading .eyebrow { font-size:8px;margin-bottom:5px;color:var(--muted); }
+.more-heading .text-btn { font-size:11px; }
+.more-description { font-size:11px;color:var(--muted);margin:10px 0 18px; }
+.destination-grid { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px; }
+.source-destination { display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:8px;min-width:0;transition:border-color .18s,background .18s; }
+.source-destination:hover { border-color:#a1b695;background:var(--bg); }
+.destination-mark { display:grid;place-items:center;width:36px;height:42px;flex-shrink:0;border-radius:6px;background:var(--tint);color:var(--tone);font-size:26px; }
+.destination-type { font-size:15px;font-weight:700; }
+.source-destination b { font-size:12px;display:block; }
+.source-destination small { font-size:9px;display:block;color:var(--muted);margin-top:3px; }
+.destination-arrow { margin-left:auto;color:var(--accent); }
 .credit-block { border:1px dashed var(--line);border-radius:7px;padding:8px 10px; }
 .credit-block .text-btn { font-size:10px;padding:0; }
 #credit-text { font-size:9px;white-space:pre-line;overflow-wrap:anywhere;color:var(--muted);margin:7px 0 0;user-select:text; }
@@ -202,6 +216,7 @@ dialog::backdrop { background:#1c2d26ae;backdrop-filter:blur(7px); }
   .collection-tile small { font-size:8px; }.collection-tile i { display:none; }.anime-tile-mark { width:42px;height:42px; }
 }
 @media(max-width:800px) {
+  .destination-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .brand { font-size:14px; }.brand small { font-size:6px; }.site-header { gap:15px;min-height:80px; }nav { gap:12px;font-size:11px; }
   .header-favorites span { display:none; }.header-favorites { gap:5px;padding:6px 9px; }
   .hero-phone { width:100px;bottom:15px; }.hero-stage { min-height:240px; }.hero-art { width:85%; }.hero-note { top:0;font-size:8px; }
@@ -211,6 +226,7 @@ dialog::backdrop { background:#1c2d26ae;backdrop-filter:blur(7px); }
   .source-status { display:none; }.preview-layout { grid-template-columns:minmax(0,1fr) 270px; }.preview-left { padding:15px 18px 0; }.preview-info { padding:22px 18px; }
 }
 @media(max-width:600px) {
+  .more-wallpapers { padding:18px 13px;margin-top:20px; }.more-heading { flex-direction:column;align-items:flex-start;gap:10px; }.more-heading h2 { font-size:18px; }.more-description { font-size:11px;line-height:1.8;margin-top:8px; }.destination-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }.source-destination { padding:10px 8px;gap:8px;min-height:72px; }.source-destination b { font-size:11px; }.source-destination small { font-size:8px; }.destination-mark { width:29px;height:38px; }.destination-arrow { font-size:11px; }.category-notice #external-category { margin-left:0;font-size:10px; }
   .app { width:92vw; }.site-header { flex-wrap:wrap;padding:15px 0 10px;gap:10px;position:relative; }
   .brand { width:calc(100% - 70px);font-size:15px; }.brand-icon { font-size:24px; }.brand small { font-size:7px; }.header-favorites { position:absolute;right:0;top:19px;min-height:36px; }
   nav { width:100%;justify-content:space-between;gap:15px;font-size:12px; }nav a { padding:8px 0; }

@@ -126,6 +126,10 @@
     $('category-status').hidden=!Object.hasOwn(commons.categories,feed);
     $('category-status').textContent=state.commonsLoading.has(feed)?'正在更新开放图库，已收录的图片可以先看。':status==='fresh'?'开放图库已更新 · 每张保留作者与许可':status==='cached'?'今日图库已更新 · 每张保留作者与许可':status==='stale'?'图源暂时连接不上，正在展示已收录的开放图片。':status==='unavailable'?'当前图源无法连接，请稍后重试。':'只收录明确开放授权的图片 · 作者与许可随图保留';
     $('retry-commons').hidden=!Object.hasOwn(commons.categories,feed)||state.commonsLoading.has(feed)||!['stale','unavailable'].includes(status);
+    const destination={anime:['anime','二次元'],illustration:['anime','二次元'],nature:['nature','自然风景']}[state.category]||{portrait:['mobile','手机壁纸'],landscape:['desktop','电脑壁纸']}[state.orientation];
+    $('external-category').href=destination?'https://wallpapers.com/'+destination[0]:'#more-wallpapers';
+    $('external-category').textContent=destination?'更多'+destination[1]+' · 去原站 ↗':'更多壁纸 · 去原站 ↗';
+    if(destination){$('external-category').target='_blank';$('external-category').rel='noopener noreferrer';}else{$('external-category').removeAttribute('target');$('external-category').removeAttribute('rel');}
     for(const tile of document.querySelectorAll('[data-collection]')){
       const name=tile.dataset.collection;
       tile.setAttribute('aria-pressed',String(name==='anime'?state.category==='anime':name==='art'?state.source==='art':name==='night'?state.palette==='1':state.style===name));
