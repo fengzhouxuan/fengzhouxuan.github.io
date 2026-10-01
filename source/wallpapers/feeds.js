@@ -57,6 +57,17 @@
     return Object.keys(providers).flatMap(provider=>normalizeFeed(catalog.records?.[provider],provider));
   }
 
+  function mergeItems(items){
+    const records=new Map();
+    const union=(first,second)=>[...new Set([...(Array.isArray(first)?first:[]),...(Array.isArray(second)?second:[])])];
+    for(const item of Array.isArray(items)?items:[]){
+      if(typeof item?.id!=='string'||!item.id)continue;
+      const previous=records.get(item.id);
+      records.set(item.id,previous?{...item,categories:union(previous.categories,item.categories),tags:union(previous.tags,item.tags)}:item);
+    }
+    return [...records.values()];
+  }
+
   function mixSources(items,day=''){
     const groups=new Map(),result=[];
     let offset=0;for(const letter of String(day))offset=(offset*31+letter.charCodeAt(0))>>>0;
@@ -70,6 +81,6 @@
     return result;
   }
 
-  const api={providers,parsePepperIndex,normalizeFeed,normalizeCatalog,mixSources};
+  const api={providers,parsePepperIndex,normalizeFeed,normalizeCatalog,mergeItems,mixSources};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperFeeds=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -96,7 +96,7 @@
 
   function visibleItems(){
     const originals=state.originals.slice().sort((a,b)=>((a.index*7)%24)-((b.index*7)%24));
-    const openImages=feeds.mixSources([...new Map([...state.official,...[...state.commons.values()].flat()].map(item=>[item.id,item])).values()],state.day);
+    const openImages=feeds.mixSources(feeds.mergeItems([...state.official,...[...state.commons.values()].flat()]),state.day);
     const items=[];
     if(state.source==='favorites')items.push(...state.favorites.values());
     else if(state.source==='all'){

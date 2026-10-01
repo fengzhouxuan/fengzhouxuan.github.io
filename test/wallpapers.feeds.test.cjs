@@ -40,6 +40,17 @@ test('small, copyrighted, unsupported and malformed records cannot enter the cat
   assert.deepEqual(feeds.normalizeFeed([null],'met'),[]);assert.deepEqual(feeds.normalizeFeed([null],'pepper'),[]);
   assert.deepEqual(feeds.normalizeCatalog({version:99}),[]);assert.equal(feeds.normalizeCatalog(previous()).length,2);assert.deepEqual(feeds.normalizeCatalog({version:1}),[]);
 });
+test('a shared image remains in every category while appearing only once in the gallery',()=>{
+  const image={id:'commons-1',source:'commons',title:'Shared landscape',categories:['nature'],tags:['风景']};
+  const city={...image,title:'Updated title',categories:['city'],tags:['城市','风景']};
+  const unique=feeds.normalizeFeed([pepper()],'pepper')[0];
+  const items=feeds.mergeItems([image,unique,city,null,{}, {id:4},{id:''}]);
+  assert.equal(items.length,2);assert.equal(items[0].title,'Updated title');assert.deepEqual(items[0].categories,['nature','city']);assert.deepEqual(items[0].tags,['风景','城市']);
+  for(const category of ['nature','city'])assert.equal(core.filterWallpapers(items,{category})[0].id,image.id);
+  assert.deepEqual(image.categories,['nature']);assert.deepEqual(city.tags,['城市','风景']);
+  assert.deepEqual(feeds.mergeItems(null),[]);
+  assert.deepEqual(feeds.mergeItems([{id:'one'},{id:'one',categories:['city']}])[0].categories,['city']);
+});
 test('JPEG headers support progressive frames, split data and malformed segments',()=>{
   assert.deepEqual(collector.jpegDimensions(jpeg),{width:3840,height:2160});assert.equal(collector.jpegDimensions(jpeg.subarray(0,12)),null);
   for(const bytes of [[],[0,0,0,0],[255,216,0,0,0,0],[255,216,255,218,0,0],[255,216,255,224,0,1],[255,216,255,192,0,3,1],[255,216,255,255,255,217,0,0],[255,216,255,208,255,217,0,0]])assert.equal(collector.jpegDimensions(Uint8Array.from(bytes)),null);
