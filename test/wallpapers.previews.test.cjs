@@ -75,7 +75,21 @@ test('author copying is sequential, paced and bounded alongside generated reposi
   const options={items:[repo,...authors],fetcher,outputDir,now,logger,wait:async ms=>waits.push(ms),maxNew:1};
   const first=await buildPreviews(options);assert.equal(first.created,1);assert.equal(first.deferred,2);assert.equal(peak,1);
   const next=await buildPreviews({...options,previous:first.manifest,maxNew:3});assert.equal(next.created,2);assert.equal(next.reused,1);assert.equal(next.deferred,0);assert.ok(next.manifest.images[repo.id]);
-  const all=await buildPreviews({...options,previous:null,maxNew:2});assert.equal(all.created,2);assert.deepEqual(waits,[1500]);
+  const all=await buildPreviews({...options,previous:null,maxNew:2});assert.equal(all.created,2);assert.ok(all.manifest.images[repo.id]);assert.equal(Object.keys(all.manifest.images).filter(id=>id.startsWith('ayomi-')).length,1);assert.deepEqual(waits,[]);
+});
+
+test('cold caches reserve preview capacity for each source and resume without starving the image library',async t=>{
+  const outputDir=await directory(t),authorData=await authorBytes(),repoData=await Promise.all(['#658cad','#668cad','#678cad'].map(background=>sharp({create:{width:2000,height:1000,channels:3,background}}).png().toBuffer())),authors=Array.from({length:15},(_,i)=>authorItem('cold-'+i));
+  const repos=['folium','librepixels','midjourney'].flatMap(provider=>Array.from({length:3},(_,i)=>item(repoData[i],provider,provider==='folium'?'Abstract/cold-'+i+'.png':provider==='librepixels'?'wallpapers/[nature]_librepixels_cold-'+i+'.png':'assets/anime_cold_'+i+'.png')));
+  assert.equal(repos.filter(Boolean).length,9);
+  const urls=new Map(repos.map((item,index)=>[item.image,repoData[index%3]]));let calls=0;
+  const options={items:[...authors,...repos],outputDir,now,logger,maxNew:4,wait:async()=>{},fetcher:async url=>{calls++;return new Response(urls.get(url)||authorData);}};
+  const first=await buildPreviews(options);assert.equal(first.created,4);assert.equal(calls,4);assert.equal(first.deferred,authors.length+repos.length-4);
+  for(const provider of ['ayomi','folium','librepixels','midjourney'])assert.equal(options.items.filter(item=>item.provider===provider&&first.manifest.images[item.id]).length,1);
+  const next=await buildPreviews({...options,previous:first.manifest});assert.equal(next.created,4);assert.equal(next.reused,4);
+  for(const provider of ['ayomi','folium','librepixels','midjourney'])assert.equal(options.items.filter(item=>item.provider===provider&&next.manifest.images[item.id]).length,2);
+  const isolated=await buildPreviews({...options,items:authors,previous:null,maxNew:8});assert.equal(isolated.created,8);assert.equal(isolated.deferred,7);
+  const small=await buildPreviews({...options,items:[...authors,repos[0]],previous:null,maxNew:8});assert.equal(small.created,8);assert.ok(small.manifest.images[repos[0].id]);
 });
 
 test('copying stops on HTTP 429 and persists the cooldown while other sources still build',async t=>{

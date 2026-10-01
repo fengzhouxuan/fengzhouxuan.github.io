@@ -99,9 +99,11 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
       return true;
   }
   const author=pending.filter(item=>item.provider==='ayomi'),generated=pending.filter(item=>item.provider!=='ayomi');
+  const generatedSources=new Set(generated.map(item=>item.provider)).size;
+  const authorBudget=Math.max(1,maxNew-Math.min(generated.length,Math.ceil(maxNew*generatedSources/(generatedSources+1))));
   const cooling=cooldownUntil(now,previous?.authorRetryAt,sourceRetryAt);if(cooling)manifest.authorRetryAt=cooling;
   if(!manifest.authorRetryAt)for(const item of author){
-    if(attempted>=maxNew)break;
+    if(attempted>=maxNew||attempted>=authorBudget)break;
     if(attempted)await wait(1500);
     if(!await create(item))break;
   }
