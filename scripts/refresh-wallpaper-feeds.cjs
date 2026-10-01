@@ -113,6 +113,44 @@ async function collectRepository(provider,{fetcher,dimensions,old,logger}){
   return collected;
 }
 
+async function collectPepper({fetcher=fetch,dimensions=readDimensions,old=[],logger=console}={}){
+  const previous=feeds.normalizeFeed((Array.isArray(old)?old:[]).map(item=>item?.feedRecord),'pepper');
+  const known=new Map(previous.map(item=>[item.feedRecord.filename,item.feedRecord]));
+  let wallpapers=previous.filter(item=>item.feedRecord.kind!=='artwork').map(item=>item.feedRecord);
+  let artworks=previous.filter(item=>item.feedRecord.kind==='artwork').map(item=>item.feedRecord),updated=0;
+  try{
+    const response=await request(fetcher,feeds.pepperPage),candidates=feeds.parsePepperIndex(await response.text()),checked=[];
+    for(const raw of candidates){
+      const saved=known.get(raw.filename);
+      try{checked.push({...raw,...(saved&&saved.download===raw.download?{width:saved.width,height:saved.height}:await dimensions(fetcher,raw.download))});}
+      catch(error){if(saved?.kind!=='artwork'&&saved)checked.push(saved);logger.warn('跳过无法读取尺寸的壁纸：'+raw.filename);}
+    }
+    const validated=feeds.normalizeFeed(checked,'pepper');
+    if(!validated.length)throw Error('壁纸目录没有符合尺寸与许可的图片');
+    wallpapers=validated.map(item=>item.feedRecord);updated++;
+  }catch(error){logger.warn('Pepper&Carrot 壁纸更新失败，保留 '+wallpapers.length+' 张：'+error.message);}
+  try{
+    const response=await request(fetcher,feeds.pepperArtworkPage),gallery=feeds.parsePepperGallery(await response.text());
+    if(!gallery.length)throw Error('插画目录无法解析');
+    const titles=new Set(wallpapers.map(item=>feeds.pepperWorkKey(item.filename)));
+    const candidates=gallery.filter(item=>!titles.has(feeds.pepperWorkKey(item.filename))),checked=new Array(candidates.length);let next=0;
+    await Promise.all(Array.from({length:3},async()=>{
+      while(next<candidates.length){
+        const index=next++,candidate=candidates[index],saved=known.get(candidate.filename);let html;
+        try{html=await (await request(fetcher,candidate.pageUrl)).text();}
+        catch(error){if(saved?.kind==='artwork')checked[index]=saved;logger.warn('插画来源页暂不可用：'+candidate.filename);continue;}
+        const raw=feeds.parsePepperArtwork(html,candidate);
+        if(!raw){logger.warn('插画的作者、许可或原图声明不符合要求：'+candidate.filename);continue;}
+        try{checked[index]={...raw,...(saved&&saved.download===raw.download?{width:saved.width,height:saved.height}:await dimensions(fetcher,raw.download))};}
+        catch(error){if(saved?.kind==='artwork')checked[index]=saved;logger.warn('跳过无法读取尺寸的插画：'+candidate.filename);}
+      }
+    }));
+    artworks=checked.filter(Boolean);updated++;
+  }catch(error){logger.warn('Pepper&Carrot 插画更新失败，保留 '+artworks.length+' 张：'+error.message);}
+  if(!updated)throw Error('壁纸与插画目录均无法更新');
+  return [...wallpapers,...artworks];
+}
+
 async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers)}={}){
   if(providerIds.some(provider=>!Object.hasOwn(feeds.providers,provider)))throw Error('壁纸来源不存在');
   const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},records:{}};
@@ -124,15 +162,7 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
       if(Object.hasOwn(repositories.sources,provider)){
         records=await collectRepository(provider,{fetcher,dimensions,old,logger});
       }else if(provider==='pepper'){
-        const response=await request(fetcher,'https://www.peppercarrot.com/en/wallpapers/index.html');
-        records=feeds.parsePepperIndex(await response.text());
-        const known=new Map(old.map(item=>[item.feedRecord.filename,item.feedRecord]));
-        const checked=[];
-        for(const raw of records.slice(0,64)){
-          const saved=known.get(raw.filename);
-          try{checked.push({...raw,...(saved&&saved.download===raw.download?{width:saved.width,height:saved.height}:await dimensions(fetcher,raw.download))});}catch(e){logger.warn('跳过无法读取尺寸的壁纸：'+raw.filename);}
-        }
-        records=checked;
+        records=await collectPepper({fetcher,dimensions,old,logger});
       }else{
         const response=await request(fetcher,metURL(now)),payload=await response.json();records=[];
         const known=new Map(old.map(item=>[item.feedRecord.objectID,item.feedRecord]));
@@ -146,7 +176,7 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
           }catch(e){logger.warn('跳过无法读取的馆藏作品：'+id);}
         }
       }
-      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
+      let items=feeds.normalizeFeed(records,provider);if(!items.length&&provider!=='pepper'&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
       if(provider==='met')items=[...new Map([...old,...items].map(item=>[item.id,item])).values()];
       catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=now.toISOString();
       logger.log(feeds.providers[provider].name+'：'+items.length+' 张');
@@ -167,5 +197,5 @@ async function main(){
   if(failures)console.warn('部分图源未更新，站点构建可继续使用已有目录。');
 }
 
-module.exports={jpegDimensions,imageDimensions,readDimensions,metURL,repositoryFiles,collectRepository,refreshCatalog};
+module.exports={jpegDimensions,imageDimensions,readDimensions,metURL,repositoryFiles,collectRepository,collectPepper,refreshCatalog};
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1;});

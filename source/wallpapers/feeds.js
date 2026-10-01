@@ -2,10 +2,13 @@
 (function(root){
   'use strict';
   const repositories=typeof module!=='undefined'&&module.exports?require('./repositories.js'):root.WallpaperRepositories;
+  const commons=typeof module!=='undefined'&&module.exports?require('./commons.js'):root.WallpaperCommons;
   const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']},...repositories.sources});
   const pepperPage='https://www.peppercarrot.com/en/wallpapers/index.html';
+  const pepperArtworkPage='https://www.peppercarrot.com/en/artworks/artworks.html';
+  const pepperFilename=/^\d{4}-\d{2}-\d{2}_[a-z0-9_-]+_by-David-Revoy\.jpg$/i;
   const licenseUrls={pepper:'https://creativecommons.org/licenses/by/4.0/',met:'https://creativecommons.org/publicdomain/zero/1.0/'};
-  const text=value=>typeof value==='string'?value.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,500):'';
+  const text=value=>commons.plainText(value);
 
   function safeURL(value,host,path){
     try{const url=new URL(value);return url.protocol==='https:'&&url.hostname===host&&!url.port&&!url.username&&!url.password&&!url.search&&!url.hash&&url.pathname.startsWith(path)?url.href:null;}catch(e){return null;}
@@ -23,18 +26,55 @@
     return records;
   }
 
+  function pepperWorkKey(filename){
+    return typeof filename==='string'&&filename.length<=500&&pepperFilename.test(filename)?filename.replace(/^\d{4}-\d{2}-\d{2}_/,'').replace(/_by-David-Revoy\.jpg$/i,'').replace(/[-_]/g,'').toLowerCase():null;
+  }
+
+  function parsePepperGallery(html){
+    const records=[],seen=new Set();
+    for(const match of String(html||'').matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>\s*<img\b[^>]*src="([^"]+)"[^>]*>/gi)){
+      const pageUrl=safeURL(match[1],'www.peppercarrot.com','/en/viewer/artworks__');
+      const stem=pageUrl?.match(/\/en\/viewer\/artworks__([^/]+)\.html$/)?.[1],filename=stem?stem+'.jpg':null;
+      if(!pepperWorkKey(filename)||seen.has(filename))continue;
+      seen.add(filename);records.push({filename,pageUrl});
+    }
+    return records;
+  }
+
+  function parsePepperArtwork(html,candidate){
+    if(!pepperWorkKey(candidate?.filename))return null;
+    const pageUrl='https://www.peppercarrot.com/en/viewer/artworks__'+candidate.filename.slice(0,-4)+'.html';
+    if(candidate.pageUrl!==pageUrl)return null;
+    const content=String(html||''),footer=content.match(/<div\b[^>]*class="[^\"]*\bViewFooterInfo\b[^\"]*"[^>]*>([\s\S]*?)<\/div>/i)?.[1];
+    if(!footer||!/<\/a>\s+by David Revoy\s*−\s*<a\b/i.test(footer))return null;
+    const links=[...footer.matchAll(/<a\b[^>]*href="([^\"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+    const title=links.find(link=>link[1]===pageUrl);
+    if(!title||!links.some(link=>[licenseUrls.pepper,licenseUrls.pepper+'deed.en'].includes(link[1])&&/^CC[- ]BY 4\.0$/i.test(text(link[2]))))return null;
+    const download='https://www.peppercarrot.com/0_sources/0ther/artworks/hi-res/'+candidate.filename;
+    const image='https://www.peppercarrot.com/0_sources/0ther/artworks/low-res/'+candidate.filename;
+    for(const match of content.matchAll(/<a\b[^>]*href="([^\"]+)"[^>]*>\s*<img\b[^>]*src="([^\"]+)"[^>]*>/gi)){
+      if(match[1]===download&&match[2]===image)return {filename:candidate.filename,kind:'artwork',title:text(title[2]).replace(/^["“]|["”]$/g,''),download,image,pageUrl,artist:'David Revoy',license:'CC BY 4.0',licenseUrl:licenseUrls.pepper};
+    }
+    return null;
+  }
+
   function normalizeFeed(records,provider){
     if(!Object.hasOwn(providers,provider))return [];
     if(Object.hasOwn(repositories.sources,provider))return repositories.normalizeRepository(records,provider);
-    const items=[],seen=new Set();
-    for(const raw of Array.isArray(records)?records:[]){
+    const items=[],seen=new Set(),input=Array.isArray(records)?records.slice():[];
+    if(provider==='pepper')input.sort((a,b)=>Number(a?.kind==='artwork')-Number(b?.kind==='artwork'));
+    for(const raw of input){
       let id,title,artist,image,download,pageUrl,width,height,record;
       if(provider==='pepper'){
-        if(!raw||typeof raw.filename!=='string'||!/^\d{4}-\d{2}-\d{2}_[a-z0-9_-]+_by-David-Revoy\.jpg$/i.test(raw.filename)||raw.artist!=='David Revoy'||raw.license!=='CC BY 4.0'||raw.licenseUrl!==licenseUrls.pepper||raw.pageUrl!==pepperPage)continue;
-        image=safeURL(raw.image,'www.peppercarrot.com','/cache/');download=safeURL(raw.download,'www.peppercarrot.com','/0_sources/0ther/wallpapers/hi-res/');
+        if(!raw||!pepperWorkKey(raw.filename)||raw.kind!==undefined&&raw.kind!=='artwork'||raw.artist!=='David Revoy'||raw.license!=='CC BY 4.0'||raw.licenseUrl!==licenseUrls.pepper)continue;
+        const artwork=raw.kind==='artwork',directory='/0_sources/0ther/'+(artwork?'artworks':'wallpapers')+'/';
+        pageUrl=artwork?'https://www.peppercarrot.com/en/viewer/artworks__'+raw.filename.slice(0,-4)+'.html':pepperPage;
+        if(raw.pageUrl!==pageUrl||artwork&&seen.has('pepper-work:'+pepperWorkKey(raw.filename)))continue;
+        image=safeURL(raw.image,'www.peppercarrot.com',artwork?directory+'low-res/':'/cache/');download=safeURL(raw.download,'www.peppercarrot.com',directory+'hi-res/');
+        if(artwork&&(image!=='https://www.peppercarrot.com'+directory+'low-res/'+raw.filename||download!=='https://www.peppercarrot.com'+directory+'hi-res/'+raw.filename))continue;
         if(!download||download.split('/').pop()!==raw.filename)continue;
-        id='pepper-'+raw.filename.slice(0,-4);title=raw.filename.replace(/^\d{4}-\d{2}-\d{2}_/,'').replace(/_by-David-Revoy\.jpg$/,'').replaceAll('-',' ');artist=raw.artist;pageUrl=pepperPage;width=raw.width;height=raw.height;
-        record={filename:raw.filename,image,download,artist,license:raw.license,licenseUrl:raw.licenseUrl,pageUrl,width,height};
+        id='pepper-'+raw.filename.slice(0,-4);title=artwork&&text(raw.title)||raw.filename.replace(/^\d{4}-\d{2}-\d{2}_/,'').replace(/_by-David-Revoy\.jpg$/,'').replaceAll('-',' ');artist=raw.artist;width=raw.width;height=raw.height;
+        record={filename:raw.filename,image,download,artist,license:raw.license,licenseUrl:raw.licenseUrl,pageUrl,width,height,...(artwork?{kind:'artwork',title}:{})};
       }else{
         if(!raw||!Number.isSafeInteger(raw.objectID)||raw.objectID<1||raw.isPublicDomain!==true||raw.objectName!=='Painting')continue;
         image=safeURL(raw.primaryImageSmall,'images.metmuseum.org','/CRDImages/');download=safeURL(raw.primaryImage,'images.metmuseum.org','/CRDImages/');
@@ -46,6 +86,7 @@
       }
       if(!image||!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||Math.max(width,height)<1600||Math.min(width,height)<800||seen.has(id))continue;
       seen.add(id);
+      if(provider==='pepper'&&raw.kind!=='artwork')seen.add('pepper-work:'+pepperWorkKey(raw.filename));
       const license=provider==='pepper'?'CC BY 4.0':'CC0';
       items.push({id,source:provider==='pepper'?'commons':'art',provider,title,artist,image,download,pageUrl,width,height,license,licenseUrl:licenseUrls[provider],categories:providers[provider].categories,tags:[provider==='pepper'?'二次元':'艺术',provider==='pepper'?'插画':'风景',providers[provider].name,width>=height?'横屏':'竖屏'],feedRecord:record});
     }
@@ -81,6 +122,6 @@
     return result;
   }
 
-  const api={providers,parsePepperIndex,normalizeFeed,normalizeCatalog,mergeItems,mixSources};
+  const api={providers,pepperPage,pepperArtworkPage,parsePepperIndex,pepperWorkKey,parsePepperGallery,parsePepperArtwork,normalizeFeed,normalizeCatalog,mergeItems,mixSources};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperFeeds=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
