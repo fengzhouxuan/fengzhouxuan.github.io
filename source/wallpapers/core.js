@@ -35,7 +35,7 @@
       const portrait=index%2===1;
       return {id:'daily-'+day+'-'+batch+'-'+index,source:'original',day,batch,index,
         seed:hash(day+'-'+batch+'-'+index),palette,pattern,
-        title:palettes[palette].name+' · '+patterns[pattern],
+        title:palettes[palette].name+' · '+patterns[pattern],paletteName:palettes[palette].name,colors:palettes[palette].colors,
         artist:'兔子洞 · 程序绘制',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',
         width:portrait?2160:3840,height:portrait?3840:2160,
         tags:[patterns[pattern],palettes[palette].name,'原创',portrait?'竖屏':'横屏']};
@@ -99,11 +99,13 @@
     return items;
   }
 
-  function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null}={}){
+  function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null,style='',palette=''}={}){
     const keyword=String(query).trim().toLocaleLowerCase();
     return items.filter(item=>(source==='all'||item.source===source)&&
       (orientation==='all'||(orientation==='landscape'?item.width>=item.height:item.height>item.width))&&
       (!favorites||favorites.has(item.id))&&
+      (!style||item.tags.includes(style))&&
+      (palette===''||item.source==='original'&&item.palette===Number(palette))&&
       (!keyword||[item.title,item.artist,...item.tags].join(' ').toLocaleLowerCase().includes(keyword)));
   }
 

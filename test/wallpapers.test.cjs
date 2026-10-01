@@ -51,6 +51,11 @@ test('filter combines source, orientation, query and favorites',()=>{
   assert.equal(core.filterWallpapers(items,{query:' 山野 '}).length,6);
   assert.deepEqual(core.filterWallpapers(items,{favorites:new Set([daily[0].id])}),[daily[0]]);
   assert.deepEqual(core.filterWallpapers(items,{query:'does not exist'}),[]);
+  assert.equal(core.filterWallpapers(items,{style:'柔光'}).length,6);
+  assert.equal(core.filterWallpapers(items,{palette:'0'}).length,4);
+  assert.equal(core.filterWallpapers(items,{style:'山野',palette:'1',orientation:'portrait'}).length,1);
+  assert.equal(core.filterWallpapers(items,{source:'art',palette:'0'}).length,0);
+  assert.equal(core.filterWallpapers(items,{palette:'unknown'}).length,0);
 });
 test('fresh artwork request filters, deduplicates and saves a daily cache',async()=>{
   const storage=memory();let calledURL;

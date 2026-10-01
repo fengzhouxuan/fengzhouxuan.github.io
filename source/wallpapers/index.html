@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="每日自动生长的原创壁纸，以及开放授权的艺术作品。挑一张，让屏幕换个心情。">
+  <meta name="description" content="每天一点新颜色。挑选原创壁纸和开放艺术作品，预览桌面与锁屏，自由下载。">
   <title>壁纸小站 · 打个大柚子</title>
   <link rel="stylesheet" href="./theme.css">
   <script defer src="./core.js"></script>
@@ -11,33 +11,42 @@
 </head>
 <body>
   <div class="app">
-    <header class="paper">
-      <a class="brand" href="/">▧ <span>打个大柚子的兔子洞</span></a>
+    <header class="site-header">
+      <a class="brand" href="/"><span class="brand-icon" aria-hidden="true">▧</span><span>打个大柚子的兔子洞<small>A LITTLE SPACE FOR GOOD THINGS</small></span></a>
       <nav aria-label="主导航"><a href="/#flatpaper-home-content">首页</a><a href="/rabbit-holes/">兔子洞</a><a href="/music/">音乐站</a><a href="/wallpapers/" aria-current="page">壁纸站</a></nav>
+      <button id="header-favorites" class="header-favorites" aria-label="查看我的收藏">♡ <span>我的收藏</span><b id="favorite-count">0</b></button>
     </header>
     <main>
-      <section class="intro">
-        <div><p class="eyebrow">兔子洞的另一面 / WALLPAPERS</p><h1>给屏幕，<br>换个好心情。</h1><p class="description">收好一片山野，一束柔光。<br>这里每天都有新的颜色，等你偶然路过。</p><div class="intro-actions"><button id="random" class="btn">随便挑一张 <span aria-hidden="true">↗</span></button><span class="daily-note" id="daily-note"></span></div></div>
-        <div class="hero-art"><img id="hero-image" alt="今日原创壁纸"><div class="tape"></div><p><span>今日的一点颜色</span><span id="hero-date"></span></p></div>
+      <section class="intro" aria-labelledby="title">
+        <div class="intro-copy"><p class="eyebrow"><span class="live-dot"></span> 每天一点新颜色 <span id="hero-date"></span></p><h1 id="title">让屏幕，<br>也有自己的<span class="hand-line">风景。</span></h1><p class="description">一片山野、一点留白，或一幅喜欢的画。<br>挑一张，带走今天的好心情。</p><div class="intro-actions"><a class="btn" href="#collection">开始挑选 <span aria-hidden="true">↘</span></a><button id="random" class="text-btn">随机遇见 ↗</button></div><p class="daily-note" id="daily-note">每日原创 · 高清下载 · 无水印</p></div>
+        <div class="hero-stage"><button id="hero-open" class="hero-art" aria-label="预览今日推荐壁纸"><img id="hero-image" alt="今日推荐壁纸"><span class="hero-caption"><span><small>TODAY'S PICK</small><b id="hero-title"></b></span><span aria-hidden="true">↗</span></span></button><button id="hero-phone-open" class="hero-phone" aria-label="预览手机壁纸"><img id="hero-phone-image" alt="今日手机壁纸"><span class="hero-clock">09:41<small>换一张，换个心情</small></span><span class="phone-island" aria-hidden="true"></span></button><span class="hero-note">你的下一张壁纸<br><svg viewBox="0 0 100 36" aria-hidden="true"><path d="M3 5Q35 32 84 14m-8-6 12 6-10 8"/></svg></span></div>
       </section>
-      <section class="collection" aria-labelledby="collection-title">
-        <div class="collection-heading"><div><p class="eyebrow">慢慢挑，总有一张喜欢的</p><h2 id="collection-title">壁纸收藏室 <span id="count"></span></h2></div><button id="shuffle" class="text-btn">↻ 换一组原创</button></div>
-        <div class="toolbar paper">
-          <div id="sources" class="tabs" aria-label="壁纸来源"><button data-source="all" aria-pressed="true">全部</button><button data-source="original" aria-pressed="false">每日原创</button><button data-source="art" aria-pressed="false">艺术馆</button><button data-source="favorites" aria-pressed="false">♡ 我的收藏</button></div>
-          <div class="filters"><label class="search-label"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜颜色、山野、柔光…" aria-label="搜索壁纸"></label><select id="orientation" aria-label="壁纸方向"><option value="all">所有尺寸</option><option value="landscape">电脑 · 横屏</option><option value="portrait">手机 · 竖屏</option></select></div>
+      <section class="collections" aria-label="按心情探索">
+        <button class="collection-tile" data-collection="山野"><img data-cover="0" alt=""><span><b>山野之间</b><small>把远方放在桌面上</small></span><i aria-hidden="true">↗</i></button>
+        <button class="collection-tile" data-collection="柔光"><img data-cover="6" alt=""><span><b>柔光与留白</b><small>让屏幕安静一点</small></span><i aria-hidden="true">↗</i></button>
+        <button class="collection-tile" data-collection="night"><img data-cover="13" alt=""><span><b>夜色正好</b><small>适合深夜的一点颜色</small></span><i aria-hidden="true">↗</i></button>
+        <button class="collection-tile art-tile" data-collection="art"><span class="art-tile-mark" aria-hidden="true">▤</span><span><b>把名画带回家</b><small>开放馆藏里的风景</small></span><i aria-hidden="true">↗</i></button>
+      </section>
+      <section class="collection" id="collection" aria-labelledby="collection-title">
+        <div class="collection-heading"><div><p class="eyebrow">THE WALLPAPER ROOM</p><h2 id="collection-title">慢慢挑，总有一张喜欢的。</h2></div><label class="search-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" placeholder="搜索壁纸、颜色或画家" aria-label="搜索壁纸"><kbd>/</kbd></label></div>
+        <div class="filter-panel">
+          <div class="filter-main"><div id="sources" class="tabs" aria-label="壁纸来源"><button data-source="all" aria-pressed="true">发现</button><button data-source="original" aria-pressed="false">每日原创</button><button data-source="art" aria-pressed="false">艺术馆</button><button data-source="favorites" aria-pressed="false">我的收藏 <span id="tab-favorite-count">0</span></button></div><label class="orientation-label"><span aria-hidden="true">▣</span><select id="orientation" aria-label="壁纸方向"><option value="all">全部设备</option><option value="landscape">电脑桌面</option><option value="portrait">手机锁屏</option></select></label></div>
+          <div class="filter-details"><div id="styles" class="style-chips" aria-label="壁纸主题"><button data-style="" aria-pressed="true">所有主题</button><button data-style="山野" aria-pressed="false">山野</button><button data-style="柔光" aria-pressed="false">柔光</button><button data-style="轨道" aria-pressed="false">轨道</button><button data-style="几何" aria-pressed="false">几何</button></div><div id="palettes" class="palette-chips" aria-label="壁纸配色"><span>配色</span><button data-palette="" class="all-colors" aria-label="所有配色" aria-pressed="true"></button><button data-palette="0" style="--swatch:#7c9e83" aria-label="松间 · 绿色" aria-pressed="false"></button><button data-palette="1" style="--swatch:#344d69" aria-label="暮蓝 · 深蓝" aria-pressed="false"></button><button data-palette="2" style="--swatch:#d7ab97" aria-label="杏雨 · 暖粉" aria-pressed="false"></button><button data-palette="3" style="--swatch:#aea0c6" aria-label="薰衣草 · 紫色" aria-pressed="false"></button><button data-palette="4" style="--swatch:#d89568" aria-label="落日 · 杏橙" aria-pressed="false"></button><button data-palette="5" style="--swatch:#82afad" aria-label="海盐 · 青色" aria-pressed="false"></button></div></div>
         </div>
-        <p class="source-status" id="source-status" role="status">正在打开艺术馆，原创壁纸已准备好。</p>
+        <div class="results-row"><div><span id="count" role="status"></span><button id="reset-filters" class="text-btn" hidden>清除筛选 ×</button><span id="source-status" class="source-status" role="status">正在打开艺术馆，原创壁纸已准备好。</span></div><div class="results-actions"><select id="sort" aria-label="壁纸排序"><option value="recommended">今日推荐</option><option value="resolution">分辨率优先</option><option value="title">按名称排列</option></select><button id="shuffle" class="text-btn">↻ 换一组原创</button></div></div>
         <div id="gallery" class="gallery"></div>
-        <div id="empty" class="empty paper" hidden><span aria-hidden="true">✳</span><p id="empty-text">这里还没有壁纸，换个筛选试试。</p></div>
+        <div id="empty" class="empty" hidden><span aria-hidden="true">✳</span><h3 id="empty-title">换个心情，再挑一次。</h3><p id="empty-text"></p><button id="empty-reset" class="btn secondary">看看全部壁纸</button><button id="retry-art" class="text-btn" hidden>重新打开艺术馆 ↻</button></div>
+        <div class="load-more-row"><button id="load-more" class="btn secondary" hidden>再看看 ↓</button><span id="shown-count"></span></div>
       </section>
-      <section class="about-strip"><span aria-hidden="true">✳</span><p>每天自己长出的壁纸。<br><small>原创作品可自由下载使用；艺术作品保留来源与 CC0 标记。</small></p><a href="/music/">挑好了？去听听音乐 ↗</a></section>
+      <section class="about-strip"><span aria-hidden="true">✳</span><p>每天自己长出的壁纸，和值得留住的风景。<small>喜欢的就收好。收藏保存在当前浏览器，壁纸可以自由下载使用。</small></p><a href="/music/">给好风景配点音乐 ↗</a></section>
     </main>
     <footer><span>© 打个大柚子 · 给日常一点颜色</span><span>MADE FOR QUIET MOMENTS</span></footer>
   </div>
   <dialog id="preview" aria-labelledby="preview-title">
-    <div class="preview-heading"><span>一张壁纸，一点心情</span><button id="close-preview" class="icon-btn" aria-label="关闭预览">×</button></div>
-    <div class="preview-layout"><div class="preview-canvas"><img id="preview-image" alt=""><div id="lock-clock" class="lock-clock" hidden><strong>09:41</strong><span>星期四 · 好心情</span></div></div><div class="preview-info"><p class="eyebrow" id="preview-source"></p><h2 id="preview-title"></h2><p id="preview-artist"></p><p class="dimensions" id="preview-dimensions"></p><label id="size-label">下载尺寸<select id="download-size"><option value="3840x2160">电脑 · 4K / 3840 × 2160</option><option value="2560x1440">电脑 · 2K / 2560 × 1440</option><option value="2160x3840">手机 · 2160 × 3840</option><option value="1920x1080">电脑 · 1920 × 1080</option></select></label><button id="lock-toggle" class="text-btn" aria-pressed="false">预览手机锁屏</button><button id="download" class="btn">下载 PNG 壁纸 ↓</button><a id="art-download" class="btn" target="_blank" rel="noopener noreferrer" hidden>打开原图 ↗</a><button id="favorite" class="btn secondary" aria-pressed="false">♡ 收藏这张</button><div class="credits"><a id="source-link" target="_blank" rel="noopener noreferrer" hidden>查看作品来源 ↗</a><a id="license-link" href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 · 可自由使用 ↗</a><p id="download-status" role="status"></p></div></div></div>
+    <div class="preview-heading"><div class="preview-nav"><button id="previous" class="icon-btn" aria-label="上一张壁纸">←</button><span id="preview-position"></span><button id="next" class="icon-btn" aria-label="下一张壁纸">→</button></div><span class="keyboard-hint">← → 连续挑选 · F 收藏 · Esc 关闭</span><button id="close-preview" class="icon-btn" aria-label="关闭预览">×</button></div>
+    <div class="preview-layout"><div class="preview-left"><div id="preview-views" class="preview-views" aria-label="预览方式"><button data-view="image" aria-pressed="true">看壁纸</button><button id="desktop-toggle" data-view="desktop" aria-pressed="false">电脑桌面</button><button id="lock-toggle" data-view="phone" aria-pressed="false">手机锁屏</button></div><div class="preview-canvas" id="preview-canvas"><div class="device-screen" id="device-screen"><img id="preview-image" alt=""><div id="lock-clock" class="lock-clock" hidden><span id="lock-date"></span><strong>09:41</strong><small>向上轻扫，开启新一天</small></div><div id="desktop-overlay" class="desktop-overlay" aria-hidden="true" hidden><div class="desktop-bar"><span>◈ &nbsp; Finder &nbsp; 文件 &nbsp; 编辑</span><span>周四 09:41</span></div><div class="desktop-icons"><span>▱<small>我的文档</small></span><span>▧<small>好风景</small></span></div><div class="desktop-dock"><span>◈</span><span>▣</span><span>♫</span><span>▧</span><span>✳</span><span>▱</span></div></div></div></div><p id="preview-note" class="preview-note"></p></div><div class="preview-info"><p class="eyebrow" id="preview-source"></p><h2 id="preview-title"></h2><p id="preview-artist"></p><div id="preview-tags" class="preview-tags"></div><p class="dimensions" id="preview-dimensions"></p><label id="size-label">选择下载尺寸<select id="download-size"><option value="3840x2160">电脑 · 4K / 3840 × 2160</option><option value="2560x1440">电脑 · 2K / 2560 × 1440</option><option value="1920x1080">电脑 · Full HD / 1920 × 1080</option><option value="2160x3840">手机 · 2160 × 3840</option></select></label><div class="download-actions"><button id="download" class="btn">下载高清 PNG ↓</button><a id="art-download" class="btn" target="_blank" rel="noopener noreferrer" hidden>打开高清原图 ↗</a><button id="favorite" class="btn secondary" aria-pressed="false">♡ 收藏</button></div><p id="download-status" role="status"></p><div class="credits"><a id="source-link" target="_blank" rel="noopener noreferrer" hidden>克利夫兰艺术博物馆 · 查看作品 ↗</a><a id="license-link" href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 · 可自由使用 ↗</a></div><div class="preview-bottom"><span>不用着急，下一张也许更喜欢。</span><button id="preview-next" class="text-btn">再看一张 →</button></div></div></div>
   </dialog>
+  <div id="toast" class="toast" role="status" hidden><span id="toast-text"></span><button id="toast-undo" hidden>撤销</button><button id="toast-close" aria-label="关闭提示">×</button></div>
   <noscript><p>开启 JavaScript 即可浏览和生成每日壁纸。</p></noscript>
 </body>
 </html>

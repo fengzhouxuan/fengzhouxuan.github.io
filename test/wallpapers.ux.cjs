@@ -1,0 +1,78 @@
+/* Deterministic UX acceptance with a mocked museum; run against port 4011. */
+const assert=require('node:assert/strict');
+const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
+
+(async()=>{
+  const browser=await chromium.launch({headless:true,channel:'chrome'});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:1080}}),errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.clock.install({time:new Date('2026-10-01T12:00:00Z')});
+    const data=Array.from({length:30},(_,index)=>({id:100+index,accession_number:'1915.'+(534+index),share_license_status:'CC0',title:'Museum '+index,creators:[{description:'Test artist'}],images:{web:{url:'https://openaccess-cdn.clevelandart.org/1915.'+(534+index)+'/1915.'+(534+index)+'_web.jpg'},print:{url:'https://openaccess-cdn.clevelandart.org/1915.'+(534+index)+'/1915.'+(534+index)+'_print.jpg',width:3000+index,height:2000}}}));
+    await page.route('https://openaccess-api.clevelandart.org/**',route=>route.fulfill({json:{data}}));
+    await page.route('https://openaccess-cdn.clevelandart.org/**',route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#b5ba99"/></svg>'}));
+    await page.goto('http://localhost:4011/wallpapers/');
+    await page.waitForFunction(()=>document.querySelector('#count').textContent==='54 张壁纸');
+    assert.equal(await page.locator('.card').count(),24);
+    await page.locator('#load-more').click();assert.equal(await page.locator('.card').count(),48);
+    await page.locator('#load-more').click();assert.equal(await page.locator('.card').count(),54);
+    assert.equal(await page.locator('#load-more').isVisible(),false);
+    await page.locator('[data-source="original"]').click();
+    assert.equal(await page.locator('.gallery-column').count(),4);
+    const topColors=await page.locator('.gallery-column').evaluateAll(columns=>columns.map(column=>column.querySelector('.card-title').textContent.split(' · ')[0]));
+    assert.equal(new Set(topColors).size,4);
+    await page.evaluate(()=>window.scrollTo(0,0));
+    assert.ok((await page.locator('#gallery').boundingBox()).y<780);
+    await page.screenshot({path:'test-results/wallpaper-ux-desktop.png'});
+    await page.locator('[data-style="山野"]').click();assert.equal(await page.locator('.card').count(),6);
+    await page.locator('[data-palette="1"]').click();assert.equal(await page.locator('.card').count(),1);
+    assert.match(await page.locator('.card-title').textContent(),/暮蓝 · 山野/);
+    await page.locator('#reset-filters').click();assert.equal(await page.locator('.card').count(),24);
+    await page.locator('[data-collection="柔光"]').click();assert.equal(await page.locator('.card').count(),6);
+    assert.equal(await page.locator('.card-title').evaluateAll(nodes=>nodes.every(node=>node.textContent.includes('柔光'))),true);
+    await page.locator('#reset-filters').click();
+    await page.locator('.card').first().evaluate(card=>window.savedCard=card);
+    await page.locator('.card-favorite').first().click();assert.equal(await page.locator('#favorite-count').textContent(),'1');
+    assert.equal(await page.locator('.card').first().evaluate(card=>card===window.savedCard),true);
+    await page.locator('#toast-undo').click();assert.equal(await page.locator('#favorite-count').textContent(),'0');
+    await page.locator('.card-open').first().click();
+    const title=await page.locator('#preview-title').textContent();
+    await page.keyboard.press('ArrowRight');assert.notEqual(await page.locator('#preview-title').textContent(),title);
+    await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('#preview-title').textContent(),title);
+    await page.keyboard.press('f');assert.equal(await page.locator('#favorite').getAttribute('aria-pressed'),'true');
+    await page.locator('#toast-undo').click();assert.equal(await page.locator('#favorite').getAttribute('aria-pressed'),'false');
+    await page.locator('#desktop-toggle').click();assert.equal(await page.locator('#desktop-overlay').isVisible(),true);
+    assert.equal(await page.locator('#download-size').inputValue(),'3840x2160');
+    await page.screenshot({path:'test-results/wallpaper-ux-desktop-preview.png'});
+    await page.locator('#lock-toggle').click();assert.equal(await page.locator('#download-size').inputValue(),'2160x3840');
+    await page.locator('#download-size').selectOption('1920x1080');assert.equal(await page.locator('#desktop-toggle').getAttribute('aria-pressed'),'true');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('/');assert.equal(await page.locator('#search').evaluate(node=>node===document.activeElement),true);
+    await page.keyboard.type('f');assert.equal(await page.locator('#favorite-count').textContent(),'0');
+    await page.locator('#search').fill('');
+    await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(()=>document.querySelectorAll('.gallery-column').length===2);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.locator('#collection').scrollIntoViewIfNeeded();
+    await page.screenshot({path:'test-results/wallpaper-ux-mobile-gallery.png'});
+    await page.locator('.card-open').first().click();await page.locator('#lock-toggle').click();
+    const actions=await page.locator('.download-actions').boundingBox();
+    assert.ok(actions.y>=0&&actions.y+actions.height<=844);
+    assert.ok((await page.locator('#download').boundingBox()).height>=44);
+    await page.locator('#preview-canvas').evaluate(node=>{
+      node.dispatchEvent(new TouchEvent('touchstart',{touches:[new Touch({identifier:1,target:node,clientX:280,clientY:250})]}));
+      node.dispatchEvent(new TouchEvent('touchend',{changedTouches:[new Touch({identifier:1,target:node,clientX:80,clientY:260})]}));
+    });
+    assert.equal(await page.locator('#preview-position').textContent(),'2 / 54');
+    await page.locator('#favorite').click();assert.equal(await page.locator('#toast-undo').isVisible(),true);await page.locator('#toast-undo').click();
+    await page.screenshot({path:'test-results/wallpaper-ux-mobile-preview.png'});
+    await page.keyboard.press('Escape');
+    await page.locator('[data-collection="art"]').click();assert.equal(await page.locator('.filter-details').isVisible(),false);
+    assert.equal(await page.locator('.card').count(),24);await page.locator('#load-more').click();assert.equal(await page.locator('.card').count(),30);
+    await page.locator('#sort').selectOption('resolution');
+    assert.equal(await page.locator('.card-title').first().textContent(),'Museum 29');
+    assert.deepEqual(errors,[]);
+    console.log('PASS: pagination, visual variety, theme/color filters, collections, undo without gallery remount, preview navigation, keyboard shortcuts, device/size sync, mobile fixed actions, swipe, art sorting.');
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});
