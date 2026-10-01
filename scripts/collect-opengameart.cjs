@@ -52,7 +52,8 @@ async function inspectImage(data,raw,member){
   if(!['jpeg','png','webp'].includes(meta.format)||(meta.pages||1)!==1||(meta.orientation||1)!==1||Math.max(meta.width,meta.height)<1600||Math.min(meta.width,meta.height)<800||meta.hasAlpha&&!(await image.stats()).isOpaque)return null;
   const extension={jpeg:'jpg',png:'png',webp:'webp'}[meta.format];
   const name=member.split('/').pop().replace(/\.[^.]+$/,'').replaceAll('-',' ');
-  const title=oga.works[raw.work].label+' · '+(raw.work==='manga'?name.replace(/^manga_bg_/,''):name);
+  const work=oga.works[raw.work],detail=work.titles?.[name.replace(/_\d+$/,'')]||(raw.work==='manga'?name.replace(/^manga_bg_/,''):name);
+  const title=work.label+' · '+detail;
   const record={...raw,member,title,revision:crypto.createHash('sha256').update(data).digest('hex'),extension,width:meta.width,height:meta.height,bytes:data.length};
   return oga.normalizeRecords([record])[0]?.feedRecord||null;
 }

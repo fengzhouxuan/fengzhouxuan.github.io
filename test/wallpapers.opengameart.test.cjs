@@ -20,7 +20,7 @@ const jpg=(color='#53749a',width=1800,height=900)=>sharp({create:{width,height,c
 async function directory(t){const dir=await fs.mkdtemp(path.join(os.tmpdir(),'wallpaper-oga-test-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));return dir;}
 
 function workPage(key,bytes,{license='CC0',licenseLink=oga.licenseUrl,artist,body='Author made these backgrounds',fileID=10,fileURL,mime,notice='Artwork by the author',empty=false}={}){
-  const work=oga.works[key],file=fileURL||(key==='painted'?'40-game-backgrounds-1-painted-style.zip':key==='studies'?'Concept-Art-Studies_0.zip':key==='underwater'?'bg_13.png':key==='skyline'?'bg_silhouette2.png':key==='manga'?'manga_bg.7z':'Starset_6.png');
+  const work=oga.works[key],file=fileURL||(key==='painted'?'40-game-backgrounds-1-painted-style.zip':key==='studies'?'Concept-Art-Studies_0.zip':key==='underwater'?'bg_13.png':key==='skyline'?'bg_silhouette2.png':key==='manga'?'manga_bg.7z':key==='ink'?'bamboo_3.png':key==='office'?'Belle Tutorial.zip':'Starset_6.png');
   mime??=work.archive==='7z'?'application/x-7z-compressed':work.archive?'application/zip':'image/png';
   return '<div class="node node-art view-mode-full"><div class="field-name-author-submitter"><div class="field-items"><a href="'+work.artistPath+'">'+(artist||work.artist)+'</a></div></div><div class="field-name-field-art-licenses"><a href="'+licenseLink+'"><div class="license-name">'+license+'</div></a></div><div class="field-name-body">'+body+'</div><div class="field-name-field-copyright-notice"><div class="field-items">'+notice+'</div></div><div class="field-name-field-art-files">'+(empty?'':'<a href="'+oga.origin+'/sites/default/files/'+file+'" type="'+mime+'; length='+bytes.length+'" data-fid="'+fileID+'">File</a>')+'</div></div>';
 }
@@ -157,6 +157,25 @@ test('manga releases bind the CC0 author and 7z MIME type to individual PNG scen
   const checked=await inspectImage(data,raw,'manga_bg_01.png'),[item]=oga.normalizeRecords([checked]);
   assert.deepEqual(item.categories,['anime','illustration','city']);assert.equal(item.license,'CC0');assert.equal(item.width,1920);assert.equal(item.title,'黑白漫画场景 · 01');
   for(const member of ['manga_bg.jpg','ReadMe.txt','manga_bg_01.jpg','../manga_bg_01.png'])assert.deepEqual(oga.normalizeRecords([{...checked,member}]),[]);
+});
+
+test('ink scenes bind each native file to its author and localized title without counting them as anime',async t=>{
+  const data=await sharp({create:{width:1920,height:1080,channels:3,background:'#87a778'}}).png().toBuffer(),outputDir=await directory(t);
+  for(const [file,title] of [['bamboo_3.png','竹林'],['sakura_tree_0.png','樱花'],['temple_0.png','鸟居']]){
+    const options={fileURL:file},[raw]=parseWork(workPage('ink',data,options),'ink'),checked=await inspectImage(data,raw,file),[item]=oga.normalizeRecords([checked]);
+    assert.equal(item.title,'日式水墨 · '+title);assert.equal(item.artist,'Oyasumi');assert.equal(item.license,'CC0');assert.ok(item.categories.includes('minimal'));assert.ok(!item.categories.includes('anime'));
+    const collected=await sync({outputDir,workIds:['ink'],fetcher:catalog(resources('ink',data,options))});assert.equal(collected.records.length,1);assert.deepEqual(await fs.readFile(path.join(outputDir,digest(data)+'.png')),data);
+  }
+  for(const options of [{artist:'Other'},{fileURL:'unrelated.png'},{license:'CC BY 4.0'},{mime:'application/zip'}])assert.deepEqual(parseWork(workPage('ink',data,options),'ink'),[]);
+});
+
+test('visual novel releases preserve the complete background and exclude character cutouts and project files',async t=>{
+  const data=await sharp({create:{width:2484,height:1200,channels:3,background:'#62625f'}}).png().toBuffer(),member='VN_tutorial_assets_background.png',archive=zipSync({[member]:data,'VN_tutorial_assets_Dude..png':Buffer.from('cutout'),'VN_tutorial_assets_Girl..png':Buffer.from('cutout'),'VN_tutorial_assets.kra':Buffer.from('project')}),outputDir=await directory(t);
+  assert.deepEqual(archiveImages(archive,'office'),[{member,data}]);
+  const options={outputDir,workIds:['office']},first=await sync({...options,fetcher:catalog(resources('office',archive))});assert.equal(first.records.length,1);
+  const [item]=oga.normalizeRecords(first.records);assert.equal(item.title,'视觉小说场景 · 办公室');assert.equal(item.width,2484);assert.equal(item.height,1200);assert.ok(item.categories.includes('anime'));assert.equal(item.artist,'DasBilligeAlien');assert.deepEqual(await fs.readFile(path.join(outputDir,digest(data)+'.png')),data);
+  const removed=await sync({...options,old:oga.normalizeRecords(first.records),fetcher:catalog(resources('office',archive,{license:'All rights reserved'}))});assert.deepEqual(removed.records,[]);
+  for(const options of [{artist:'Other'},{fileURL:'another.zip'},{mime:'image/png'}])assert.deepEqual(parseWork(workPage('office',archive,options),'office'),[]);
 });
 
 test('7z listing rejects unsafe paths, encryption, links, duplicates and oversized expansion before decoding',()=>{
