@@ -7,7 +7,8 @@
   const ayomi=typeof module!=='undefined'&&module.exports?require('./ayomi.js'):root.WallpaperAyomi;
   const opengameart=typeof module!=='undefined'&&module.exports?require('./opengameart.js'):root.WallpaperOpenGameArt;
   const revoy=typeof module!=='undefined'&&module.exports?require('./revoy.js'):root.WallpaperRevoy;
-  const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']},morevna:morevna.source,ayomi:ayomi.source,opengameart:opengameart.source,revoy:revoy.source,...repositories.sources});
+  const tyson=typeof module!=='undefined'&&module.exports?require('./tyson.js'):root.WallpaperTyson;
+  const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']},morevna:morevna.source,ayomi:ayomi.source,opengameart:opengameart.source,revoy:revoy.source,tyson:tyson.source,...repositories.sources});
   const pepperPage='https://www.peppercarrot.com/en/wallpapers/index.html';
   const pepperArtworkPage='https://www.peppercarrot.com/en/artworks/artworks.html';
   const pepperFilename=/^\d{4}-\d{2}-\d{2}_[a-z0-9_-]+_by-David-Revoy\.jpg$/i;
@@ -69,6 +70,7 @@
     if(provider==='ayomi')return ayomi.normalizeRecords(records);
     if(provider==='opengameart')return opengameart.normalizeRecords(records);
     if(provider==='revoy')return revoy.normalizeRecords(records);
+    if(provider==='tyson')return tyson.normalizeRecords(records);
     const items=[],seen=new Set(),input=Array.isArray(records)?records.slice():[];
     if(provider==='pepper')input.sort((a,b)=>Number(a?.kind==='artwork')-Number(b?.kind==='artwork'));
     for(const raw of input){
