@@ -12,6 +12,7 @@ const previews=require('../source/wallpapers/previews.js');
 const {parseWork,archiveImages,inspectImage,collectOpenGameArt}=require('../scripts/collect-opengameart.cjs');
 const {refreshCatalog,mergeCatalogs}=require('../scripts/refresh-wallpaper-feeds.cjs');
 const {buildPreviews}=require('../scripts/build-wallpaper-previews.cjs');
+const {parse7zListing,read7zImages}=require('../scripts/read-wallpaper-7z.cjs');
 const logger={log(){},warn(){}},now=new Date('2026-10-02T03:00:00Z');
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const filename='40-game-backgrounds-1-painted-style/bg-01.JPG';
@@ -19,8 +20,8 @@ const jpg=(color='#53749a',width=1800,height=900)=>sharp({create:{width,height,c
 async function directory(t){const dir=await fs.mkdtemp(path.join(os.tmpdir(),'wallpaper-oga-test-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));return dir;}
 
 function workPage(key,bytes,{license='CC0',licenseLink=oga.licenseUrl,artist,body='Author made these backgrounds',fileID=10,fileURL,mime,notice='Artwork by the author',empty=false}={}){
-  const work=oga.works[key],file=fileURL||(key==='painted'?'40-game-backgrounds-1-painted-style.zip':key==='studies'?'Concept-Art-Studies_0.zip':key==='underwater'?'bg_13.png':key==='skyline'?'bg_silhouette2.png':'Starset_6.png');
-  mime??=work.archive?'application/zip':'image/png';
+  const work=oga.works[key],file=fileURL||(key==='painted'?'40-game-backgrounds-1-painted-style.zip':key==='studies'?'Concept-Art-Studies_0.zip':key==='underwater'?'bg_13.png':key==='skyline'?'bg_silhouette2.png':key==='manga'?'manga_bg.7z':'Starset_6.png');
+  mime??=work.archive==='7z'?'application/x-7z-compressed':work.archive?'application/zip':'image/png';
   return '<div class="node node-art view-mode-full"><div class="field-name-author-submitter"><div class="field-items"><a href="'+work.artistPath+'">'+(artist||work.artist)+'</a></div></div><div class="field-name-field-art-licenses"><a href="'+licenseLink+'"><div class="license-name">'+license+'</div></a></div><div class="field-name-body">'+body+'</div><div class="field-name-field-copyright-notice"><div class="field-items">'+notice+'</div></div><div class="field-name-field-art-files">'+(empty?'':'<a href="'+oga.origin+'/sites/default/files/'+file+'" type="'+mime+'; length='+bytes.length+'" data-fid="'+fileID+'">File</a>')+'</div></div>';
 }
 function catalog(map,robots='User-agent: *\nCrawl-delay: 10\nDisallow: /search/'){return async(url,options)=>{
@@ -137,4 +138,57 @@ test('cached CC0 originals generate local previews without remote requests and v
   await fs.writeFile(path.join(originalsDir,raw.revision+'.jpg'),await jpg('#ffffff'));
   const mismatch=await buildPreviews(options);assert.equal(mismatch.failures,1);assert.equal(previews.previewFor(item,mismatch.manifest),null);
   await fs.unlink(path.join(originalsDir,raw.revision+'.jpg'));assert.equal((await buildPreviews(options)).failures,1);
+});
+
+async function sevenArchive(files){
+  const SevenZip=require('7z-wasm'),seven=await SevenZip({print(){},printErr(){},noInitialRun:true});
+  seven.FS.mkdir('/input');seven.FS.chdir('/input');
+  for(const [name,data] of Object.entries(files))seven.FS.writeFile(name,data);
+  assert.equal(seven.callMain(['a','-t7z','-m0=LZMA2','-mx=1','/bundle.7z',...Object.keys(files)]),0);
+  return Buffer.from(seven.FS.readFile('/bundle.7z'));
+}
+
+test('manga releases bind the CC0 author and 7z MIME type to individual PNG scenes',async()=>{
+  const bytes=Buffer.alloc(10),[raw]=parseWork(workPage('manga',bytes),'manga');
+  assert.equal(raw.artist,'Kutejnikov');assert.match(raw.sourceFile,/manga_bg\.7z$/);
+  for(const options of [{mime:'application/zip'},{fileURL:'other.7z'},{artist:'Other'},{license:'All rights reserved'}])assert.deepEqual(parseWork(workPage('manga',bytes,options),'manga'),[]);
+  assert.throws(()=>archiveImages(bytes,'manga'),/大小限制/);
+  const data=await sharp({create:{width:1920,height:1080,channels:3,background:'#656565'}}).png().toBuffer();
+  const checked=await inspectImage(data,raw,'manga_bg_01.png'),[item]=oga.normalizeRecords([checked]);
+  assert.deepEqual(item.categories,['anime','illustration','city']);assert.equal(item.license,'CC0');assert.equal(item.width,1920);assert.equal(item.title,'黑白漫画场景 · 01');
+  for(const member of ['manga_bg.jpg','ReadMe.txt','manga_bg_01.jpg','../manga_bg_01.png'])assert.deepEqual(oga.normalizeRecords([{...checked,member}]),[]);
+});
+
+test('7z listing rejects unsafe paths, encryption, links, duplicates and oversized expansion before decoding',()=>{
+  const entry=(name='manga_bg_01.png',size=20,extra='')=>'Path = '+name+'\nSize = '+size+'\nAttributes = A\nEncrypted = -'+extra;
+  const listing=entries=>'Type = 7z\nMethod = LZMA2:16\n\n----------\n'+entries.join('\n\n');
+  const valid=listing([entry(),entry('ReadMe.txt')]);assert.deepEqual(parse7zListing(valid,'manga'),[{member:'manga_bg_01.png',size:20}]);
+  assert.deepEqual(parse7zListing(valid.replace('LZMA2:16','LZMA2:64m'),'manga'),[{member:'manga_bg_01.png',size:20}]);
+  assert.deepEqual(parse7zListing(listing([]),'manga'),[]);
+  for(const text of [null,'bad',valid.replace('Type = 7z','Type = zip'),valid.replace('LZMA2:16','LZMA2:27'),valid.replace('LZMA2:16','LZMA2:128m'),'x'.repeat(1024*1024+1)])assert.throws(()=>parse7zListing(text,'manga'));
+  assert.throws(()=>parse7zListing(valid,'painted'),/目录/);
+  for(const name of ['../escape.png','/absolute.png','folder\\x.png','folder/./x.png','C:/escape.png','folder//x.png','x'.repeat(241)])assert.throws(()=>parse7zListing(listing([entry(name)]),'manga'),/路径/);
+  assert.throws(()=>parse7zListing(listing([entry(),entry('MANGA_BG_01.PNG')]),'manga'),/重复路径/);
+  for(const text of [entry().replace('Encrypted = -','Encrypted = +'),entry()+'\nSymbolic Link = other.png',entry().replace('Attributes = A','Attributes = A_ lrwxrwxrwx')])assert.throws(()=>parse7zListing(listing([text]),'manga'),/加密文件或链接/);
+  for(const text of [entry()+'\nSize = 20',entry()+'\ninvalid'])assert.throws(()=>parse7zListing(listing([text]),'manga'),/条目格式/);
+  for(const size of ['bad',-1,32*1024*1024+1])assert.throws(()=>parse7zListing(listing([entry('manga_bg_01.png',size)]),'manga'),/文件大小/);
+  assert.throws(()=>parse7zListing(listing([entry('manga_bg_01.png',0)]),'manga'),/普通文件/);
+  assert.throws(()=>parse7zListing(listing([entry()+'\nFolder = +']),'manga'),/普通文件/);
+  assert.throws(()=>parse7zListing(listing(Array.from({length:251},(_,i)=>entry('f'+i))),'manga'),/文件数/);
+  assert.throws(()=>parse7zListing(listing(Array.from({length:5},(_,i)=>entry('f'+i,32*1024*1024))),'manga'),/展开大小/);
+});
+
+test('real 7z decoding preserves only native scene bytes and integrates with automatic author updates',async t=>{
+  const outputDir=await directory(t),data=await sharp({create:{width:1920,height:1080,channels:3,background:'#696969'}}).png().toBuffer();
+  const archive=await sevenArchive({'manga_bg_01.png':data,'manga_bg.jpg':await jpg(),'ReadMe.txt':Buffer.from('CC0')});
+  const decoded=await read7zImages(archive,'manga');assert.equal(decoded.length,1);assert.equal(decoded[0].member,'manga_bg_01.png');assert.deepEqual(decoded[0].data,data);
+  const options={outputDir,workIds:['manga'],fetcher:catalog(resources('manga',archive))};
+  const first=await sync(options);assert.equal(first.records.length,1);assert.equal(first.records[0].revision,digest(data));assert.deepEqual(await fs.readFile(path.join(outputDir,digest(data)+'.png')),data);
+  const next=await sevenArchive({'manga_bg_02.png':data,'manga_bg.jpg':await jpg()});
+  const changed=await sync({...options,old:oga.normalizeRecords(first.records),fetcher:catalog(resources('manga',next))});assert.equal(changed.records.length,1);assert.equal(changed.records[0].member,'manga_bg_02.png');
+  const corrupt=Buffer.from(archive);corrupt[corrupt.length-1]^=255;
+  await assert.rejects(read7zImages(corrupt,'manga'),/7z|目录/);
+  for(const [bytes,key] of [[Buffer.alloc(10),'manga'],[Buffer.alloc(33*1024*1024),'manga'],[archive,'painted']])await assert.rejects(read7zImages(bytes,key),/格式或大小/);
+  for(const timeout of [0,60001])await assert.rejects(read7zImages(archive,'manga',{timeout}),/时限/);
+  await assert.rejects(read7zImages(archive,'manga',{timeout:1}),/超时/);
 });

@@ -6,6 +6,7 @@ const {parseDocument,DomUtils:dom}=require('htmlparser2');
 const {unzipSync}=require('fflate');
 const oga=require('../source/wallpapers/opengameart.js');
 const {readImage}=require('./build-wallpaper-previews.cjs');
+const {read7zImages}=require('./read-wallpaper-7z.cjs');
 const {retryTime,cooldownUntil}=require('./wallpaper-request-policy.cjs');
 const originalDir=path.resolve(__dirname,'../source/wallpapers/originals/opengameart');
 const hasClass=(node,name)=>node.attribs?.class?.split(/\s+/).includes(name);
@@ -25,15 +26,16 @@ function parseWork(html,key){
   if(/\b(?:no redistribution|all rights reserved|non.?commercial only|AI.generated|stable diffusion|midjourney)\b/i.test(body+' '+notice))return [];
   const records=[];
   for(const link of links(field(root,'field-art-files'))){
-    const url=oga.fileURL(link.attribs.href),type=link.attribs.type?.match(/^(application\/zip|image\/(?:png|jpeg|webp)); length=(\d+)$/),fileID=Number(link.attribs['data-fid']);
-    if(!url||!type||!Number.isSafeInteger(fileID)||fileID<1||Number(type[2])<1||Number(type[2])>32*1024*1024||!work.file.test(decodeURIComponent(new URL(url).pathname.split('/').pop()))||Boolean(work.archive)!==(type[1]==='application/zip'))continue;
+    const url=oga.fileURL(link.attribs.href),type=link.attribs.type?.match(/^(application\/(?:zip|x-7z-compressed)|image\/(?:png|jpeg|webp)); length=(\d+)$/),fileID=Number(link.attribs['data-fid']);
+    const archiveMime=work.archive==='7z'?'application/x-7z-compressed':work.archive?'application/zip':null;
+    if(!url||!type||!Number.isSafeInteger(fileID)||fileID<1||Number(type[2])<1||Number(type[2])>32*1024*1024||!work.file.test(decodeURIComponent(new URL(url).pathname.split('/').pop()))||(archiveMime?type[1]!==archiveMime:!type[1].startsWith('image/')))continue;
     records.push({work:key,fileID,sourceFile:url,sourceBytes:Number(type[2]),artist:work.artist,pageUrl:oga.origin+'/content/'+work.slug,license:'CC0',licenseUrl:oga.licenseUrl,copyrightNotice:notice});
   }
   return [...new Map(records.map(record=>[record.sourceFile,record])).values()];
 }
 
 function archiveImages(bytes,key){
-  const work=oga.works[key];if(!work?.archive||bytes.length>32*1024*1024)throw Error('素材包不符合大小限制');
+  const work=oga.works[key];if(work?.archive!==true||bytes.length>32*1024*1024)throw Error('素材包不符合大小限制');
   let entries=0,total=0;const seen=new Set();
   const files=unzipSync(bytes,{filter(file){
     if(++entries>250||!Number.isSafeInteger(file.originalSize)||file.originalSize<0||file.originalSize>32*1024*1024)throw Error('素材包文件数或大小超过限制');
@@ -50,7 +52,8 @@ async function inspectImage(data,raw,member){
   if(!['jpeg','png','webp'].includes(meta.format)||(meta.pages||1)!==1||(meta.orientation||1)!==1||Math.max(meta.width,meta.height)<1600||Math.min(meta.width,meta.height)<800||meta.hasAlpha&&!(await image.stats()).isOpaque)return null;
   const extension={jpeg:'jpg',png:'png',webp:'webp'}[meta.format];
   const name=member.split('/').pop().replace(/\.[^.]+$/,'').replaceAll('-',' ');
-  const record={...raw,member,title:oga.works[raw.work].label+' · '+name,revision:crypto.createHash('sha256').update(data).digest('hex'),extension,width:meta.width,height:meta.height,bytes:data.length};
+  const title=oga.works[raw.work].label+' · '+(raw.work==='manga'?name.replace(/^manga_bg_/,''):name);
+  const record={...raw,member,title,revision:crypto.createHash('sha256').update(data).digest('hex'),extension,width:meta.width,height:meta.height,bytes:data.length};
   return oga.normalizeRecords([record])[0]?.feedRecord||null;
 }
 
@@ -86,7 +89,7 @@ async function collectOpenGameArt({fetcher=fetch,old=[],retryAt,now=new Date(),o
       for(const raw of candidates){
         const bytes=await readImage(pacedFetch,raw.sourceFile,{timeout:85000});
         if(bytes.length!==raw.sourceBytes)throw Error('素材文件大小与作者目录不一致');
-        const images=oga.works[key].archive?archiveImages(bytes,key):[{member:decodeURIComponent(new URL(raw.sourceFile).pathname.split('/').pop()),data:bytes}];
+        const images=oga.works[key].archive==='7z'?await read7zImages(bytes,key):oga.works[key].archive?archiveImages(bytes,key):[{member:decodeURIComponent(new URL(raw.sourceFile).pathname.split('/').pop()),data:bytes}];
         for(const {member,data} of images){
           const record=await inspectImage(data,raw,member);if(!record)continue;
           const filename=record.revision+'.'+record.extension,temporary=path.join(outputDir,filename+'.tmp');

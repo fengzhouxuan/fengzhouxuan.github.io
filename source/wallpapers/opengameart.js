@@ -3,19 +3,20 @@
   'use strict';
   const commons=typeof module!=='undefined'&&module.exports?require('./commons.js'):root.WallpaperCommons;
   const origin='https://opengameart.org',licenseUrl='https://creativecommons.org/publicdomain/zero/1.0/';
-  const source=Object.freeze({name:'OpenGameArt 场景',categories:['illustration','nature','fantasy','city','space']});
+  const source=Object.freeze({name:'OpenGameArt 场景',categories:['anime','illustration','nature','fantasy','city','space']});
   const works=Object.freeze({
     painted:{slug:'40-game-backgrounds-1-painted-style-and-photorealistic',artist:'rubberduck',artistPath:'/users/rubberduck',archive:true,file:/^40-game-backgrounds-1-painted-style\.zip$/,member:/^40-game-backgrounds-1-painted-style\/bg-\d{2}\.JPG$/i,categories:['nature','illustration'],label:'绘画风景'},
     studies:{slug:'concept-art-studies-bundle-1',artist:'Eon Cire',artistPath:'/users/eon-cire',archive:true,file:/^Concept-Art-Studies(?:_\d+)?\.zip$/,member:/^Concept-Art-Studies\/(?!(?:.*(?:thumbnail|sketch|pistol|sheet|preview|sprite)))[a-z0-9_-]{1,100}\.(jpe?g|png|webp)$/i,categories:['fantasy','illustration'],label:'幻想场景'},
     underwater:{slug:'underwater-background-2',artist:'donte',artistPath:'/users/donte',file:/^bg(?:_\d+)?\.png$/,categories:['nature','illustration'],label:'水下世界'},
     skyline:{slug:'simple-city-silhouetteskyline-with-clouds',artist:'Gariot',artistPath:'/users/gariot',file:/^bg_silhouette2(?:_\d+)?\.png$/,categories:['city','illustration','minimal'],label:'城市剪影'},
-    stars:{slug:'starsspace-background',artist:'leyren',artistPath:'/users/leyren',file:/^Starset(?:_\d+)?\.png$/,categories:['space','illustration'],label:'星云'}
+    stars:{slug:'starsspace-background',artist:'leyren',artistPath:'/users/leyren',file:/^Starset(?:_\d+)?\.png$/,categories:['space','illustration'],label:'星云'},
+    manga:{slug:'manga-style-background',artist:'Kutejnikov',artistPath:'/users/kutejnikov',archive:'7z',file:/^manga_bg(?:_\d+)?\.7z$/,member:/^manga_bg_\d{2}\.png$/,categories:['anime','illustration','city'],label:'黑白漫画场景'}
   });
 
   function fileURL(value){
     try{
       const url=new URL(value),name=decodeURIComponent(url.pathname.slice('/sites/default/files/'.length));
-      return url.origin===origin&&!url.username&&!url.password&&!url.search&&!url.hash&&url.pathname.startsWith('/sites/default/files/')&&/^[a-z0-9 _().-]+\.(zip|png|jpe?g|webp)$/i.test(name)?url.href:null;
+      return url.origin===origin&&!url.username&&!url.password&&!url.search&&!url.hash&&url.pathname.startsWith('/sites/default/files/')&&/^[a-z0-9 _().-]+\.(zip|7z|png|jpe?g|webp)$/i.test(name)?url.href:null;
     }catch(error){return null;}
   }
 
