@@ -2,6 +2,7 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const feeds=require('../source/wallpapers/feeds.js');
 const repositories=require('../source/wallpapers/repositories.js');
+const morevna=require('../source/wallpapers/morevna.js');
 const catalogPath=path.resolve(__dirname,'../source/wallpapers/data/official-feeds.json');
 const userAgent='RabbitWallpaperStation/1.0 (static open-license catalog)';
 
@@ -151,6 +152,41 @@ async function collectPepper({fetcher=fetch,dimensions=readDimensions,old=[],log
   return [...wallpapers,...artworks];
 }
 
+async function collectMorevna({fetcher=fetch,dimensions=readDimensions,old=[],logger=console}={}){
+  const gallery=await (await request(fetcher,morevna.source.gallery)).text();
+  if(!morevna.galleryLicensed(gallery))throw Error('官方画廊的图片许可声明无法核对');
+  const terms=await (await request(fetcher,morevna.source.api+'artwork_category?slug=artworks,backgrounds')).json();
+  if(!Array.isArray(terms)||Object.entries(morevna.categories).some(([slug,id])=>!terms.some(term=>term?.id===id&&term.slug===slug&&term.taxonomy==='artwork_category')))throw Error('官方插画与场景分类已变化');
+  const posts=[],seen=new Set();let pages=1,total;
+  for(let page=1;page<=pages;page++){
+    const url=new URL(morevna.source.api+'artwork');
+    Object.entries({artwork_category:Object.values(morevna.categories).join(','),per_page:'100',page:String(page),_embed:'wp:featuredmedia,wp:term'}).forEach(([key,value])=>url.searchParams.set(key,value));
+    const response=await request(fetcher,url.href),entries=await response.json();
+    const pageCount=response.headers?.get('X-WP-TotalPages'),count=response.headers?.get('X-WP-Total');
+    if(!/^\d+$/.test(pageCount)||!/^\d+$/.test(count)||Number(pageCount)>10||Number(count)>1000||!Array.isArray(entries)||entries.length>100)throw Error('插画分页目录无法完整读取');
+    if(page===1){pages=Number(pageCount);total=Number(count);if(total>0&&pages<1||pages!==Math.ceil(total/100))throw Error('插画分页总数不一致');}
+    if(Number(pageCount)!==pages||Number(count)!==total)throw Error('插画目录在分页过程中变化');
+    for(const entry of entries){if(!Number.isSafeInteger(entry?.id)||entry.id<1||seen.has(entry.id))throw Error('插画目录包含无效或重复作品');seen.add(entry.id);posts.push(entry);}
+  }
+  if(posts.length!==total)throw Error('插画目录尚未完整读取');
+  const previous=morevna.normalizeRecords((Array.isArray(old)?old:[]).map(item=>item?.feedRecord)),known=new Map(previous.map(item=>[item.feedRecord.workID,item.feedRecord]));
+  const candidates=posts.map(morevna.parseWork).filter(Boolean),records=new Array(candidates.length);let next=0,failed=0;
+  await Promise.all(Array.from({length:3},async()=>{
+    while(next<candidates.length){
+      const index=next++,raw=candidates[index],saved=known.get(raw.workID);
+      if(saved&&saved.download===raw.download&&saved.mediaID===raw.mediaID&&saved.revision===raw.revision&&saved.mediaWidth===raw.mediaWidth&&saved.mediaHeight===raw.mediaHeight){records[index]={...raw,width:saved.width,height:saved.height,...(raw.image===raw.download?{imageWidth:saved.width,imageHeight:saved.height}:{})};continue;}
+      try{
+        const size=await dimensions(fetcher,raw.download);
+        const checked={...raw,...size,...(raw.image===raw.download?{imageWidth:size.width,imageHeight:size.height}:{})};
+        if(!morevna.normalizeRecords([checked]).length||size.width<raw.mediaWidth||size.height<raw.mediaHeight){logger.warn('原图尺寸与作品数据不一致：'+raw.title);continue;}
+        records[index]=checked;
+      }catch(error){failed++;if(saved&&saved.download===raw.download)records[index]=saved;logger.warn('原图暂不可用，跳过新图或保留已验证图片：'+raw.title);}
+    }
+  }));
+  if(candidates.length&&failed===candidates.length&&!records.some(Boolean))throw Error('所有候选原图均无法读取');
+  return records.filter(Boolean);
+}
+
 async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers)}={}){
   if(providerIds.some(provider=>!Object.hasOwn(feeds.providers,provider)))throw Error('壁纸来源不存在');
   const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},records:{}};
@@ -163,6 +199,8 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
         records=await collectRepository(provider,{fetcher,dimensions,old,logger});
       }else if(provider==='pepper'){
         records=await collectPepper({fetcher,dimensions,old,logger});
+      }else if(provider==='morevna'){
+        records=await collectMorevna({fetcher,dimensions,old,logger});
       }else{
         const response=await request(fetcher,metURL(now)),payload=await response.json();records=[];
         const known=new Map(old.map(item=>[item.feedRecord.objectID,item.feedRecord]));
@@ -176,7 +214,7 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
           }catch(e){logger.warn('跳过无法读取的馆藏作品：'+id);}
         }
       }
-      let items=feeds.normalizeFeed(records,provider);if(!items.length&&provider!=='pepper'&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
+      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
       if(provider==='met')items=[...new Map([...old,...items].map(item=>[item.id,item])).values()];
       catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=now.toISOString();
       logger.log(feeds.providers[provider].name+'：'+items.length+' 张');
@@ -188,14 +226,32 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
   return {catalog,failures};
 }
 
+function mergeCatalogs(seed,cached){
+  const catalog={version:1,updatedAt:{},records:{}};
+  const timestamp=(value,provider)=>value?.version===1&&typeof value.updatedAt?.[provider]==='string'?Date.parse(value.updatedAt[provider]):NaN;
+  for(const provider of Object.keys(feeds.providers)){
+    const seeded=feeds.normalizeFeed(seed?.version===1?seed.records?.[provider]:[],provider),restored=feeds.normalizeFeed(cached?.version===1?cached.records?.[provider]:[],provider);
+    const seedTime=timestamp(seed,provider),cachedTime=timestamp(cached,provider);
+    const hasSeed=Number.isFinite(seedTime)&&Array.isArray(seed?.records?.[provider]);
+    const hasCached=Number.isFinite(cachedTime)&&Array.isArray(cached?.records?.[provider]);
+    const useSeed=hasSeed&&(!hasCached||seedTime>cachedTime);
+    catalog.records[provider]=(useSeed?seeded:restored).map(item=>item.feedRecord);
+    catalog.updatedAt[provider]=(useSeed?seed:cached)?.updatedAt?.[provider]||null;
+  }
+  return catalog;
+}
+
 async function main(){
   let previous;
   try{previous=JSON.parse(await fs.readFile(catalogPath,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
+  if(process.env.WALLPAPER_SEED_CATALOG){
+    const seed=JSON.parse(await fs.readFile(process.env.WALLPAPER_SEED_CATALOG,'utf8'));previous=mergeCatalogs(seed,previous);
+  }
   const {catalog,failures}=await refreshCatalog({previous});
   if(!feeds.normalizeCatalog(catalog).length)throw Error('所有图源均不可用，目录未改写');
   const temporary=catalogPath+'.tmp';await fs.writeFile(temporary,JSON.stringify(catalog,null,2)+'\n');await fs.rename(temporary,catalogPath);
   if(failures)console.warn('部分图源未更新，站点构建可继续使用已有目录。');
 }
 
-module.exports={jpegDimensions,imageDimensions,readDimensions,metURL,repositoryFiles,collectRepository,collectPepper,refreshCatalog};
+module.exports={jpegDimensions,imageDimensions,readDimensions,metURL,repositoryFiles,collectRepository,collectPepper,collectMorevna,refreshCatalog,mergeCatalogs};
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1;});

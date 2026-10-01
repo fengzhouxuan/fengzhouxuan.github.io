@@ -17,7 +17,10 @@
 - 另外接入两个独立官方来源：Pepper&Carrot 的 David Revoy 场景壁纸与原创插画（CC BY 4.0）和大都会艺术博物馆公开领域风景画（CC0）。初始化目录收录 Pepper&Carrot 90 张（44 张壁纸、46 张插画）与 Met 24 张，不再只依赖 Commons 的动漫插画分类。图源筛选可以查看每个来源当前可用的数量，并与内容、设备方向和搜索组合。
 - `scripts/refresh-wallpaper-feeds.cjs` 在现有 GitHub Pages 每日构建中运行，更新 `source/wallpapers/data/official-feeds.json` 后再生成页面。只输出作者、许可、尺寸及官方图片链接，不把图片加入 Git 仓库，也不需要 API 密钥。Pepper 目录缺少跨域支持，采用构建时同步；新增壁纸通过读取最多 256 KiB 的 JPEG 头部取得真实尺寸，既有文件复用已验证尺寸。Met 使用新的 `/v1.1/search` 分页接口，每天轮换前六页，每次最多 32 个作品；逐张读取详情并明确过滤 `isPublicDomain=true` 和绘画类型，再检查原图尺寸。
 - Pepper&Carrot 的壁纸目录与正式插画目录分别更新；一个目录请求失败时保留该部分已有图片，另一个仍可更新。插画最多三路并发读取作品页，每次重新核对 David Revoy 作者署名、该作品的 CC BY 4.0 声明和同名高清/预览文件。新图再读取实际尺寸；已有相同原图链接的尺寸可以复用。来源页暂时不可访问时保留已验证记录，成功读到的页面若不再满足许可要求则移除；完整目录中消失的插画也移除。与壁纸同题的版本去重，比较时忽略日期、大小写、连字符和下划线，优先保留壁纸版本。
+- Morevna Project 官方动漫画廊的图片集合声明为 CC BY 4.0。同步先核对该声明，再通过官方 WordPress REST API 完整读取正式插画和场景两个分类，绑定每件作品的作者、作品页、特色图片及预览版本；不收录练习、草稿、概念表、缺少作者或尺寸不足的作品。初次实际读取 34 件作品，26 件通过尺寸与作者验证，其中插画 22 张、场景 4 张、竖屏 6 张，作者为 Anastasia Mayzhegisheva 和 Nikolai Mamashev。许可依据是官方画廊集合声明，API 没有逐图许可字段，因此不能推及网站上的其他图片或动画源文件。
+- Morevna 新增或修改作品最多三路并发读取原始 JPEG/PNG/WebP 头部取得真实尺寸，预览选用官方不裁切的缩小版本。只有 API 明确提供 `original_image` 时才使用该原图文件，不猜测更高清的地址。作品修改时间、媒体 ID、原图链接及展示尺寸均不变时复用已验证尺寸；修改时间不是图片内容摘要。分页不完整、画廊许可或分类变化时保留上次目录和时间；已成功完整读取的目录中缺失、缺少作者或不再满足许可/尺寸要求的图片移除。原图暂时无法读取时保留相同原图链接的已验证记录。
 - 一个来源同步失败时，另一个仍会更新；失败来源保留已有目录及上次记录时间。CI 通过 Actions cache 在同一分支的每日构建间保存目录，不自动提交回仓库。缓存被清理或过期时回退到仓库内的初始目录；它不是永久云端档案。页面另保存浏览器缓存，目录请求失败时仍可使用。此流程要在改动发布到默认分支后才开始运行。
+- CI 恢复缓存前保存提交中的官方图源初始目录，再按各来源最后成功更新时间选择较新的已验证目录，避免旧缓存覆盖本次新增图源。较新的空目录仍然保留，不用旧初始图片恢复上游已删除的作品。此合并行为已通过模拟缓存与断网测试，实际 Actions 执行尚待发布后验证。
 - 新增三个作者发布的壁纸仓库：LibrePixels（AI 风景、幻想和动漫风场景，CC0）、Folium Creations（3D、抽象、自然摄影，CC BY 4.0）、metaory/Midjourney（AI 赛博朋克、像素城市等，CC0）。首轮实际收录分别为 107、30、146 张；网络超时或尺寸不合格的文件不计入。每次同步先核对图片许可声明，再完整读取目录；保留作者和文件页，并检查真实 JPEG、PNG、WebP 尺寸。图库只保存元数据，GitHub 仓库原图通过 jsDelivr 访问，失败时尝试 Fastly CDN 上的同一文件；GitLab 原图通过官方文件 API 访问。首次同步以三路并发检查，之后用 Git blob 摘要判断文件是否变化；相同摘要图片去重。LibrePixels 只收录 `_librepixels_` 作者文件，并排除目前识别到的路飞和马里奥角色文件及显式成人关键词。此筛选依赖作者声明和文件命名，不能证明所有未声明的第三方权利均已清除。
 - 各仓库支持自动同步新增图片，但不保证上游每天上传。来源网络失败或尺寸无法读取时保留已验证目录；成功读到空的完整目录时移除该来源旧图片，避免把已经删除的文件持续展示。
 - Wallpapers.com 目前仅作为原站推荐入口，提供二次元、自然风景、4K、手机和电脑分类。在对应分类或设备筛选旁可直接打开原站，在全部内容下可跳到推荐区。其官方 API 示例及实测响应未给出可核验的逐张开放许可字段，详情页的 `Free / Attribution required` 不自动视为 CC0 或 CC BY，因此不接入自动图片采集，不载入它的缩略图、原图或脚本，也不计入站内图库数量。预览、许可查看及下载在原站完成；以后只有核实到明确允许展示的许可才可加入站内目录。
@@ -34,6 +37,7 @@
 
 - 三个壁纸仓库的画廊、首屏推荐和弹窗优先使用构建生成的 WebP 预览；最长边 1280 像素，保留完整画面、比例及透明区域。高清下载继续打开作者原图，作者、许可和来源页保持不变。预览不可用时依次尝试原图和备用 CDN。
 - Pepper&Carrot 的新增插画使用作者提供的低清 JPEG 预览，高清入口指向同一作品的原始 JPEG；保留原作比例、逐图来源页和 CC BY 4.0 署名信息。
+- Morevna 使用官方同名图片的缩小版本预览，画廊和高清入口保留作品原始比例；作品作者及 `Morevna and Pepper` 的 David Revoy 角色署名也保留。
 - 画廊保留横竖屏的原始比例，桌面四列、平板三列、手机两列；各来源按当天日期确定性轮换并交错推荐，每次显示 24 张，再按需加载更多。相同文件在画廊只出现一次，分类和标签会合并，使同时属于风景与城市的图片仍可从任一分类找到。新增分类可与图源、设备、搜索组合筛选；首屏推荐从已收录图片中挑选横竖屏作品，加载失败回退到原创图案。
 - 可按设备、主题、配色和关键字组合筛选，按名称或分辨率排序。主题与配色适用于原创；艺术馆隐藏这两项。
 - 首屏的山野、柔光、夜色、艺术馆入口直接应用对应筛选；支持随机挑选和一键清除筛选。
@@ -53,7 +57,7 @@
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
@@ -77,6 +81,8 @@ Commons API：<https://www.mediawiki.org/wiki/API:Imageinfo>；跨域请求：<h
 
 Pepper&Carrot 官方壁纸：<https://www.peppercarrot.com/en/wallpapers/index.html>；正式插画：<https://www.peppercarrot.com/en/artworks/artworks.html>；逐图作者、许可及原图示例：<https://www.peppercarrot.com/en/viewer/artworks__2025-03-26_Enchanted-Pages_by-David-Revoy.html>；作者与 CC BY 4.0：<https://www.peppercarrot.com/en/about/index.html#license>；Met API：<https://metmuseum.github.io/>；开放获取政策：<https://www.metmuseum.org/hubs/open-access>。
 
+Morevna 官方画廊与集合许可：<https://morevnaproject.org/anime/gallery/>；正式插画：<https://morevnaproject.org/anime/gallery/artworks/>；场景：<https://morevnaproject.org/anime/gallery/backgrounds/>；作品与作者示例：<https://morevnaproject.org/artwork/sister-priestess-wind/>；结构化目录：<https://morevnaproject.org/wp-json/wp/v2/artwork>。WordPress REST 媒体结构：<https://developer.wordpress.org/rest-api/reference/media/>。
+
 Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个人及非商业许可说明：<https://wallpapers.com/faq/licensing-and-help/can-i-use-wallpaperscom-wallpapers-commercially/>。原站入口不代表其中全部图片为开放授权。
 
 仓库图源：<https://gitlab.com/librepixels/ia.Wallpapers>；<https://github.com/FoliumCreations/Wallpapers>；<https://github.com/metaory/midjourney>。许可声明分别位于 LibrePixels README/LICENCE、Folium README/CC:BY 4.0 Licence、metaory LICENSE。
@@ -88,5 +94,7 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 2026-10-02 已接入 [Pepper&Carrot 官方插画画廊](https://www.peppercarrot.com/en/artworks/artworks.html)。实际读取到 58 件作品，按日期、大小写、连字符和下划线归一后的文件标题识别出 12 件已有壁纸版本，剩余 46 件全部通过真实作品页作者/许可/文件绑定核对及高清 JPEG 尺寸读取，已写入本站目录。Pepper&Carrot 合计 90 张，其中 15 张为竖屏；这仍集中于同一原创世界，不能据此宣称已经具备大型壁纸站的动漫种类。
 
 本次插画增量后共 64 项测试通过，所加载模块行覆盖率 97.49%，Hexo 构建通过且发布目录中的脚本与图源 JSON 与源文件一致。本机浏览器载入艺术馆结果和 Commons 分类缓存后显示合计 1,338 张，二次元筛选 115 张，Pepper&Carrot 筛选 90 张、其中手机方向 15 张。已实际验证 `Enchanted Pages` 的 1701×1080 作者预览成功解码、2500×1587 高清入口与逐图署名信息正确、收藏在刷新后恢复；`A Dreamer s Lake` 的 871×1080 竖屏预览和锁屏示意成功显示，高清入口保留 2800×3472 原图。该锁屏示意是在桌面浏览器验证，本轮没有新增手机实机验收或 GitHub Actions/Pages 发布验证。
+
+2026-10-02 的 Morevna 增量实际验证了 26 张原始图片的 JPEG/PNG 尺寸，长边范围 1605–7550 像素；未计入作者缺失的两件场景及尺寸不足的六件作品。77 项测试通过，所加载模块行覆盖率 97.51%，新图源模块行覆盖率 100%；Hexo 构建通过，发布目录中的新增脚本和图源 JSON 与源文件一致。本机浏览器在加载 Commons 二次元分类缓存后显示合计 1364 张、二次元 141 张、Morevna 26 张，其中竖屏 6 张。已验证 `Sunset Wallpaper` 的 1024×576 作者预览成功解码、3555×2000 高清入口与署名许可正确、收藏刷新后恢复；另一位作者的 `Laboratory` 1536×862 预览及 4698×2638 原图入口也验证通过。没有新增手机实机验收，也尚未验证实际 Actions/Pages 发布。以上数量会随实时图库缓存及加载失败变化。
 
 2026-10-02 真实同步已收录 Commons 分类记录 875 条，按文件 ID 去重后为 862 张图片。各分类记录数为风景 498、城市 258、星空 100、动物 10、二次元 9，一张图片可以属于多个分类。城市分类在第六页之后遭遇 HTTP 429，已保存这些页面和续传游标；二次元分类本轮连接失败，保留已有目录。不能把未读取的后续页面计入图库，也不保证上游图片服务持续可用。新增恢复和分类合并逻辑后共 55 项测试通过；请求重试、正文超时、部分进度保存及游标续传有模拟测试，部分进度保存也已经在真实城市目录上验证。浏览器已验证 Commons 风景筛选为 498 张，与已验证的目录一致。仓库图片的首次同步和预览生成已实际执行。浏览器加载数量可能随艺术馆实时结果、已有缓存和加载失败而变化。
