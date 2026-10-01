@@ -54,20 +54,25 @@
     const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
     const cacheKey='rabbit-wallpapers-commons-v1-'+category;
     let cached;
-    try{const saved=JSON.parse(storage?.getItem(cacheKey)||'null');if(saved?.version===1)cached={day:saved.day,items:normalizeCommons(saved.records,category)};}catch(e){/* Storage may be disabled. */}
-    if(cached?.day===day&&cached.items.length)return {items:cached.items,state:'cached'};
+    try{const saved=JSON.parse(storage?.getItem(cacheKey)||'null');if(saved?.version===1)cached={day:saved.day,items:normalizeCommons(saved.records,category),removed:new Set((Array.isArray(saved.removed)?saved.removed:[]).filter(id=>Number.isSafeInteger(id)&&id>0).map(id=>'commons-'+id))};}catch(e){/* Storage may be disabled. */}
+    const bundled=normalizeCommons(fallback,category);
+    const merge=(items,removed=new Set())=>[...new Map([...bundled.filter(item=>!removed.has(item.id)),...items].map(item=>[item.id,item])).values()];
+    if(cached?.day===day&&cached.items.length)return {items:merge(cached.items,cached.removed),state:'cached'};
     const controller=new AbortController();let timer;
     try{
       const url=new URL('https://commons.wikimedia.org/w/api.php');
-      Object.entries({action:'query',format:'json',origin:'*',generator:'categorymembers',gcmtitle:'Category:'+categories[category],gcmtype:'file',gcmlimit:'40',gcmsort:'timestamp',gcmdir:'desc',prop:'imageinfo',iiprop:'url|size|mime|extmetadata',iiurlwidth:'960',iiextmetadatafilter:'Artist|LicenseShortName|LicenseUrl|Categories|ImageDescription|Restrictions'}).forEach(([key,value])=>url.searchParams.set(key,value));
+      Object.entries({action:'query',format:'json',origin:'*',generator:'categorymembers',gcmtitle:'Category:'+categories[category],gcmtype:'file',gcmnamespace:'6',gcmlimit:'40',gcmsort:'timestamp',gcmdir:'desc',prop:'imageinfo',iiprop:'url|size|mime|extmetadata',iiurlwidth:'960',iiextmetadatafilter:'Artist|LicenseShortName|LicenseUrl|Categories|ImageDescription|Restrictions'}).forEach(([key,value])=>url.searchParams.set(key,value));
       const records=await Promise.race([
         (async()=>{const response=await fetcher(url.href,{signal:controller.signal});if(!response.ok)throw Error('图片源暂时不可用');const payload=await response.json();return Object.values(payload?.query?.pages||{});})(),
         new Promise((resolve,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('图片源请求超时'));},timeout);})
       ]);
-      const items=normalizeCommons(records,category);if(!items.length)throw Error('没有符合许可和尺寸要求的图片');
-      try{storage?.setItem(cacheKey,JSON.stringify({version:1,day,records:items.map(item=>item.commonsRecord)}));}catch(e){/* A full cache must not hide usable images. */}
-      return {items,state:'fresh'};
-    }catch(e){const items=cached?.items.length?cached.items:normalizeCommons(fallback,category);return {items,state:items.length?'stale':'unavailable'};}
+      if(!records.length)throw Error('图片目录暂时不可用');
+      const items=normalizeCommons(records,category);
+      const accepted=new Set(items.map(item=>item.id));
+      const removed=new Set(records.filter(raw=>Number.isSafeInteger(raw?.pageid)&&raw.pageid>0&&!accepted.has('commons-'+raw.pageid)).map(raw=>'commons-'+raw.pageid));
+      try{storage?.setItem(cacheKey,JSON.stringify({version:1,day,records:items.map(item=>item.commonsRecord),removed:[...removed].map(id=>Number(id.slice(8)))}));}catch(e){/* A full cache must not hide usable images. */}
+      return {items:merge(items,removed),state:'fresh'};
+    }catch(e){const items=merge(cached?.items||[],cached?.removed);return {items,state:items.length?'stale':'unavailable'};}
     finally{clearTimeout(timer);}
   }
 

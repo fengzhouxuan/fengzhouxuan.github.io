@@ -2,7 +2,10 @@ const assert=require('node:assert/strict');
 const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
 const catalog=require('../source/wallpapers/data/official-feeds.json');
 const feeds=require('../source/wallpapers/feeds.js');
+const commons=require('../source/wallpapers/commons.js');
+const snapshot=require('../source/wallpapers/data/open-images.json');
 const items=feeds.normalizeCatalog(catalog),pepper=items.filter(item=>item.provider==='pepper'),met=items.filter(item=>item.provider==='met');
+const bundled=[...new Map(Object.keys(commons.categories).flatMap(category=>commons.normalizeCommons(snapshot.records[category],category)).map(item=>[item.id,item])).values()];
 const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"><rect width="384" height="216" fill="#c0b8d8"/></svg>';
 
 (async()=>{
@@ -14,9 +17,9 @@ const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.route('https://openaccess-api.clevelandart.org/**',route=>route.abort());
     await page.route('https://commons.wikimedia.org/w/api.php**',route=>route.abort());
-    for(const url of ['https://www.peppercarrot.com/cache/**','https://images.metmuseum.org/**','https://thumb.wikimedia.org/**','https://upload.wikimedia.org/**'])await page.route(url,route=>route.fulfill({contentType:'image/svg+xml',body:imageSVG}));
+    for(const url of ['https://www.peppercarrot.com/cache/**','https://images.metmuseum.org/**','https://thumb.wikimedia.org/**','https://upload.wikimedia.org/**','https://cdn.jsdelivr.net/gh/**','https://fastly.jsdelivr.net/gh/**','https://gitlab.com/api/v4/projects/68715866/repository/files/**'])await page.route(url,route=>route.fulfill({contentType:'image/svg+xml',body:imageSVG}));
     await page.goto('http://localhost:4011/wallpapers/');
-    await page.waitForFunction(total=>document.querySelector('#count').textContent===total+' 张壁纸',items.length+24);
+    await page.waitForFunction(total=>document.querySelector('#count').textContent===total+' 张壁纸',items.length+bundled.length+24);
     assert.deepEqual(externalRequests,[]);
     assert.equal(await page.locator('#provider option[value="wallpaperscom"]').count(),0);
     assert.equal(await page.locator('#external-category').getAttribute('href'),'#more-wallpapers');
@@ -43,13 +46,14 @@ const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"
     await page.locator('.card-open').first().click();assert.match(await page.locator('#credit-text').textContent(),/David Revoy/);await page.keyboard.press('Escape');
     await page.locator('[data-source="all"]').click();
     await page.locator('[data-category="anime"]').click();await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('暂时连接不上'));
-    assert.equal(await page.locator('#count').textContent(),(pepper.length+9)+' 张壁纸');
+    const animeCount=[...items,...bundled].filter(item=>item.categories.includes('anime')).length;
+    assert.equal(await page.locator('#count').textContent(),animeCount+' 张壁纸');
     assert.equal(await page.locator('#external-category').getAttribute('href'),'https://wallpapers.com/anime');
     assert.deepEqual(externalRequests,[]);
     const popupPromise=context.waitForEvent('page');await page.locator('#external-category').click();const popup=await popupPromise;
     await popup.waitForLoadState();assert.equal(popup.url(),'https://wallpapers.com/anime');await popup.close();
     assert.deepEqual(externalRequests,['https://wallpapers.com/anime']);
-    assert.equal(await page.locator('#count').textContent(),(pepper.length+9)+' 张壁纸');
+    assert.equal(await page.locator('#count').textContent(),animeCount+' 张壁纸');
     await page.locator('#provider').selectOption('pepper');assert.equal(await page.locator('#count').textContent(),pepper.length+' 张壁纸');
     await page.locator('#orientation').selectOption('portrait');assert.equal(await page.locator('#count').textContent(),pepper.filter(item=>item.height>item.width).length+' 张壁纸');
     await page.locator('#empty-reset').click();assert.equal(await page.locator('#provider').inputValue(),'');
@@ -65,7 +69,8 @@ const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"
     await page.route('**/wallpapers/data/official-feeds.json',route=>route.abort());await page.reload();
     await page.locator('#provider').selectOption('met');assert.equal(await page.locator('#count').textContent(),met.length+' 张壁纸');
     await page.locator('[data-source="favorites"]').click();assert.equal(await page.locator('.card').count(),2);
-    await page.route(pepper[0].image,route=>route.abort());await page.reload();await page.locator('#provider').selectOption('pepper');
+    await page.locator('#provider').selectOption('pepper');const failingImage=await page.locator('.card-image').first().getAttribute('src');
+    await page.route(failingImage,route=>route.abort());await page.reload();await page.locator('#provider').selectOption('pepper');
     await page.waitForFunction(count=>document.querySelector('#count').textContent===count+' 张壁纸',pepper.length-1);
     assert.match(await page.locator('#provider option[value="pepper"]').textContent(),new RegExp((pepper.length-1)+' 张'));
     assert.deepEqual(errors,[]);console.log('PASS: official catalogs, attribution, favorites, filters, offline fallback; original-site recommendations open separately, never preload unlicensed assets, and preserve gallery counts on desktop and mobile.');

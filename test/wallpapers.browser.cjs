@@ -9,6 +9,7 @@ const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
   try{
     const context=await browser.newContext({viewport:{width:1440,height:1080},acceptDownloads:true});
     await context.route('**/wallpapers/data/official-feeds.json',route=>route.fulfill({json:{version:1,records:{}}}));
+    await context.route('**/wallpapers/data/open-images.json',route=>route.fulfill({json:{version:1,records:{}}}));
     const page=await context.newPage();
     page.on('pageerror',error=>errors.push(error.message));
     await page.clock.install({time:new Date('2026-10-01T12:00:00Z')});

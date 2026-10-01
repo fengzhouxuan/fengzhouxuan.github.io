@@ -1,7 +1,8 @@
 /* Additional official feeds, exported as a static catalog during the Pages build. */
 (function(root){
   'use strict';
-  const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']}});
+  const repositories=typeof module!=='undefined'&&module.exports?require('./repositories.js'):root.WallpaperRepositories;
+  const providers=Object.freeze({pepper:{name:'Pepper&Carrot',categories:['anime','illustration']},met:{name:'大都会艺术博物馆',categories:['art','nature']},...repositories.sources});
   const pepperPage='https://www.peppercarrot.com/en/wallpapers/index.html';
   const licenseUrls={pepper:'https://creativecommons.org/licenses/by/4.0/',met:'https://creativecommons.org/publicdomain/zero/1.0/'};
   const text=value=>typeof value==='string'?value.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,500):'';
@@ -24,6 +25,7 @@
 
   function normalizeFeed(records,provider){
     if(!Object.hasOwn(providers,provider))return [];
+    if(Object.hasOwn(repositories.sources,provider))return repositories.normalizeRepository(records,provider);
     const items=[],seen=new Set();
     for(const raw of Array.isArray(records)?records:[]){
       let id,title,artist,image,download,pageUrl,width,height,record;
@@ -55,6 +57,19 @@
     return Object.keys(providers).flatMap(provider=>normalizeFeed(catalog.records?.[provider],provider));
   }
 
-  const api={providers,parsePepperIndex,normalizeFeed,normalizeCatalog};
+  function mixSources(items,day=''){
+    const groups=new Map(),result=[];
+    let offset=0;for(const letter of String(day))offset=(offset*31+letter.charCodeAt(0))>>>0;
+    for(const item of items){const key=item.provider||item.collection||item.source;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);}
+    const queues=[...groups.values()].map(group=>{const start=offset%group.length;return [...group.slice(start),...group.slice(0,start)];});
+    if(!queues.length)return result;
+    const start=offset%queues.length;
+    for(let index=0;index<Math.max(...queues.map(group=>group.length));index++)for(let source=0;source<queues.length;source++){
+      const item=queues[(start+source)%queues.length][index];if(item)result.push(item);
+    }
+    return result;
+  }
+
+  const api={providers,parsePepperIndex,normalizeFeed,normalizeCatalog,mixSources};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperFeeds=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

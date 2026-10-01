@@ -63,6 +63,17 @@ test('corrupt, wrong-schema, private and full storage still allow fresh data',as
     assert.equal((await commons.loadCommons({category:'anime',now,storage,fetcher})).state,'fresh');
   }
 });
+test('fresh and cached updates preserve the complete bundled catalog and remove newly invalid licenses',async()=>{
+  const fallback=Array.from({length:60},(_,index)=>record(index+1)),storage=memory();
+  const result=await commons.loadCommons({category:'anime',now,storage,fallback,fetcher:async()=>({ok:true,json:async()=>({query:{pages:{1:record(1),2:record(2,'Copyrighted'),61:record(61)}}})})});
+  assert.equal(result.state,'fresh');assert.equal(result.items.length,60);assert.equal(result.items.some(item=>item.id==='commons-2'),false);assert.ok(result.items.some(item=>item.id==='commons-60'));assert.ok(result.items.some(item=>item.id==='commons-61'));
+  const cached=await commons.loadCommons({category:'anime',now,storage,fallback,fetcher:()=>{throw Error('must not fetch');}});
+  assert.equal(cached.state,'cached');assert.deepEqual(cached.items,result.items);
+  const stale=await commons.loadCommons({category:'anime',now:new Date('2026-10-03'),storage,fallback,fetcher:()=>{throw Error('offline');}});
+  assert.equal(stale.state,'stale');assert.deepEqual(stale.items,result.items);
+  const revoked=await commons.loadCommons({category:'anime',now,fallback:[record(2)],fetcher:async()=>({ok:true,json:async()=>({query:{pages:{2:record(2,'Copyrighted')}}})})});
+  assert.equal(revoked.state,'fresh');assert.deepEqual(revoked.items,[]);
+});
 test('timeout covers a hanging response body, aborts request and restores fallback',async()=>{
   let signal;
   const result=await commons.loadCommons({category:'anime',now,timeout:10,fallback:[record()],fetcher:async(url,options)=>{signal=options.signal;return {ok:true,json:()=>new Promise(()=>{})};}});

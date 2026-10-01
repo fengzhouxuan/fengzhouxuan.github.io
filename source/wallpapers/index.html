@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./theme.css">
   <script defer src="./core.js"></script>
   <script defer src="./commons.js"></script>
+  <script defer src="./repositories.js"></script>
   <script defer src="./feeds.js"></script>
   <script defer src="./app.js"></script>
 </head>
@@ -32,7 +33,7 @@
       </section>
       <section class="collection" id="collection" aria-labelledby="collection-title">
         <div class="collection-heading"><div><p class="eyebrow">THE WALLPAPER ROOM</p><h2 id="collection-title">慢慢挑，总有一张喜欢的。</h2></div><label class="search-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" placeholder="搜索壁纸、颜色或画家" aria-label="搜索壁纸"><kbd>/</kbd></label></div>
-        <div id="content-categories" class="content-categories" aria-label="内容分类"><button data-category="" aria-pressed="true">全部内容</button><button data-category="anime" aria-pressed="false">二次元</button><button data-category="illustration" aria-pressed="false">插画</button><button data-category="nature" aria-pressed="false">风景</button><button data-category="city" aria-pressed="false">城市</button><button data-category="space" aria-pressed="false">星空</button><button data-category="animals" aria-pressed="false">动物</button><button data-category="minimal" aria-pressed="false">极简</button><button data-category="art" aria-pressed="false">艺术</button></div>
+        <div id="content-categories" class="content-categories" aria-label="内容分类"><button data-category="" aria-pressed="true">全部内容</button><button data-category="anime" aria-pressed="false">二次元</button><button data-category="illustration" aria-pressed="false">插画</button><button data-category="nature" aria-pressed="false">风景</button><button data-category="city" aria-pressed="false">城市</button><button data-category="space" aria-pressed="false">星空</button><button data-category="animals" aria-pressed="false">动物</button><button data-category="minimal" aria-pressed="false">极简</button><button data-category="abstract" aria-pressed="false">抽象</button><button data-category="fantasy" aria-pressed="false">幻想</button><button data-category="cyberpunk" aria-pressed="false">赛博朋克</button><button data-category="pixel" aria-pressed="false">像素</button><button data-category="cars" aria-pressed="false">汽车</button><button data-category="art" aria-pressed="false">艺术</button></div>
         <div class="category-notice"><span id="category-status" role="status" hidden></span><button id="retry-commons" class="text-btn" hidden>重试更新 ↻</button><a id="external-category" class="text-btn" href="#more-wallpapers">更多壁纸 · 去原站 ↗</a></div>
         <div class="filter-panel">
           <div class="filter-main"><div id="sources" class="tabs" aria-label="壁纸来源"><button data-source="all" aria-pressed="true">发现</button><button data-source="original" aria-pressed="false">每日原创</button><button data-source="art" aria-pressed="false">艺术馆</button><button data-source="commons" aria-pressed="false">开放图库</button><button data-source="favorites" aria-pressed="false">我的收藏 <span id="tab-favorite-count">0</span></button></div><label class="orientation-label"><span aria-hidden="true">▣</span><select id="orientation" aria-label="壁纸方向"><option value="all">全部设备</option><option value="landscape">电脑桌面</option><option value="portrait">手机锁屏</option></select></label></div>

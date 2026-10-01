@@ -10,6 +10,7 @@ const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.clock.install({time:new Date('2026-10-01T12:00:00Z')});
     await page.route('**/wallpapers/data/official-feeds.json',route=>route.fulfill({json:{version:1,records:{}}}));
+    await page.route('**/wallpapers/data/open-images.json',route=>route.fulfill({json:{version:1,records:{}}}));
     const data=Array.from({length:30},(_,index)=>({id:100+index,accession_number:'1915.'+(534+index),share_license_status:'CC0',title:'Museum '+index,creators:[{description:'Test artist'}],images:{web:{url:'https://openaccess-cdn.clevelandart.org/1915.'+(534+index)+'/1915.'+(534+index)+'_web.jpg'},print:{url:'https://openaccess-cdn.clevelandart.org/1915.'+(534+index)+'/1915.'+(534+index)+'_print.jpg',width:3000+index,height:2000}}}));
     await page.route('https://openaccess-api.clevelandart.org/**',route=>route.fulfill({json:{data}}));
     await page.route('https://openaccess-cdn.clevelandart.org/**',route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#b5ba99"/></svg>'}));

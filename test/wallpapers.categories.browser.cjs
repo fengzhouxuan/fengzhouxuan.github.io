@@ -1,7 +1,9 @@
 const assert=require('node:assert/strict');
 const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
 const commons=require('../source/wallpapers/commons.js');
+const feeds=require('../source/wallpapers/feeds.js');
 const snapshot=require('../source/wallpapers/data/open-images.json');
+const animeItems=feeds.mixSources(commons.normalizeCommons(snapshot.records.anime,'anime'),'2026-10-01'),animeItem=animeItems[0],visibleAnime=Math.min(24,animeItems.length);
 
 (async()=>{
   const browser=await chromium.launch({headless:true,channel:'chrome'});
@@ -23,22 +25,22 @@ const snapshot=require('../source/wallpapers/data/open-images.json');
     assert.equal(requests.length,0);
     await page.locator('[data-collection="anime"]').click();
     await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('已更新'));
-    assert.equal(await page.locator('.card').count(),9);assert.equal(await page.locator('.filter-details').isVisible(),false);
+    assert.equal(await page.locator('.card').count(),visibleAnime);assert.equal(await page.locator('.filter-details').isVisible(),false);
     assert.equal(await page.locator('[data-category="anime"]').getAttribute('aria-pressed'),'true');
     await page.locator('.card-open').first().click();
-    assert.match(await page.locator('#license-link').textContent(),/CC BY-SA 3.0.*署名/);
+    assert.ok((await page.locator('#license-link').textContent()).includes(animeItem.license));
     assert.match(await page.locator('#source-link').getAttribute('href'),/^https:\/\/commons.wikimedia.org\/wiki\/File:/);
     assert.match(await page.locator('#art-download').getAttribute('href'),/^https:\/\/upload.wikimedia.org\//);
     assert.equal(await page.locator('#download').isVisible(),false);
     await page.locator('#copy-credit').click();
     const copied=await page.evaluate(()=>navigator.clipboard.readText());
-    assert.match(copied,/CC BY-SA 3.0/);assert.match(copied,/Kasuga/);assert.match(copied,/creativecommons.org/);
+    assert.ok(copied.includes(animeItem.license));assert.ok(copied.includes(animeItem.artist));assert.match(copied,/creativecommons.org/);
     await page.locator('#favorite').click();await page.keyboard.press('Escape');await page.reload();
     await page.locator('[data-source="favorites"]').click();assert.equal(await page.locator('.card').count(),1);
-    await page.locator('.card-open').click();assert.match(await page.locator('#credit-text').textContent(),/CC BY-SA 3.0/);await page.keyboard.press('Escape');
-    await page.locator('[data-category="anime"]').click();await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
+    await page.locator('.card-open').click();assert.ok((await page.locator('#credit-text').textContent()).includes(animeItem.license));await page.keyboard.press('Escape');
+    await page.locator('[data-category="anime"]').click();await page.waitForFunction(count=>document.querySelectorAll('.card').length===count,visibleAnime);
     assert.equal(requests.filter(cat=>cat==='Anime illustrations').length,1);
-    await page.locator('[data-category="illustration"]').click();assert.equal(await page.locator('.card').count(),9);
+    await page.locator('[data-category="illustration"]').click();assert.equal(await page.locator('.card').count(),visibleAnime);
     await page.locator('[data-category="city"]').click();await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('已更新'));
     assert.equal(await page.locator('.card').count(),5);
     await page.locator('[data-category="space"]').click();await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('已更新'));
@@ -52,7 +54,7 @@ const snapshot=require('../source/wallpapers/data/open-images.json');
     await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('rabbit-wallpapers-commons')).forEach(key=>localStorage.removeItem(key)));
     await page.reload();await page.locator('[data-category="anime"]').click();
     await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('暂时连接不上'));
-    assert.equal(await page.locator('.card').count(),9);assert.equal(await page.locator('#retry-commons').isVisible(),true);
+    assert.equal(await page.locator('.card').count(),visibleAnime);assert.equal(await page.locator('#retry-commons').isVisible(),true);
     assert.deepEqual(errors,[]);
     console.log('PASS: real category feeds, licensed-only ingestion, attribution copy, favorite restoration, daily cache, illustration alias, photo categories, mobile overflow and offline bundled fallback.');
   }finally{await browser.close();}

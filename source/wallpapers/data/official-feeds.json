@@ -1,9 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-01T14:32:18.337Z",
+  "generatedAt": "2026-10-01T15:53:11.358Z",
   "updatedAt": {
-    "pepper": "2026-10-01T14:32:18.337Z",
-    "met": "2026-10-01T14:32:18.337Z"
+    "pepper": "2026-10-01T15:53:11.358Z",
+    "met": "2026-10-01T15:53:11.358Z",
+    "librepixels": "2026-10-01T15:53:11.358Z",
+    "folium": "2026-10-01T15:53:11.358Z",
+    "midjourney": "2026-10-01T15:53:11.358Z"
   },
   "records": {
     "pepper": [
@@ -780,6 +783,2276 @@
         "width": 3915,
         "height": 3186,
         "objectName": "Painting"
+      }
+    ],
+    "librepixels": [
+      {
+        "path": "wallpapers/[abstract,minimal]_librepixels_broke.stone.jpg",
+        "revision": "63baeaf36976b3025a5c0e799d415d4cf6196f80",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2474,
+        "height": 1080
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_Two.Worlds.jpg",
+        "revision": "5839cb502f541261036326c9a2d4d09a994f969f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3920,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_coloredSmoke.jpg",
+        "revision": "5671c8c236df04bf5264e1aac007f17c9d1ea26d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_colors.png",
+        "revision": "ba7635ed6ad5d63e9309897de3c9e477890172ce",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5820,
+        "height": 3260
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_halftree.jpg",
+        "revision": "d13d34d5f36923ced612a0bc2a9294487547ebe8",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_nexus.jpg",
+        "revision": "d5fab54e9bf8474a6ccc17f9e38878f34f77548c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3072,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_oil.jpg",
+        "revision": "25c6906afd2fef9a47500ceb565900afe12c16ba",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5040,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[abstract]_librepixels_umlilo.jpg",
+        "revision": "a8aa159d510a5c46b8c4928fae0a7d0f70478d19",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5040,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[animals,abstract]_librepixels_foxArt.jpg",
+        "revision": "f4c1fe906c6a394cc40fd889d5128f455df8804c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5934,
+        "height": 2860
+      },
+      {
+        "path": "wallpapers/[animals,illustration,nord]_librepixels_panda-girls.jpg",
+        "revision": "762a7b0df6c9133ad03f0ac6aea16d2d1e27053e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2924,
+        "height": 1640
+      },
+      {
+        "path": "wallpapers/[animals,nature]_librepixels_bird.jpg",
+        "revision": "dbd5d619315ce6b77137edadd96b3d8188b11306",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3200,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[animals,nature]_librepixels_fox3.jpg",
+        "revision": "64259bbf857f9cc8cd0efd736a7745faf61ec2e7",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3360,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[anime,catppuccin]_librepixels_catppuccinBeachTwoBoys.jpg",
+        "revision": "e86362b0e11493f3e3a4bea4a465837a12be16ab",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2854,
+        "height": 1600
+      },
+      {
+        "path": "wallpapers/[anime,nord]_librepixels_nordic.Melancholy.png",
+        "revision": "f5c86241634b328e3aad16d8ef52f3108c6028a9",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 6720,
+        "height": 2880
+      },
+      {
+        "path": "wallpapers/[anime]_librepixels_anime3.jpg",
+        "revision": "c6db7717ee867a4e66a62970af25136862e6af41",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2750,
+        "height": 1600
+      },
+      {
+        "path": "wallpapers/[anime]_librepixels_beautifulSkyAnime.jpg",
+        "revision": "e15f0728027b84815d004b1c3a717484333785bf",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5888,
+        "height": 3200
+      },
+      {
+        "path": "wallpapers/[anime]_librepixels_girl.jpg",
+        "revision": "bc2d64c3fa3b489944debcfa4e751876336d45b0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 10081,
+        "height": 4320
+      },
+      {
+        "path": "wallpapers/[anime]_librepixels_only.jpg",
+        "revision": "fc570a73c3cbc0be4f4ead46c36e72ef9a2c72e4",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4638,
+        "height": 3072
+      },
+      {
+        "path": "wallpapers/[buildings,animals]_librepixels_birdOfCity.jpg",
+        "revision": "c072cd2312c2756f2bda88e7283e7e039491f21b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5184,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[buildings,persons,dracula]_librepixels_busyStreet.jpg",
+        "revision": "62f49c36915509e3f2e2f4d72e8c3fb8a3444de3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[catppuccin]_librepixels_miniHouse.jpeg",
+        "revision": "aafd351b75bfa9efae10769b63d84ced2e372c9c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 8192,
+        "height": 3509
+      },
+      {
+        "path": "wallpapers/[catppuccin]_librepixels_rain.jpg",
+        "revision": "5fd9bfdcb4eefd976697789cdf2f541a03506e5d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3030,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[fantasy,anime]_librepixels_anime556.webp",
+        "revision": "37692d94f8ce1f0f2374344577a0eea9d2002625",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 8644,
+        "height": 4906
+      },
+      {
+        "path": "wallpapers/[fantasy]_librepixels_bigEye.webp",
+        "revision": "a98842f5eaedf22d0119101b5816473499702cdf",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5138,
+        "height": 2880
+      },
+      {
+        "path": "wallpapers/[fantasy]_librepixels_robot.jpg",
+        "revision": "3c93bcc1e83674f2d168c457548fb33c4bcb16da",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2914,
+        "height": 1632
+      },
+      {
+        "path": "wallpapers/[minimal,mountain]_librepixels_mountain.jpg",
+        "revision": "67ba37326ef5e97a5c066b39de75551dff6c1d3c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3274,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[minimal,nature,nord]_librepixels_purslaneNord.jpg",
+        "revision": "d41ef2f8c433e95100fc32a4523539be47f53981",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4992,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[minimal,nature]_librepixels_coffe.jpg",
+        "revision": "eaa29a80248437fca6cdd0190f2944a832f4506e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[minimal,nature]_librepixels_ferns.jpg",
+        "revision": "ec3ec9882f5c48994b1940bcd7868970c3a50083",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[minimal,objets, cups]_librepixels_lovecups.jpg",
+        "revision": "db66d5f3b3b39a86885f3570accd150714979510",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2684,
+        "height": 1460
+      },
+      {
+        "path": "wallpapers/[minimal,objets, pencil]_librepixels_pencil.jpg",
+        "revision": "8ea5e48a6c605eb42a5f759d1d00b8ae091636f7",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3276,
+        "height": 1277
+      },
+      {
+        "path": "wallpapers/[minimal,objets,animals]_librepixels_owl.jpg",
+        "revision": "70a28e5b609a9acab31653fe39741baa9066c047",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3708,
+        "height": 1778
+      },
+      {
+        "path": "wallpapers/[minimal,objets]_librepixels_clay.jpg",
+        "revision": "626581fc2b2ce75d7d56ab2f24c4ee34e9209e7f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[minimal,tecnology]_librepixels_forgotten.jpg",
+        "revision": "df47c420d47fbbe6d5d745fad8310118123f1dac",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_boat.jpg",
+        "revision": "ebc5bd2341fafe6dcf24a861263096bd83b3dd9a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_cup23.jpeg",
+        "revision": "8dd508d38d9eac7d456d1da43bbfe18ba5d56699",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 8192,
+        "height": 3509
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_fire.jpg",
+        "revision": "dcb28c91015d2f0b609c724279bfde0099d8535c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5418,
+        "height": 3072
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_italy.webp",
+        "revision": "7f9a6f023225542866665b3d08ce42eeceaebdd3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3072,
+        "height": 2048
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_kokoro.jpg",
+        "revision": "33e7dae0323c3cda6be1e73aa21cc06d82187ea7",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_orangemisty.jpg",
+        "revision": "25327aaebe1155a2c191a0e79c447155f41be73f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3410,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_paper.plane.jpg",
+        "revision": "c7f9bf9443f025b2df122d361270af62cc12a3fc",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_surf.webp",
+        "revision": "737eea3900433670c4201cebef815b01703b2572",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5824,
+        "height": 3264
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_train-room.jpg",
+        "revision": "d5f36f5bd3452445d0c98b5ac1a79c68c6a3e041",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2754,
+        "height": 1680
+      },
+      {
+        "path": "wallpapers/[minimal]_librepixels_train.jpg",
+        "revision": "e242c2b37a6c0eac6b0b28d0f1e094d5496f34e0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3072,
+        "height": 2048
+      },
+      {
+        "path": "wallpapers/[narure]_librepixels_arlequín.jpg",
+        "revision": "48cefd957f47b5a60e0022e3feae352a5c03aaf6",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2631,
+        "height": 1309
+      },
+      {
+        "path": "wallpapers/[nature, technology]_librepixels_waveBuoy.jpeg",
+        "revision": "351f9aed4966e7aaf3614aa3eed281fc427aa29d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 6356,
+        "height": 3072
+      },
+      {
+        "path": "wallpapers/[nature,abstract]_librepixels_BulbBonsai.jpg",
+        "revision": "46be03573bf182d0a42cfd0240a3854c7f90486c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5040,
+        "height": 2355
+      },
+      {
+        "path": "wallpapers/[nature,amimals]_librepixels_ladybug.jpg",
+        "revision": "0d0f7fb6c79e1ca4a67d24a06abc39b8ba79ec82",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[nature,animals,dark]_librepixels_fox1.jpg",
+        "revision": "f89a2db025ca4545cecd46fa25e9f2eae6aa103a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature,animals]_librepixels_FoxInRocks.jpg",
+        "revision": "e5e980eafb6bf4a91431b26dbf4d85e7abb8c42c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4104,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[nature,beach]_librepixels_bahia2.jpg",
+        "revision": "5ec776ab707a0ee43d7202e7e796c460b16f9933",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1328
+      },
+      {
+        "path": "wallpapers/[nature,beach]_librepixels_beach56.jpg",
+        "revision": "bacde5f39d451aaf27d253fac01e99344bb1e8c0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4200,
+        "height": 1800
+      },
+      {
+        "path": "wallpapers/[nature,beach]_librepixels_misty.beach.jpg",
+        "revision": "ce29361dc975f666d54de3dcb24ca07b74c137ea",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature,cat, catppuccin]_librepixels_catOnRock.jpg",
+        "revision": "b8346ac52066f88e576da65f542c7c6d060930d4",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature,catppuccin]_librepixels_xochilt.jpg",
+        "revision": "36a229cb3f729cb6f84dd0c27902ffdf48086f3e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3360,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[nature,dark, minimal]_librepixels_darkBeach.jpg",
+        "revision": "a061728d49cf137c98e395d6cb8219074d7f74a7",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature,minimal]_librepixels_Pink-leaf.jpg",
+        "revision": "d6dadbc085f01d7e496483eb26ba291262bc1a76",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature,minimal]_librepixels_calathea.jpg",
+        "revision": "984d6beeaf065543fca86e31244d9a54c2422953",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5184,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[nature,minimal]_librepixels_mailbox.in.Triticum.jpg",
+        "revision": "ad1310a60d2b1106884d944a49ccffce643af543",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature,mountain]_librepixels_PInkSky.jpg",
+        "revision": "d94798ac681fc819c553adfe8349a55c6b6c76cb",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3003,
+        "height": 1382
+      },
+      {
+        "path": "wallpapers/[nature,mountain]_librepixels_Tyndall.jpg",
+        "revision": "60288ffa534b6ecc7778a2cec1146220683e2a8a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature,mountain]_librepixels_bigMountain.jpg",
+        "revision": "25e61cba5beb8b477e5aa654955a791841d89e36",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[nature,nord,animals]_librepixels_fox2.jpg",
+        "revision": "0f31694b0896bca6979758be627abba5b0e7c6ea",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature,persons]_librepixels_darkCanyon.webp",
+        "revision": "797c14ccf6e28850826413868cdd9d0f85b20329",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5250,
+        "height": 3500
+      },
+      {
+        "path": "wallpapers/[nature.animals]_librepixels_RedPanda.jpg",
+        "revision": "80bd37e9ce6172c6fe57d040b827b67100555f39",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2740,
+        "height": 1496
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_AerialLift.jpg",
+        "revision": "51329e81b5e218af4cf27e8d96d595364c93d48a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2912,
+        "height": 1632
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_EartInForest.jpg",
+        "revision": "58031cc8ed8407885bd7224856dc0d3cd8a5da1f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2338,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_Propagation.jpg",
+        "revision": "e18092bf744d420dfd29ef584aa1da86456d3355",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2488,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_RockOfTheBeach.webp",
+        "revision": "212bd8178740c0a48f2d7deeea6dd469492d4dad",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_RocksAndDune.jpg",
+        "revision": "2aec3187483f63f9893d86e43e4ec3213181b1e3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_Xanthoria.jpg",
+        "revision": "6ad11972b4efe1198e7918930db0d17553d33f2a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2536,
+        "height": 1600
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_autumn.jpg",
+        "revision": "4f33e2f10dbca12ccd35d7ce89e69a0bd0ea51bd",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5376,
+        "height": 2240
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_bahia1.jpg",
+        "revision": "aab5f0ec1a808cc5c6b2ab017eac313b40d4412c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_beachAndSand.jpg",
+        "revision": "fcad653b939a8d8b2015fe6523ddd55b35cf5117",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2758,
+        "height": 1600
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_bigrock.jpg",
+        "revision": "6b6a1d0070448ed732f512322cbd21e51b3b1762",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4756,
+        "height": 3500
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_birch.jpg",
+        "revision": "c8c81212eb23d41c22026a493cc3e870b135475d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3440,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_birdIn.webp",
+        "revision": "3d911e53de289df279f2512e2757690b6ecda87f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3840,
+        "height": 2560
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_cabin.jpg",
+        "revision": "dbcff60e718037fa076de092dfbf67407cefa778",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2736,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_cabin.webp",
+        "revision": "ac6f92af1ce1ae22fb78d3aceb26b7e5de612d1d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5040,
+        "height": 2860
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_canyon.jpg",
+        "revision": "0a522d875cea3e0565f181759bbdfa58cf774531",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4857,
+        "height": 3072
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_carretera.webp",
+        "revision": "406b7dafe44afd67dd93c446cff22f85108ff787",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4736,
+        "height": 2688
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_cedar.jpg",
+        "revision": "deb3139487246847178bd276ae36dd9662defc1e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_cenitall.jpg",
+        "revision": "1d4727c6ff6914e40925da94c98deb72107343ef",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3072,
+        "height": 2048
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_chameleon.jpg",
+        "revision": "90600e4897457a4eef7834255a1d34b22cbcbe25",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4232,
+        "height": 2448
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_chinase.webp",
+        "revision": "3dc3c88deb9a4a5b4402eb02ce17acc7bbd920a3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5972,
+        "height": 3200
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_desert.jpg",
+        "revision": "892c0e400c759d12b7951e0e167b7366f3bb9fef",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3072,
+        "height": 2048
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_desert.webp",
+        "revision": "5870b7d47138d7d44c607c534214204335238119",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5504,
+        "height": 3072
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_evening.jpg",
+        "revision": "53a6428e29c89e8d817cef3c732b1a5ba9ab7f59",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4128,
+        "height": 2304
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_ice.webp",
+        "revision": "5694ebb7497d85734be11811d0b71abfc039bacc",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1792
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_lake.webp",
+        "revision": "d0830b816b38ebeb91c3bba1b39016f3afa9fc82",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 6144,
+        "height": 4096
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_mesquite.webp",
+        "revision": "f67900cea0d5d74e054e65e40d22302c4a6ffb0d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4780,
+        "height": 3200
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_mountainSlope.jpg",
+        "revision": "1d5bfc3d0e5cd4c722f26725ed229922d4b34a9c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5376,
+        "height": 3584
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_musgo.webp",
+        "revision": "1d8e1a5ab1201446b755d264117685880b9c9761",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1792
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_old.carrata.jpg",
+        "revision": "2730a03459568049bf4d25ad2f43b01b6a3f5b02",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2752,
+        "height": 1536
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_redPanda2.jpg",
+        "revision": "8f5cffe99b4da9688ac11592e166e67b836e619c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_river.jpg",
+        "revision": "76b3db3aa04a35b6431bff0ac6b026737fdd878a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5607,
+        "height": 2628
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_rock23.webp",
+        "revision": "d2f7345fac8ed8b101111e37e59327b182fd65ed",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3104,
+        "height": 1600
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_selv.webp",
+        "revision": "d26f8171dd67f7c90c89b1d1f9a068f1854c453c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4501,
+        "height": 3000
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_tiger.png",
+        "revision": "682faf63e38d97f052ac2ef54497b9cd8226c50f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2912,
+        "height": 1632
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_waterfall.webp",
+        "revision": "aa566106fc43c5839a301a50d605f5cb7df2c9df",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1792
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_wire-fence-and-sunset.webp",
+        "revision": "895d7061738e3837079c72c0882d44cc846ea4a7",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2800,
+        "height": 1568
+      },
+      {
+        "path": "wallpapers/[nature]_librepixels_xochilt.jpg",
+        "revision": "cad3984cdada1746a8bec28c7cb1d3941186e71c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3360,
+        "height": 1440
+      },
+      {
+        "path": "wallpapers/[persons,buildings]_librepixels_selectiveBlurStreet.jpg",
+        "revision": "2cf6a9aaf20d9cc9cb6b15fc2c5525e3622400c2",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2368,
+        "height": 1344
+      },
+      {
+        "path": "wallpapers/[persons]_librepixels_chihiro.jpg",
+        "revision": "254eef94a5c3522a9b3f97384c82ce98543b5cc5",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 4130,
+        "height": 2400
+      },
+      {
+        "path": "wallpapers/[persons]_librepixels_marh.jpg",
+        "revision": "60578e4ef4943cd4aa03d6d4d11c3905468c2c5b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 3072,
+        "height": 2048
+      },
+      {
+        "path": "wallpapers/[persons]_librepixels_night.png",
+        "revision": "34994e1220fa74d58b12604b9693b24d10ae9148",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2912,
+        "height": 1602
+      },
+      {
+        "path": "wallpapers/[urban,minimal]_librepixels_City.webp",
+        "revision": "be26c847b1e488c249cfa6b4166eeca199aa31c3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 5708,
+        "height": 3200
+      }
+    ],
+    "folium": [
+      {
+        "path": "Abstract/FluidsInSpace4k3Composite.png",
+        "revision": "471a17f40978ab0e246f14d08b7cfc9381d13e87",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/GreenGlassSheets.png",
+        "revision": "6dd6e57133427fb8dc0bea35328d5b4783cfc498",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrganicGlassBlack.png",
+        "revision": "af0d180b447600e5df9cea88fdb4fc4697f87c4a",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrganicGlassGrey.png",
+        "revision": "ebb47073b15eb438d32ccffb7ba35ea8922e9851",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrganicGlassWhite.png",
+        "revision": "2e2aacbdc453fe4736a5ceb166e4767bbc2857f2",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrigamiBlue.png",
+        "revision": "19ddef09a0c5cc1c211ecacd85819aca43925f0b",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrigamiGreen.png",
+        "revision": "e3fb3477e3637e96780e1ee90d6c27f7917351d7",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrigamiRed.png",
+        "revision": "082ebd283ea01eb73052da4ed961d59bb8397cba",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/OrigamiTeal.png",
+        "revision": "db350087678806cc21ec1b4320926ef6867e1538",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/PlasticWavesPurple.png",
+        "revision": "ca2cb13c346f8227a3f3f554d66675aa26176177",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/PlasticWavesRed.png",
+        "revision": "42ca484cd76aa584582e54c14e58e26bd2ee51dd",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Abstract/PurpleGlassSheets.png",
+        "revision": "e0d0c15a0f8e17f81a3f56d939b5831f378749ed",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "De-Minted/DarkGreen.png",
+        "revision": "b90de23c47b92e6bd3795ec074388748ba231591",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "De-Minted/NickelCandy.png",
+        "revision": "0302b619726dddc5a7d0c0ef7b310dad4bdc35ef",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "De-Minted/NickelCandy2.png",
+        "revision": "65cd4a4645d4d48713d3d33328698303372f2a57",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "De-Minted/NickelCandy3.png",
+        "revision": "6e477dd7f9f8898564096636acb354d069d1d63d",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "De-Minted/lightGreen.png",
+        "revision": "d0acee197ec44a95b9675e8eca59bb9797b025e8",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "HardSurface/GlowingGreeCube.png",
+        "revision": "5cddc71e12f5aa3172689c7aaec157d73ce628e2",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Mint/ForestMint.png",
+        "revision": "7328655a98f8ce6630baafdda2dbd6f7c2290795",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Mint/MintCandy.png",
+        "revision": "1ce7ebd11a3be3118b130c52ab622e8870885343",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Mint/WhiteLeafLogoCubesV4R4K.png",
+        "revision": "2a276e19fb4c0de31c4417eac369fd98c80c154f",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Mobile/Abstract/BlueGlass.png",
+        "revision": "e231d6b96297acdf953b6299e024b75dbb493f17",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 1224,
+        "height": 2700
+      },
+      {
+        "path": "Mobile/Nature/ForestFerns.png",
+        "revision": "f4b66ec5af779bc057d09bc5e127ec8771831e39",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 1224,
+        "height": 2700
+      },
+      {
+        "path": "Mobile/Nature/ForestNight.png",
+        "revision": "447a3cc687a2969351fcc9cb9c69febe81db9fc8",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 1224,
+        "height": 2700
+      },
+      {
+        "path": "Mobile/Nature/ForestPath.png",
+        "revision": "7f665d73644f9d4b6089c4f06c45c4e1504dae8f",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 1224,
+        "height": 2700
+      },
+      {
+        "path": "Nature/AppleFlowers2.png",
+        "revision": "b789ae0edecd3b7125b6c4c2c8c850bbe4ffd6f8",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Nature/BedOfLeaves.png",
+        "revision": "6e87fecd4a853c5827f907cdea5b8b634a41ff8d",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Nature/ForestClearing.png",
+        "revision": "84d81ece3c0ea786154a394adafbe9b87d4542fc",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Nature/ForestPath.png",
+        "revision": "acbd3a6ff052017505d1c70a32a2efaae1b9cc52",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      },
+      {
+        "path": "Nature/Syren2.png",
+        "revision": "0f7d54246c55c8bf4e73fc7bb51081348a258002",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "midjourney": [
+      {
+        "path": "assets/8bit_414dce.png",
+        "revision": "e7ca1ea5a5b9a2e48f16cf6c51ce7eb2f45a38e8",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_4d93c2.png",
+        "revision": "a06288822f68d5b8005d85655d8861682376ba98",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_city_of_motherboards_and_cpus_wired_up_and_connect_df5161.png",
+        "revision": "b6316f4a7f9e600969823184e8cacdd3bd4a1411",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_close_city_of_motherboards_and_cpus_wired_up_and_c_6d2d08.png",
+        "revision": "cb2ab43214bf407aee5a8c8b48c76024a7d0238b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_close_city_of_motherboards_and_cpus_wired_up_and_c_846f5e.png",
+        "revision": "17d08df83a3d29bc5b4f7e4e2f14f4d497e14b1e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/8bit_cloud_network_c24a04.png",
+        "revision": "90d9083399fa0887a073fd4d733407a7a0034ab0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/8bit_cyberpunk_5485b4.png",
+        "revision": "e35f3658991e5d2049c4ee9473e8257aab785dce",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/8bit_cyberpunk_computer_2d006c.png",
+        "revision": "29837aa17df700f2092133bb66d125ab6eecfc63",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/8bit_cyberpunk_computer_803e74.png",
+        "revision": "2be099aaf2cd93e1b05c50768f2614c0b399a67c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_cyberpunk_computer_on_wall_motherboar_interconnect_5be826.png",
+        "revision": "431e7dceee0c67ef696222ccb580dfb8d6326d79",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_cyberpunk_computer_on_wall_motherboar_interconnect_8ac58f.png",
+        "revision": "d31b75e173b86944985b14b3e4ea14eec51cf886",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_dfff55.png",
+        "revision": "c985f2eeda3ddebd6c23f608f2c1a1db305701d1",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_global_a78acc.png",
+        "revision": "c3fc064ffd4a1fb7dff61a4c01e9d77bfa0b54fa",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/8bit_global_ea4d46.png",
+        "revision": "7ceafa6e8def9653ccbe1271463ec736940d4c4a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/8bit_network_of_motherboards_connected_5b06e8.png",
+        "revision": "f48caab5a72420cf9fc4816a7f8f643ab6e20500",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/8bit_network_of_motherboards_connected_cb0d50.png",
+        "revision": "0647853840e29878874f9e16bfe47dd1c3740142",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "path": "assets/8bit_network_of_motherboards_connected_dc133f.png",
+        "revision": "6f6abe3b01aa16301c219e2e299fde45fd5dd3df",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/8bit_wall_of_motherboards_and_cpus_wired_up_and_connect_471d08.png",
+        "revision": "00d34c8d1b745be2b696d273384c48d2cd697696",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/Cyberpunk_Synthwave_Inkpunk_Dramatic_Scene_Beautiful_Cy_150c01.png",
+        "revision": "63e149065223289ffd7b9d40c7ca2750705cc64e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/Cyberpunk_Synthwave_Inkpunk_Dramatic_Scene_Beautiful_Cy_36d4b3.png",
+        "revision": "f31ee89b5a3d825017913354f26e1c0c836154ba",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/Cyberpunk_Synthwave_Inkpunk_Dramatic_Scene_Beautiful_Cy_5c98ef.png",
+        "revision": "372b0a5525d2a6393dc03fc12160f3c6b4d02435",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2816,
+        "height": 1408
+      },
+      {
+        "path": "assets/Cyberpunk_Synthwave_Inkpunk_Dramatic_Scene_Beautiful_Cy_8ac863.png",
+        "revision": "7985924fefc42a4abdf40f52bc93719e21d10f13",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/Cyberpunk_Synthwave_Inkpunk_Dramatic_Scene_Beautiful_Cy_bb4b74.png",
+        "revision": "9e333261bf43461cbb76123b1b9501c164321b49",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/Neo-Surrealism_mixed_Photomontage_Art_cyberpunk_city_1c949f.png",
+        "revision": "a79221d37862b0db4112acbe13faf7877856873e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/a_beautiful_girl_standing_on_top_of_high_rise_tower_ove_fbdfad.png",
+        "revision": "19cdf9502b535ba59d7b5b9a46531dc4cc4a9028",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/a_beautiful_girl_standing_on_top_of_highrise_over_cyber_fc9422.png",
+        "revision": "5b22dc0a37927d22b8657a22286ba9984b08a564",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/anime_car_153a8c.png",
+        "revision": "153f4f25586a135e677121eefa38cee015218aa9",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1536
+      },
+      {
+        "path": "assets/cloud_inventory_a6b3dd.png",
+        "revision": "9a2309df67a53ab0f0b9afef7a6fc5f74a59fdad",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_car_d6c1fc.png",
+        "revision": "bc995b8d0c2e9dc6cb1667b1b7d3d7e8bc51874f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1536
+      },
+      {
+        "path": "assets/cyberpunk_city_12e31e.png",
+        "revision": "90f54252d983209c2d2a83e9b671b5f1011d0b08",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_city_73e30e.png",
+        "revision": "4d5e478e9bf9b06eb8d46fa01909bbc022eecc89",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_city_779389.png",
+        "revision": "3630f2c43c95573a3465c4cc2a08858b6d5f9432",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_city_computer_kiosk_cyberpunk_f9bf90.png",
+        "revision": "cf513976a06c506a24568b5233c6cd5bf30c670a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_d2859d.png",
+        "revision": "8bfb140e72123bbb10b811837d95971c57e5a03b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_8b81d8.png",
+        "revision": "c2d4c1e845afcaee70c9f80230f1c35fe0485233",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_2bfe67.png",
+        "revision": "08c482805b4b9200417659b3ba4c805820e8d32a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_4712cb.png",
+        "revision": "41c86ed2c12d6e1ea0a01f3ac56ebf020855477b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_4fc02d.png",
+        "revision": "34fee3ff0ced96f106cd2f19ec4e8e3d9a1f919f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_65053a.png",
+        "revision": "1dd1783f6358cd59233599a3488a859c045aca38",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_69b67f.png",
+        "revision": "153f08007789185bf0b6c3bb7bd1949dddececd4",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_6ce199.png",
+        "revision": "1e6aa1e11a56be8a7de6d28f55a81e1b93a24389",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_900d57.png",
+        "revision": "49e3df3d57745c77d9f94f784faf980328fe2953",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_a724d3.png",
+        "revision": "c9960b6a419d85812bd4d7dc19c494444534ba89",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_a72a70.png",
+        "revision": "ca894e997df111947fed78cd2b1986d1e6262fbf",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_a897c9.png",
+        "revision": "174f60b5a40620462ca9ece54e2db3c250a939ca",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_b28878.png",
+        "revision": "8c3a2e7c17c416599fbeed67d53a181b0690a633",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_bcee7a.png",
+        "revision": "1c6df7b275335aebb27ee248b9554be39d03c67e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_bee5ef.png",
+        "revision": "81a5eb0bd2888e49b6fd27becebf9069869b9d62",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_ca7138.png",
+        "revision": "e7a8de12cad4956692d3da5c00e713fac2eddf83",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_d13b48.png",
+        "revision": "a26c58bac06178039900f522632020ef4f02a3e1",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_e68386.png",
+        "revision": "d057543bbc80674edf70663d7f12f3683485ab88",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_f032c9.png",
+        "revision": "6239a214669dd254afa7635703be64904686815e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_fbbfcd.png",
+        "revision": "d8b77383ecd36224086b710f73932fa2bac23b58",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_fc874f.png",
+        "revision": "f2cb3f89f4119125b97cfe8d527e2c8d6d590794",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_above_fc88a5.png",
+        "revision": "cfaebd259e8c2af7ded8edd4e447761e641120ae",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_top_o_38fc12.png",
+        "revision": "09bc97aa3c3229828a3ea4480f64b8efe55cb7b1",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_top_o_4cbcc3.png",
+        "revision": "f8b59c33068e13d2f2ade6836e84e57caf95aac9",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_top_o_a59874.png",
+        "revision": "702be005cdeaf4ccc1f6cad8b4dc367503bd3e4c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_cyberpunk_tower_top_o_d255e2.png",
+        "revision": "408bbd248aa994db1c6bead6485cc15ea0147cf3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_tower_glass_tower_2a383b.png",
+        "revision": "3fc409e314d6efed9e77988200617e8f52dcef9f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_tower_top_of_tower_6a8db7.png",
+        "revision": "e51cdc57e21ea0209c6a66092bd784c2a76d96c0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_tower_top_of_tower_6db899.png",
+        "revision": "6a10a0e0435fb7584249a23a98e82f4b9804e009",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_extremely_detailed_tower_top_of_tower_be_105cfe.png",
+        "revision": "77d532d35737ae11c7d4da348267c9b925b54928",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_highrise_interconnected_wires_9a8a83.png",
+        "revision": "7749cf33fec25d6c2cdbcee4cb729ed058792f14",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_highrise_with_a_beautiful_girl_354ee9.png",
+        "revision": "a0a1ccea12d4c3884a178ace7cb099285842debf",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_in_pixel_art_style_Acid_Green_colored_gu_a30a29.png",
+        "revision": "82cde6a93d0c6725b41c239e12b88ea0b1d81fda",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_in_pixel_art_style_Acid_Green_colored_gu_c5f695.png",
+        "revision": "eebee8a30f7a0df88418be3f55a022e215291d65",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_in_pixel_art_style_pastel_colored_gun_fae616.png",
+        "revision": "20bf49b1ca3a40db2927248738613ed71ddc490b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_in_pixel_art_style_pastel_style_gun_16d570.png",
+        "revision": "6febbdb6230ad1d89e83f5bbfde6cbc28dfbb26b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_in_pixel_art_style_pastel_style_gun_1eca68.png",
+        "revision": "cbb57fd7085e7000b8addfb1d9db56988a0a14d9",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_pixel_alr_style_Acid_Green_colored_gun_2f02d7.png",
+        "revision": "448fb82f814f0f4e0f6599e34cf4743365d72439",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_pixel_alr_style_Acid_Green_colored_gun_75f949.png",
+        "revision": "bc6fceb4d5ccaf3409940801bac9f345bcb0e890",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_city_standing_computer_motherboard_cyberpunk_18848a.png",
+        "revision": "ec0845314863fd0c8b4fd1a07ecf132b7322a88f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_standing_computer_motherboard_cyberpunk_c6a1ab.png",
+        "revision": "c833f590d6f163a411544d1f18296bf18375073f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_city_standing_computer_motherboard_cyberpunk_fb6f25.png",
+        "revision": "7b9abc110b1b62ba8ae83b97c1f1b000f4abedca",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_computer_722051.png",
+        "revision": "f575beb2e3b9ab4ed21118799ab48353e4b3b384",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "path": "assets/cyberpunk_computer_7891d0.png",
+        "revision": "02d404e75e0655eeeac13d873be2b166da18cf70",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_motherboard_wall_53b9db.png",
+        "revision": "a7ef2b5308170d0ee0e2f560333785ad29106537",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_motherboard_wall_7f6d2f.png",
+        "revision": "f97a8cc969a30175682a6e1e83ba715842859643",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_motherboard_wall_8131e1.png",
+        "revision": "0501c3db4e39cfc938bbdd8f8f791127325076a1",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "path": "assets/cyberpunk_computer_motherboard_wall_9bfa22.png",
+        "revision": "c28c72c6bb363a029cb42ce0519466ce8baa3fb0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_motherboard_wall_b5aafc.png",
+        "revision": "02556733d4a5883d5058da2d215f812605134ef0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2304,
+        "height": 1536
+      },
+      {
+        "path": "assets/cyberpunk_computer_motherboard_wall_e01537.png",
+        "revision": "152b2bf75ba2913b39bba16880a5de0aa50485b3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "path": "assets/cyberpunk_computer_network_mesh_wires_052cad.png",
+        "revision": "c1ea365f711c59d01d2a7b22ce383719db245a91",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_network_mesh_wires_327601.png",
+        "revision": "29e2f197b20c9694eb05264dffc091fec4033d0f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_network_mesh_wires_34d11c.png",
+        "revision": "d9ad0eec4b928fcfd9fc8e04535afd02cde08ac7",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_network_mesh_wires_3c1d3f.png",
+        "revision": "cb4f51dd8e17cf17c223592e7666a3c5fa0f0480",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_network_mesh_wires_bfc2fb.png",
+        "revision": "42a4e7f9872beec9b2b6d81bc455fff9fae9ff97",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_computer_network_mesh_wires_c79e72.png",
+        "revision": "ce1a78347d1c66382325b090e3636b6b80c5760f",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_crowded_city_pixel_art_style_d7ed6c.png",
+        "revision": "6d41f6c5b9b689216d13fc1cc41f193a9ef85fb8",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_girl_trapped_in_computer_network_mesh_wires_033599.png",
+        "revision": "5da20a9792faa4024d2adf3d80569d7f9d97e3f4",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_girl_trapped_in_computer_network_mesh_wires_189dea.png",
+        "revision": "469caf6290a70e8ed256435b177a32fc2c172571",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1536
+      },
+      {
+        "path": "assets/cyberpunk_gun_pixel_art_style_6e7e84.png",
+        "revision": "e62efe42fda86fd30cd5c17b380f3a662e611d0d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_interconnected_city_1c39ce.png",
+        "revision": "28da52ea472ea7aa6e15fd279a5090186513d878",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/cyberpunk_interconnected_city_65a78d.png",
+        "revision": "e443e8dd30876a63b24ece912803ff4e64aa67ed",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "path": "assets/cyberpunk_interdimensional_1d7aea.png",
+        "revision": "b459533fa42770df5a5f1a62c1ec20faa649eff8",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_montain_hole_9e1bdf.png",
+        "revision": "d7e4407101cc3a66777522feec2c476a395047d3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_montain_wires_088b31.png",
+        "revision": "da2b46a24959fbdc9602a1b6b6dbc57daf700bf3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_montain_wires_e1b4c4.png",
+        "revision": "0198af4270adff8a2683355bb957c41847ffcdc4",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_network_0e45e7.png",
+        "revision": "61bebb237b04d324f076acb324ba3d793fc77901",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_network_d768de.png",
+        "revision": "39ef2862aa28a66cb0a03d22871c77a61a06a654",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_network_mesh_1daa3e.png",
+        "revision": "7e662abb329b8e33d7eb10552367abf7a2f76a0e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_network_mesh_489078.png",
+        "revision": "caae2d48d9345ffdd167579f791d25de2bd8c532",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_pixel_art_city_girl_0b172b.png",
+        "revision": "6af885a73c5210b43bdee7406556ccda22fd0b14",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_pixel_art_crowded_busy_city_gun_2513ca.png",
+        "revision": "4b9e518e883e0541748aa310f9275e4d080cac36",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_pixel_art_crowded_busy_city_gun_2e858d.png",
+        "revision": "652d150c3616f38a321de11c49e3f3bcf60883bc",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_pixel_art_crowded_busy_city_gun_71b2d4.png",
+        "revision": "88f3326e991f9965335d770885fd7e44af1454ae",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_pixel_art_crowded_busy_city_gun_a33893.png",
+        "revision": "f2f1cff642710689b9093279eeaac5dcde5a9895",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_pixel_art_gun_sniper_34c8b0.png",
+        "revision": "bb0e29b031a2df6fc1b2834686d8e71249a05787",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_plane_373f37.png",
+        "revision": "cec84de50d9bc7689f1f183c5bc66c4b977720af",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2688,
+        "height": 1536
+      },
+      {
+        "path": "assets/cyberpunk_tank_middle_of_city_in_pixel_art_style_9e157e.png",
+        "revision": "f84908c1b8e30b3924f5a2ea16269ba45d1b2a2b",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_tank_middle_of_city_in_pixel_art_style_bcc9f3.png",
+        "revision": "3f32001a85399aa8b69ea41ab9ce96d51a33d7a9",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_tank_middle_of_city_in_pixel_art_style_f61d8f.png",
+        "revision": "d428cd64dce51783dc7337f917d9f6d122e902ec",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/cyberpunk_text_editor_6184fb.png",
+        "revision": "1cc1281ef97d84c4230b59e102d9ff58ced9e340",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/cyberpunk_text_editor_75b59f.png",
+        "revision": "81a99f8e88d0e104773bad9156632ae92fb36f28",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_text_editor_773e01.png",
+        "revision": "9ea8cf96eb1451a77f4a79542b5bc6898bfad821",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/cyberpunk_text_editor_b3ff4a.png",
+        "revision": "befac718a05d026e1c8d002c72e07357b06cf51d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/hellscape_189925.png",
+        "revision": "2e9465498ed8f180da5a838a42a310c36f318177",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/hellscape_5c50bf.png",
+        "revision": "27828d5ba2b7cbeaac16cd99d04c13e28a6e466a",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/network_of_motherboards_connected_7617c1.png",
+        "revision": "08d8dc1dd4f5f3ce907534ec80f7bde667f4d082",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "path": "assets/on_top_of_high_rise_glass_tower_over_cyberpunk_city_044088.png",
+        "revision": "bc57efe5c3ff94d6bf7014aa36580b8f71b60426",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/on_top_of_high_rise_glass_tower_over_cyberpunk_city_d697ee.png",
+        "revision": "2f744dcd4e5531c5e2db8f12430d9ad04f99508c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/on_top_of_high_rise_glass_tower_over_cyberpunk_city_e5de93.png",
+        "revision": "7cd53018b98e7440a584f6c6638e117c483cd55d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_4d14a0.png",
+        "revision": "4bff39f96a69c8b6dae3713582a07ac58de85ba5",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_595a5e.png",
+        "revision": "063e95eab8f050815de3236c7175aabb38af14b6",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_65dee2.png",
+        "revision": "98f2fd772f5285ee89c74a2b97144c78c529d935",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_71707e.png",
+        "revision": "1fdfe3a6689780c1e26b0a65eb5930c7c3f001cd",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_a2e46e.png",
+        "revision": "cc9c3f3e79bb34eba4161215a7569d2decae6c7c",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_a812de.png",
+        "revision": "f03fb06edb890fc0c0ae2a6fb48508ff62c70e59",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_bb39a2.png",
+        "revision": "75f88a80888a69714e8b2db271961066ab223dd3",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_bd168b.png",
+        "revision": "b8b0a7e3c1a98f6651e28dd0e67d900f831c1036",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 834
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_c8d712.png",
+        "revision": "a4a0c488b8903a8da012936ec049514942f23f7d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2816,
+        "height": 1408
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_ce6bf3.png",
+        "revision": "12dd3009642f51a3fc291ee54ff4090d88b670c0",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_computer_kiosk_cyberpunk_8228a1.png",
+        "revision": "0c1872966e3f056c8c1a915d5d886169e3f6130d",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_extremely_detailed_89daa4.png",
+        "revision": "950177c533444e8cf0ff5321c62eeb26c9d42908",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_extremely_detailed_cyberpunk_t_67dc53.png",
+        "revision": "c210b54c7260f91129231199117e34e14db05c48",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 835
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_extremely_detailed_d721e2.png",
+        "revision": "58d926a6802f7f5477971efffca50045ef7157df",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_extremely_detailed_e2d4e2.png",
+        "revision": "92a8f1ea1ed3467e0c55772247dad63c0e006562",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 960,
+        "height": 1664
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_extremely_detailed_fba4a7.png",
+        "revision": "3a81f2e3f653346b7bfd5df93cb37db096c4e620",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_extremely_detailed_towers_city_a83c48.png",
+        "revision": "eb33f09786bf61394f11222b8a4fb3e82e51e984",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_f15dcb.png",
+        "revision": "e60181b944a8a045e02fcb7e4d0a48e004436134",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_cyberpunk_city_f40307.png",
+        "revision": "ffec566e4fe8b8f0d1aea951fc983e8f977d28b4",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_top_of_tower_high_rise_cyberpunk_city_0ac4ef.png",
+        "revision": "c2d2282c54ed38b2ef0be39b61775eafc42a0355",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_top_of_tower_high_rise_cyberpunk_city_39d088.png",
+        "revision": "555edb6216ddaa2c7e398dba9101bde51329d3ad",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixel_art_top_of_tower_high_rise_cyberpunk_city_961e2e.png",
+        "revision": "8e5cd9d92b01fafa09b12886d5d61da71cc1ca98",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 1728,
+        "height": 864
+      },
+      {
+        "path": "assets/pixle_network_of_motherboards_connected_899105.png",
+        "revision": "2f99bb93340f0ae208f024ff650c56a0d48cf90e",
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "width": 2048,
+        "height": 1152
       }
     ]
   }

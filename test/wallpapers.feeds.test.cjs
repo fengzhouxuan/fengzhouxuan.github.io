@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const feeds=require('../source/wallpapers/feeds.js');
 const core=require('../source/wallpapers/core.js');
 const collector=require('../scripts/refresh-wallpaper-feeds.cjs');
+const refreshCatalog=options=>collector.refreshCatalog({...options,providerIds:['pepper','met']});
 const now=new Date('2026-10-01T12:00:00Z');
 const filename='2023-04-26_The-Healer_by-David-Revoy.jpg';
 const download='https://www.peppercarrot.com/0_sources/0ther/wallpapers/hi-res/'+filename;
@@ -57,17 +58,17 @@ test('dimension reader stops after metadata and cancels its stream',async()=>{
 test('refresh reuses known dimensions and queries only public-domain landscape works',async()=>{
   let measured=0;
   const fetcher=fresh;
-  const result=await collector.refreshCatalog({now,previous:previous(),fetcher,logger,dimensions:async()=>{measured++;return {width:3840,height:2160};}});
+  const result=await refreshCatalog({now,previous:previous(),fetcher,logger,dimensions:async()=>{measured++;return {width:3840,height:2160};}});
   assert.equal(measured,0);assert.equal(result.failures,0);assert.equal(feeds.normalizeCatalog(result.catalog).length,2);assert.equal(result.catalog.updatedAt.pepper,now.toISOString());
   const url=new URL(collector.metURL(now));assert.match(url.pathname,/v1.1\/search/);assert.equal(url.searchParams.get('q'),'landscape');assert.equal(url.searchParams.get('hasImages'),'true');assert.ok(Number(url.searchParams.get('offset'))<=160);
-  await collector.refreshCatalog({fetcher,logger,dimensions:async()=>{measured++;return {width:3840,height:2160};}});assert.equal(measured,2);
+  await refreshCatalog({fetcher,logger,dimensions:async()=>{measured++;return {width:3840,height:2160};}});assert.equal(measured,2);
 });
 test('failed responses preserve validated records and their last successful timestamp',async()=>{
   for(const fetcher of [async()=>{throw Error('offline');},async()=>({ok:false,status:429}),async()=>({ok:true,text:async()=>'',json:async()=>({data:[]})}),async()=>({ok:true,text:async()=>{throw Error('HTML');},json:async()=>{throw Error('JSON');}})]){
-    const result=await collector.refreshCatalog({now,previous:previous(),fetcher,logger});assert.equal(result.failures,2);assert.equal(feeds.normalizeCatalog(result.catalog).length,2);assert.equal(result.catalog.updatedAt.pepper,'2026-09-30T12:00:00Z');
+    const result=await refreshCatalog({now,previous:previous(),fetcher,logger});assert.equal(result.failures,2);assert.equal(feeds.normalizeCatalog(result.catalog).length,2);assert.equal(result.catalog.updatedAt.pepper,'2026-09-30T12:00:00Z');
   }
-  const result=await collector.refreshCatalog({previous:{version:99},fetcher:async()=>{throw Error('offline');},logger});assert.equal(feeds.normalizeCatalog(result.catalog).length,0);assert.equal(result.catalog.updatedAt.met,null);
-  const partial=await collector.refreshCatalog({previous:{version:1,records:{met:[met()]}},fetcher:fresh,logger,dimensions:async()=>{throw Error('bad JPEG');}});assert.equal(partial.failures,1);assert.equal(partial.catalog.records.met.length,1);
+  const result=await refreshCatalog({previous:{version:99},fetcher:async()=>{throw Error('offline');},logger});assert.equal(feeds.normalizeCatalog(result.catalog).length,0);assert.equal(result.catalog.updatedAt.met,null);
+  const partial=await refreshCatalog({previous:{version:1,records:{met:[met()]}},fetcher:fresh,logger,dimensions:async()=>{throw Error('bad JPEG');}});assert.equal(partial.failures,1);assert.equal(partial.catalog.records.met.length,1);
 });
 test('Met ingestion ignores invalid IDs, errors, private works, mismatched identities and unsafe originals',async()=>{
   const fetcher=async url=>({ok:true,text:async()=>html,json:async()=>{
@@ -75,7 +76,7 @@ test('Met ingestion ignores invalid IDs, errors, private works, mismatched ident
     const id=Number(url.split('/').pop());if(id===1)throw Error('broken detail');
     return {...met(),objectID:id===2?999:id,isPublicDomain:id!==3,objectName:id===4?'Sculpture':'Painting',primaryImage:id===5?null:id===6?'https://evil.example/123.jpg':met().primaryImage,objectURL:'https://www.metmuseum.org/art/collection/search/'+id};
   }});
-  const result=await collector.refreshCatalog({fetcher,logger,dimensions:async()=>({width:3000,height:2000})});assert.equal(result.catalog.records.met.length,1);assert.equal(result.catalog.records.met[0].objectID,7);
+  const result=await refreshCatalog({fetcher,logger,dimensions:async()=>({width:3000,height:2000})});assert.equal(result.catalog.records.met.length,1);assert.equal(result.catalog.records.met[0].objectID,7);
 });
 test('bundled catalog has fully validated official sources with actual image sizes',()=>{
   const catalog=require('../source/wallpapers/data/official-feeds.json');
