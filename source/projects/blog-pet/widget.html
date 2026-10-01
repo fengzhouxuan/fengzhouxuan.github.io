@@ -1,0 +1,34 @@
+<section id="pet-home" class="pet-home" aria-label="小精灵柚柚">
+    <section id="profile" class="profile" role="dialog" aria-modal="false" aria-labelledby="profile-title" hidden>
+      <div class="profile-heading"><div><span class="eyebrow">YOUR LITTLE NEIGHBOR</span><h2 id="profile-title">柚柚的小档案</h2></div><button id="profile-close" class="round-button" aria-label="关闭小档案">×</button></div>
+      <p>博客里的小精灵 · 爱好：点心与发呆</p>
+      <label for="fullness">小肚子 <span id="fullness-label"></span></label><meter id="fullness" min="0" max="100" value="65">65</meter>
+      <label for="affection">亲密度 <span id="affection-label"></span></label><meter id="affection" min="0" max="100" value="35">35</meter>
+      <div class="wardrobe-heading">柚柚的衣橱 <span>四季都有小心情</span></div>
+      <div id="outfit-options" class="outfit-options" role="group" aria-label="选择柚柚的衣服"></div>
+      <label class="auto-outfit"><input id="auto-outfit" type="checkbox" checked> 自动换装 <span>每 30 秒</span></label>
+      <button id="stretch" class="stretch-button" type="button">一起伸个懒腰</button>
+      <p class="position-note">拖动名字或人物，换个角落。<button id="reset-position" type="button">回到右下角</button></p>
+      <p id="memory-note" class="memory-note">她会在这个浏览器里记住你。</p>
+    </section>
+    <p id="bubble" class="speech" aria-hidden="true" data-open="false"></p>
+    <p id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div id="pet-body" class="pet-body" data-mood="idle">
+      <div id="character-stage" class="character-stage">
+        <span class="sleep-mark" aria-hidden="true">z<span>z</span>Z</span>
+        <div id="particles" class="particles" aria-hidden="true"></div>
+        <button id="character" class="character-button" aria-label="柚柚：点击摸摸，拖动移动，按 Enter 打开操作" aria-controls="pet-dock" aria-expanded="false">
+          <span class="character-motion" aria-hidden="true"><span id="character-sprite" class="character-sprite"></span><span id="outfit-ghost" class="outfit-ghost"></span><canvas id="motion-canvas" class="motion-canvas" width="208" height="208"></canvas></span>
+        </button>
+      </div>
+    </div>
+    <div id="pet-dock" class="pet-dock" data-open="false" inert aria-hidden="true">
+      <div class="pet-heading"><span id="drag-handle" role="button" tabindex="0" aria-label="移动柚柚：拖动或按方向键，Home 回到右下角"><i class="status-dot"></i> 柚柚 <small id="pet-status">正在陪你</small></span><div class="pet-heading-actions"><button id="widget-profile-toggle" class="mini-button" aria-label="打开柚柚的小档案" aria-expanded="false" aria-controls="profile"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4h10a1 1 0 0 1 1 1v12H4V5a1 1 0 0 1 1-1Z M7 4V2h6v2 M7 9h6 M7 12h6"/></svg></button><button id="minimize" class="mini-button" aria-label="收起柚柚"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10"/></svg></button></div></div>
+      <div class="pet-controls" role="group" aria-label="和柚柚互动">
+        <button id="pet" aria-label="摸摸柚柚"><span aria-hidden="true">♡</span> 摸摸</button><button id="feed"><span aria-hidden="true">♧</span> 点心</button><button id="sleep" aria-pressed="false"><span aria-hidden="true">☾</span> <span id="sleep-label">睡觉</span></button>
+      </div>
+      <div class="outfit-bar"><span id="outfit-name">森系日常</span><button id="next-outfit" type="button" aria-label="给柚柚换一套衣服"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 5a2 2 0 1 1 3 1.7L10 8v2m0 0 7 5c1 .7.5 2-1 2H4c-1.5 0-2-1.3-1-2Z"/></svg> 换装</button></div>
+    </div>
+    <button id="compact" class="avatar-button" aria-label="打开柚柚：点一下展开互动" hidden><span class="avatar-crop" aria-hidden="true"><span class="avatar-sprite"></span></span><span class="avatar-dot" aria-hidden="true"></span></button>
+    <button id="restore" class="avatar-button" aria-label="叫柚柚回来" hidden><span class="avatar-crop" aria-hidden="true"><span class="avatar-sprite"></span></span><span class="avatar-dot" aria-hidden="true"></span></button>
+  </section>

@@ -1,0 +1,124 @@
+:host{
+  all:initial;
+  position:fixed;left:0;top:0;width:0;height:0;overflow:visible;z-index:45;pointer-events:none;
+  color-scheme:light;
+  --paper:#fffdf6;--ink:#394637;--muted:#697260;--line:#dedfd1;--green:#617956;--soft:#e8ecdf;--shadow:#35433316;
+  color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+:host(.night){color-scheme:dark;--paper:#303a31;--ink:#e2e4d6;--muted:#a0aa99;--line:#465045;--green:#bacba7;--soft:#404c3e;--shadow:#00000030}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid #b69358;outline-offset:4px}
+svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.sr-only{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap;pointer-events:none}
+.pet-home{position:fixed;width:112px;height:112px;pointer-events:none}
+.pet-home[data-compact=true],.pet-home[data-minimized=true]{width:56px;height:56px}
+.character-stage{position:relative;width:112px;height:112px}
+.character-stage:after{content:"";position:absolute;left:35px;bottom:3px;width:44px;height:5px;background:#66725a;opacity:.14;border-radius:50%;pointer-events:none}
+.character-button{position:relative;display:block;width:112px;height:112px;padding:4px;border:0;background:none;pointer-events:auto;touch-action:none;cursor:grab;border-radius:30px}
+.character-motion{display:block;position:relative;width:104px;height:104px;transform-origin:50% 94%;animation:companion-idle 4.8s ease-in-out infinite}
+.character-sprite,.outfit-ghost{display:block;width:104px;height:104px;background-image:var(--outfit-sprite);background-size:200% 200%;background-repeat:no-repeat;background-position:0 0}
+.outfit-ghost{position:absolute;inset:0;opacity:0;pointer-events:none}
+.motion-canvas{display:none;position:absolute;inset:0;width:104px;height:104px;pointer-events:none}
+.pet-body[data-renderer=canvas] .motion-canvas{display:block}
+.pet-body[data-renderer=canvas] .character-sprite,.pet-body[data-renderer=canvas] .outfit-ghost{visibility:hidden;animation:none}
+.pet-body[data-mood=happy] .character-sprite{background-position:100% 0}
+.pet-body[data-mood=happy] .character-motion{animation:companion-happy 900ms cubic-bezier(.22,1,.36,1) both}
+.pet-body[data-mood=eating] .character-sprite{background-position:0 100%}
+.pet-body[data-mood=eating] .character-motion{animation:companion-snack 1s ease-in-out 2}
+.pet-body[data-mood=sleeping] .character-sprite{background-position:100% 100%}
+.pet-body[data-mood=sleeping] .character-motion{animation:companion-nap 5s ease-in-out infinite}
+.pet-body[data-blinking=true][data-mood=idle] .character-sprite,.pet-body[data-cuddling=true] .character-sprite{background-image:var(--blink-sprite);background-position:var(--blink-position,0 0)}
+.pet-body[data-changing=true] .outfit-ghost{animation:outfit-away 360ms ease-out both}
+.pet-body[data-changing=true] .character-sprite{animation:outfit-arrive 360ms ease-out both}
+.pet-body[data-renderer=canvas] .character-motion{animation:none;transform-origin:50% 96.15%}
+.pet-home.is-dragging .character-button,.pet-home.is-dragging #drag-handle{cursor:grabbing}
+.pet-home.is-dragging .character-motion{animation:none;transform:rotate(-3deg) scale(1.025)!important}
+.sleep-mark{display:none;position:absolute;top:5px;right:6px;color:var(--green);font-family:Georgia,serif;letter-spacing:2px;font-size:12px;animation:float 3s ease-in-out infinite}
+.sleep-mark span{font-size:9px}
+.pet-body[data-mood=sleeping] .sleep-mark{display:block}
+.particles{position:absolute;inset:0;pointer-events:none}
+.heart{position:absolute;top:25px;left:50%;font-size:15px;color:#bc897e;animation:heart 1.4s ease-out forwards}
+
+/* Fixed overlays never change the character's anchor or saved position. */
+.pet-dock,.speech{position:fixed;border:1px solid var(--line);background:var(--paper);box-shadow:0 8px 24px var(--shadow);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(5px) scale(.985);transition:opacity 180ms ease,transform 220ms cubic-bezier(.22,1,.36,1),visibility 180ms}
+.pet-dock[data-open=true],.speech[data-open=true]{opacity:1;visibility:visible;transform:none}
+.pet-dock{width:min(224px,calc(100vw - 24px));padding:9px 10px 7px;border-radius:17px;z-index:2}
+.pet-dock[data-open=true]{pointer-events:auto}
+.pet-heading{display:flex;align-items:center;justify-content:space-between;height:30px;font-size:11px;margin-bottom:3px}
+#drag-handle{padding:5px 2px;cursor:grab;touch-action:none;user-select:none;white-space:nowrap}
+.status-dot{display:inline-block;width:5px;height:5px;margin-right:5px;border-radius:50%;background:#879b6d}
+.pet-heading small{display:inline-block;margin-left:7px;font-size:9px;color:var(--muted);font-weight:400}
+.pet-heading-actions{display:flex;align-items:center}
+.mini-button{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;background:transparent;color:var(--muted);border-radius:9px}
+.mini-button:hover{background:var(--soft);color:var(--ink)}
+.pet-controls{display:flex;gap:4px}
+.pet-controls button{flex:1;min-height:36px;padding:7px 4px;border:0;background:var(--soft);border-radius:10px;font-size:11px;white-space:nowrap;transition:background 150ms,transform 150ms}
+.pet-controls button:hover{background:var(--line)}
+.pet-controls button:active{transform:scale(.95)}
+.pet-controls button[aria-disabled=true]{opacity:.5;cursor:default}
+.pet-controls button span:first-child{font-size:13px;margin-right:2px;color:var(--green)}
+.pet-controls button[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--green)}
+.outfit-bar{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 0;font-size:9px;color:var(--muted)}
+.outfit-bar button{display:flex;align-items:center;gap:4px;min-height:28px;padding:3px 1px;border:0;background:transparent;color:var(--green);font-size:10px}
+.outfit-bar svg{width:14px;height:14px}
+.outfit-bar button[aria-disabled=true]{opacity:.5;cursor:wait}
+.speech{width:min(190px,calc(100vw - 24px));margin:0;padding:10px 14px;border-radius:15px;font-size:11px;line-height:1.7;text-align:center;z-index:3}
+.speech:after{content:"";position:absolute;width:8px;height:8px;bottom:-5px;left:calc(50% - 4px);background:var(--paper);border-bottom:1px solid var(--line);border-right:1px solid var(--line);transform:rotate(45deg)}
+.speech[data-side=below]:after{bottom:auto;top:-5px;transform:rotate(225deg)}
+.avatar-button{position:relative;display:grid;place-items:center;width:56px;height:56px;padding:4px;border:1px solid var(--line);border-radius:50%;background:var(--paper);box-shadow:0 3px 14px var(--shadow);pointer-events:auto;touch-action:none;transition:transform 180ms}
+.avatar-button:hover{transform:translateY(-2px)}
+.avatar-button:active{transform:scale(.94)}
+.avatar-crop{position:relative;display:block;width:46px;height:46px;overflow:hidden;border-radius:50%;background:var(--soft)}
+.avatar-sprite{position:absolute;width:92px;height:92px;left:-23px;top:-2px;background-image:var(--outfit-sprite);background-size:200% 200%;background-position:0 0;background-repeat:no-repeat}
+.avatar-dot{position:absolute;right:2px;bottom:3px;width:9px;height:9px;border:2px solid var(--paper);border-radius:50%;background:#8aa276}
+.profile{position:fixed;width:min(306px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:21px;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:0 12px 40px var(--shadow);pointer-events:auto;z-index:4;animation:panel-arrive 180ms ease-out}
+.profile-heading{display:flex;justify-content:space-between;align-items:center;gap:5px}
+.eyebrow{font-size:8px;letter-spacing:1.8px;color:var(--green);font-weight:650}
+.profile h2{font-family:"Songti SC",serif;font-size:22px;font-weight:500;margin:8px 0 0}
+.round-button{display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid var(--line);background:transparent;border-radius:50%;font-size:20px}
+.round-button:hover{background:var(--soft)}
+.profile>p{font-size:11px;color:var(--muted);line-height:1.8;margin:15px 0}
+.profile label{display:flex;justify-content:space-between;font-size:11px;margin-top:13px}
+.profile label span{color:var(--muted)}
+meter{display:block;width:100%;height:12px;appearance:none;margin-top:5px}
+meter::-webkit-meter-bar{background:var(--soft);border:0;border-radius:10px}
+meter::-webkit-meter-optimum-value{background:#a2b28c;border-radius:10px}
+meter::-moz-meter-bar{background:#a2b28c;border-radius:10px}
+.wardrobe-heading{display:flex;justify-content:space-between;font-size:11px;margin:21px 0 10px}
+.wardrobe-heading span{font-size:9px;color:var(--muted)}
+.outfit-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.outfit-option{padding:6px 0 8px;border:1px solid var(--line);border-radius:10px;background:transparent;font-size:9px;color:var(--muted);transition:background 150ms}
+.outfit-option[aria-pressed=true]{background:var(--soft);border-color:var(--green);color:var(--ink)}
+.outfit-option:hover{background:var(--soft)}
+.outfit-option[aria-disabled=true]{cursor:wait;opacity:.6}
+.outfit-preview{display:block;width:48px;height:48px;background-size:200% 200%;background-position:0 0;background-repeat:no-repeat;margin:0 auto 5px}
+.profile .auto-outfit{justify-content:flex-start;align-items:center;gap:7px;min-height:36px;margin-top:8px;cursor:pointer}
+.auto-outfit input{accent-color:var(--green);margin:0;width:15px;height:15px}
+.auto-outfit span{margin-left:auto;font-size:9px}
+.stretch-button{width:100%;min-height:36px;margin-top:6px;border:0;border-radius:10px;background:var(--soft);font-size:11px}
+.stretch-button:hover{background:var(--line)}
+.position-note{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.position-note button{min-height:36px;padding:4px 0;border:0;background:transparent;color:var(--green);font-size:10px;white-space:nowrap}
+.profile .memory-note{margin-bottom:0;border-top:1px solid var(--line);padding-top:12px}
+@keyframes companion-idle{0%,100%{transform:rotate(var(--look-tilt,0deg))}50%{transform:translateY(-1.5px) rotate(calc(var(--look-tilt,0deg) + .8deg)) scaleY(1.012)}}
+@keyframes companion-happy{0%{transform:scale(.97)}30%{transform:translateY(-3px) rotate(-3deg) scale(1.025)}65%{transform:translateY(-1px) rotate(2deg)}100%{transform:rotate(0deg)}}
+@keyframes companion-snack{50%{transform:rotate(1.5deg) translateY(1px)}}
+@keyframes companion-nap{50%{transform:scale(1.012)}}
+@keyframes outfit-away{from{opacity:1}to{opacity:0}}
+@keyframes outfit-arrive{from{opacity:0;filter:blur(1px)}to{opacity:1;filter:none}}
+@keyframes panel-arrive{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes float{50%{transform:translateY(-7px);opacity:.5}}
+@keyframes heart{to{transform:translate(var(--drift),-60px) rotate(12deg);opacity:0}}
+@media(max-width:600px){
+  .pet-dock{width:min(236px,calc(100vw - 24px));padding:10px}
+  .mini-button{width:36px;height:36px}
+  .pet-heading{height:36px}
+  .pet-controls button{min-height:44px}
+  .outfit-bar button{min-height:36px}
+  .round-button{width:44px;height:44px}
+  .profile .auto-outfit,.position-note button,.stretch-button{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+.pet-home[data-paused=true] *,.pet-home[data-paused=true] *:before,.pet-home[data-paused=true] *:after{animation-play-state:paused!important}
