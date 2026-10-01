@@ -166,3 +166,14 @@ test('a bounded run resumes automatically from cached previews and rejects inval
   const paused=await buildPreviews({...options,maxNew:0,previous:second.manifest});assert.equal(paused.reused,2);assert.equal(paused.created,0);
   assert.equal((await buildPreviews({...options,items:null,maxNew:0})).created,0);
 });
+
+test('Agundur previews retain the individual share-alike license and clean only managed files',async t=>{
+  const outputDir=await directory(t),bytes=await sharp({create:{width:3840,height:2160,channels:3,background:'#6047ad'}}).png().toBuffer();
+  const [image]=repositories.normalizeRepository([{path:'cyborg-tiger-kde-plasma-4k.png',title:'Cyborg Tiger',description:'A cybernetic tiger in a neon cyberpunk city.',revision:revision(bytes),width:3840,height:2160,license:'CC BY-SA 4.0',licenseUrl:repositories.sources.agundur.licenses['CC BY-SA 4.0']}],'agundur');
+  const first=await buildPreviews({items:[image],outputDir,fetcher:async url=>{assert.equal(url,image.download);return new Response(bytes);},logger,now});
+  assert.equal(first.created,1);assert.equal(first.manifest.images[image.id].width,1280);assert.equal(first.manifest.images[image.id].height,720);assert.equal(image.license,'CC BY-SA 4.0');
+  const filename=previews.filenameFor(image);assert.match(filename,/^agundur-[a-f0-9]{40}-v1\.webp$/);assert.equal(previews.previewFor(image,first.manifest),'./previews/'+filename);
+  const keep=path.join(outputDir,'agundur-personal.webp');await fs.writeFile(keep,'keep');
+  const cached=await buildPreviews({items:[image],previous:first.manifest,outputDir,fetcher:()=>assert.fail('cached preview should not fetch'),logger,now});assert.equal(cached.reused,1);
+  await buildPreviews({items:[],previous:cached.manifest,outputDir,logger,now});await assert.rejects(fs.readFile(path.join(outputDir,filename)),/ENOENT/);assert.equal(await fs.readFile(keep,'utf8'),'keep');
+});

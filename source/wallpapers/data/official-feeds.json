@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-01T19:57:05.170Z",
+  "generatedAt": "2026-10-01T20:33:39.877Z",
   "updatedAt": {
     "pepper": "2026-10-01T17:25:24.420Z",
     "met": "2026-10-01T15:53:11.358Z",
@@ -9,7 +9,8 @@
     "midjourney": "2026-10-01T15:53:11.358Z",
     "morevna": "2026-10-01T18:15:10.624Z",
     "ayomi": "2026-10-01T19:20:08.634Z",
-    "opengameart": "2026-10-01T19:57:05.170Z"
+    "opengameart": "2026-10-01T19:57:05.170Z",
+    "agundur": "2026-10-01T20:33:39.877Z"
   },
   "records": {
     "pepper": [
@@ -8491,6 +8492,228 @@
         "license": "CC0",
         "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
         "copyrightNotice": ""
+      }
+    ],
+    "agundur": [
+      {
+        "path": "35-years-linux-4k.png",
+        "revision": "b440e478e43e5529792c38bd54fb3d1103894a05",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "35 Years of Linux",
+        "description": "Tux in a party hat sitting beside a birthday cake with 7 candles and a \"Kernel\" cake topper, a freshly opened gift box and a Tux mug nearby, dark minimalist studio scene with Tux-print balloons — celebrating Linux's 35th birthday. `agundur.de` watermark in Poppins, top right."
+      },
+      {
+        "path": "anime-tux-4k.png",
+        "revision": "93b139385defd65f964943697738f7da0edc4e8a",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Anime Tux",
+        "description": "Tux reimagined as an anime sorcerer on a Tokyo rooftop at dusk, glowing purple cursed-energy aura, city skyline in the background."
+      },
+      {
+        "path": "bonsai-tree-4k.png",
+        "revision": "c67fda83a7172be88a7d72f4032059840d073497",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Bonsai Tree",
+        "description": "A minimalist ink-style bonsai tree on a warm cream background — the [BonsaiPress](https://www.agundur.de) brand wallpaper."
+      },
+      {
+        "path": "cat-gardener-4k.png",
+        "revision": "6f780a7626c8ea09b21f147547fd455053de428c",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Cat Gardener",
+        "description": "A cat in tiny denim overalls, tending a \"Catnip\" patch in a garden bed."
+      },
+      {
+        "path": "cyborg-tiger-kde-plasma-4k.png",
+        "revision": "e47999d2ed690abb3d467699448f44c7f2b78dd6",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Cyborg Tiger — KDE Plasma",
+        "description": "A cybernetic tiger prowling a neon cyberpunk city at night, with a \"KDE Plasma\" title treatment. Originally published on the [KDE Store](https://store.kde.org/) by Agundur."
+      },
+      {
+        "path": "der-pfad-des-pinguins-4k.png",
+        "revision": "441373b68764cc41d0ed1687fb3a50286efbaaad",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Der Pfad des Pinguins",
+        "description": "A samurai woman at blue-hour sunset on a cherry-blossom hillside overlooking Mt. Fuji, katana over her shoulder, a Tux tattoo on her bare shoulder and \"企鵝之道\" (\"Der Pfad des Pinguins\" / \"The Way of the Penguin\") embroidered on her kimono. `agundur.de` watermark in Poppins, top right."
+      },
+      {
+        "path": "excalitux-4k.png",
+        "revision": "c00f79c85ece79c3871676ad9992c796d9a30f70",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Excalitux",
+        "description": "A monumental Tux carved as a dark-stone monolith beside a calm mist-covered lake at blue hour, a glowing KDE Plasma gear emblem set into its chest — a nod to the Lady of the Lake/Excalibur legend. `agundur.de` watermark in Cinzel, top right."
+      },
+      {
+        "path": "floating-islands-4k.png",
+        "revision": "392675936359797ae697aa41103e75ad1363d19b",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Floating Islands",
+        "description": "A futuristic hex-crystalline city on an island drifting high above the clouds, waterfalls pouring off its edges, linked by glowing lines to smaller islands in the distance."
+      },
+      {
+        "path": "giordano-bruno-4k.png",
+        "revision": "2189013f1c730e3f0f128c06c49430b1bb7c4af7",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Giordano Bruno",
+        "description": "A dramatic depiction of Giordano Bruno at the stake in 1600, gazing at Saturn and the stars — a nod to the cosmological ideas that led to his condemnation."
+      },
+      {
+        "path": "giordano-bruno-ii-4k.png",
+        "revision": "a62beb45279252eee4f4290102a0a712d42164bf",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Giordano Bruno II",
+        "description": "Giordano Bruno stands alone on a stone balcony overlooking a fog-veiled Renaissance city at night, a book resting on the balustrade, gazing up at the Milky Way arching over the skyline. `agundur.de` watermark in Cormorant Garamond, top right."
+      },
+      {
+        "path": "honeycomb-nebula-kde-plasma-4k.png",
+        "revision": "45a9dc0b201bdead5189de280fb4b89496a55aaf",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Honeycomb Nebula — KDE Plasma",
+        "description": "A hexagon-patterned cosmic nebula in purple and amber, with a \"KDE Plasma\" title treatment — companion artwork for the [KHoneycomb](https://github.com/Agundur-KDE/KHoneycomb) KDE Plasma widget."
+      },
+      {
+        "path": "kde-dojo-4k.png",
+        "revision": "0fb031316619b8e62f9047db745d0bc09a228f02",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "KDE Dojo",
+        "description": "Tux in a black karate gi, mid-stance in a traditional Japanese dojo, with a \"KDE\" sign above the entrance and Chinese calligraphy scrolls reading \"free software\" (自由軟體) and \"open collaboration\" (開放協作) on the walls."
+      },
+      {
+        "path": "kde-neon-rain-4k.png",
+        "revision": "6bca76db5cd1e0de5c46aa6824b919114cae744c",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "KDE Neon Rain",
+        "description": "A rain-slicked cyberpunk street at night, towering neon-lit skyscrapers and a glowing blue hexagon emblem echoing the KDE Plasma icon shape."
+      },
+      {
+        "path": "kde-universe-4k.png",
+        "revision": "a7296165f11bed55d4309fe82f4fe24ba55c6efb",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "KDE Universe",
+        "description": "A blue-glowing hex-patterned planet and crescent moon rising over a mountain lake at blue hour, milky-way galaxy arm overhead, the KDE Plasma logo and \"Your Desktop Your Universe\" tagline reflected on the water. `agundur.de` watermark in Poppins, top right."
+      },
+      {
+        "path": "lava-tux-kde-plasma-4k.png",
+        "revision": "0bd230a89f970aa3a3efe7243e4a9ab039cb6065",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Lava Tux — KDE",
+        "description": "Tux planting a \"K KDE\" flag atop a hexagon-tiled volcanic outcrop, lava flowing between the tiles, a ruined sci-fi skyline and erupting volcanoes in the distance."
+      },
+      {
+        "path": "linux-gaming-4k.png",
+        "revision": "51f45811a4a44406419985c6e29e3fc98e181cd5",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Linux Gaming",
+        "description": "Tux, sword and shield in hand, faces down a dragon guarding a mountaintop castle at dusk — a \"Linux Gaming\" title treatment top left. `agundur.de` watermark in Poppins, bottom right."
+      },
+      {
+        "path": "mortal-tux-kde-plasma-4k.png",
+        "revision": "6e5d82c72b437b7efb2a6a85d0e75e785b23cdb5",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Mortal Tux — KDE Plasma",
+        "description": "A bronze memorial medallion bearing the Tux emblem, engraved \"KDE Plasma Tux — Frei. Offen. Stabil.\" on a weathered metal plaque."
+      },
+      {
+        "path": "steampunk-tux-4k.png",
+        "revision": "96739976b1b94541cb297db42b150dd2286d71ab",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Steampunk Tux",
+        "description": "The Linux penguin mascot reimagined in full steampunk gear — top hat, goggles, leather harness — sitting in a brass-and-copper industrial cityscape."
+      },
+      {
+        "path": "sunset-dreamer-4k.png",
+        "revision": "69697fdeeec3cdf1bb2ce529b19d4d9f0b56e049",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Sunset Dreamer",
+        "description": "A red-haired anime traveler with headphones and a Tux-charm backpack (\"I ❤ LINUX\" pin) sits on a cherry-blossom ridge at blue-hour sunset, watching shooting stars streak over Mt. Fuji and a lakeside town. `agundur.de` watermark in Poppins, top right."
+      },
+      {
+        "path": "tux-mug-4k.png",
+        "revision": "823343a41f1600de212b0d04f75e69686778ae91",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Tux Mug",
+        "description": "A cozy morning coffee moment — a photo of someone warming their hands on a mug printed with the Tux penguin, sunlight streaming through a wooden window frame."
+      },
+      {
+        "path": "wayfarer-4k.png",
+        "revision": "799512d5790920c7aebb0608b1947c329a850e6c",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Wayfarer",
+        "description": "A weary Tux hiker resting at a stone well in a foggy, moody Scottish Highlands valley, hiking poles and backpack in hand. `agundur.de` watermark in Open Sans, bottom right."
+      },
+      {
+        "path": "windows-is-broken-4k.png",
+        "revision": "de0ee2d913e9f26068c7fb9f96204218f97e112d",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3840,
+        "height": 2160,
+        "title": "Windows is Broken",
+        "description": "Tux bursting through a shattered glass pane — a pun on \"Windows\", with an `agundur.de` watermark in Cantarell (closest free match to Segoe UI) top right, mimicking a Windows desktop watermark."
       }
     ]
   },

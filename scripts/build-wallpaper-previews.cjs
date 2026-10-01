@@ -106,7 +106,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
     }
   }));
   const keep=new Set(ordered.filter(item=>manifest.images[item.id]).map(previews.filenameFor));
-  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney)-[a-f0-9]{40}|opengameart-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
+  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur)-[a-f0-9]{40}|opengameart-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   const authorDir=path.join(outputDir,'ayomi');
   let authorFiles;try{authorFiles=await fs.readdir(authorDir,{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;authorFiles=[];}
   for(const filename of authorFiles)if(/\.(png|jpe?g|webp)\.\d+\.(png|jpe?g|webp)$/.test(filename)&&!keep.has('ayomi/'+filename))await fs.unlink(path.join(authorDir,filename));

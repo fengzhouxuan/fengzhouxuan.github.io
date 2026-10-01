@@ -7,6 +7,11 @@ const paths={librepixels:'wallpapers/[anime,nature]_librepixels_beautifulSkyAnim
 const record=provider=>({path:paths[provider],revision:'a'.repeat(40),width:2688,height:1536,license:repositories.sources[provider].license,licenseUrl:repositories.sources[provider].licenseUrl});
 const logger={log(){},warn(){}};
 const now=new Date('2026-10-01T12:00:00Z');
+const agundurWork=(path='sunset-dreamer-4k.png',license='CC BY 4.0')=>({path,title:'Sunset Dreamer',description:'A red-haired anime traveler watches shooting stars over a lakeside town.',revision:'c'.repeat(40),width:3840,height:2160,license,licenseUrl:repositories.sources.agundur.licenses[license]});
+const agundurMarkdown=works=>'# Wallpapers\n\nBuilt by somebody else. These wallpapers are built by [Agundur](https://www.agundur.de).\n\n## Wallpapers\n\n'+works.map(work=>'### '+work.title+'\n\n'+work.description+'\n\n- File: `'+work.path+'`\n- Resolution: 3840×2160\n- License: ['+(work.license==='CC BY-SA 4.0'?'CC BY-SA':work.license)+']('+work.licenseUrl+')\n').join('\n')+'\n## Usage\nAll other files remain reserved.\n';
+function agundurFetcher(works,files=works){
+  return async url=>({ok:true,json:async()=>url.includes('/contents/README.md')?{encoding:'base64',content:Buffer.from(agundurMarkdown(works)).toString('base64')}:{truncated:false,tree:files.map(work=>({type:'blob',path:work.path,sha:work.revision}))}});
+}
 function fetcherFor(provider,files=[record(provider)]){
   return async url=>({ok:true,json:async()=>{
     if(url.includes('/contents/'))return {encoding:'base64',content:Buffer.from(provider==='folium'?'The wallpapers uploaded to this repo are released under CC:BY 4.0 licence':'CC0 1.0 Universal').toString('base64')};
@@ -132,4 +137,42 @@ test('museum pagination accumulates unique approved works across successful refr
   const options={providerIds:['met'],previous,fetcher,logger,dimensions:async()=>({width:3000,height:2000})};
   const first=await collector.refreshCatalog(options);assert.deepEqual(first.catalog.records.met.map(item=>item.objectID),[1,2]);
   const second=await collector.refreshCatalog({...options,previous:first.catalog});assert.equal(second.catalog.records.met.length,2);
+});
+
+test('Agundur normalizes individual image licenses, author titles and anime scene categories',()=>{
+  const raw=agundurWork(),[item]=repositories.normalizeRepository([raw],'agundur');
+  assert.deepEqual(feeds.normalizeFeed([item.feedRecord],'agundur'),[item]);
+  assert.equal(item.title,'Sunset Dreamer');assert.equal(item.artist,'Agundur');assert.equal(item.license,'CC BY 4.0');
+  assert.ok(item.categories.includes('anime'));assert.ok(item.categories.includes('space'));assert.ok(item.categories.includes('city'));
+  assert.ok(item.tags.includes('创作方式未注明'));assert.ok(!item.tags.includes('AI 插画'));assert.match(item.copyrightNotice,/等比例/);
+  assert.deepEqual(repositories.categoriesFor('der-pfad-des-pinguins-4k.png','agundur','A samurai woman.'),['illustration','anime']);
+  const shared=agundurWork('cyborg-tiger-kde-plasma-4k.png','CC BY-SA 4.0');
+  assert.equal(repositories.normalizeRepository([shared],'agundur')[0].license,'CC BY-SA 4.0');
+  for(const mutation of [r=>r.license='MIT',r=>r.licenseUrl='https://evil.example',r=>r.title='',r=>r.title='a'.repeat(101),r=>r.description='a'.repeat(3001),r=>r.path='previews/sunset-dreamer-4k.png']){const bad={...raw};mutation(bad);assert.deepEqual(repositories.normalizeRepository([bad],'agundur'),[]);}
+  for(const path of ['new-file.png','Sunset-4k.png','../scene-4k.png','previews/scene-4k.png'])assert.equal(repositories.validPath(path,'agundur'),false);
+});
+
+test('Agundur declarations bind each exact file to its own license and reject ambiguous or changed structure',()=>{
+  const first=agundurWork(),second={...agundurWork('cyborg-tiger-kde-plasma-4k.png','CC BY-SA 4.0'),title:'Cyborg Tiger'},markdown=agundurMarkdown([first,second]);
+  assert.deepEqual(repositories.parseAgundurDeclaration(markdown),[first,second].map(({path,title,description,license,licenseUrl})=>({path,title,description,license,licenseUrl})));
+  assert.equal(repositories.parseAgundurDeclaration(null),null);assert.equal(repositories.parseAgundurDeclaration('x'.repeat(100001)),null);
+  assert.equal(repositories.parseAgundurDeclaration(markdown.replace('built by [Agundur]','built by [Other]')),null);
+  assert.equal(repositories.parseAgundurDeclaration(markdown.replace('## Wallpapers','## Files')),null);
+  assert.equal(repositories.parseAgundurDeclaration(agundurMarkdown([])),null);
+  assert.equal(repositories.parseAgundurDeclaration(agundurMarkdown([first,first])),null);
+  assert.equal(repositories.parseAgundurDeclaration(markdown.replace('- File: `sunset-dreamer-4k.png`','- File: `a-4k.png`\n- File: `b-4k.png`')),null);
+  for(const change of [s=>s.replace('- License: [CC BY 4.0]','- License: [MIT]'),s=>s.replace('https://creativecommons.org/licenses/by/4.0/','https://evil.example'),s=>s.replace('- License: [CC BY 4.0]','Other: [CC BY 4.0]'),s=>s.replace('sunset-dreamer-4k.png','previews/sunset-dreamer-4k.png'),s=>s.replace('### Sunset Dreamer','### '+'a'.repeat(101))])assert.equal(repositories.parseAgundurDeclaration(change(markdown)).length,1);
+});
+
+test('Agundur synchronization only collects individually licensed originals, retaining unchanged dimensions',async()=>{
+  const first=agundurWork(),second={...agundurWork('cyborg-tiger-kde-plasma-4k.png','CC BY-SA 4.0'),revision:'d'.repeat(40)},unlicensed={...agundurWork('unlicensed-4k.png'),revision:'e'.repeat(40)};
+  const files=await collector.repositoryFiles('agundur',agundurFetcher([first,second],[first,second,unlicensed,{path:'previews/preview.jpg',revision:'f'.repeat(40)}]));
+  assert.equal(files.length,2);assert.equal(files[1].license,'CC BY-SA 4.0');
+  let measured=0;const options={providerIds:['agundur'],logger,now,dimensions:async()=>{measured++;return {width:3840,height:2160};}};
+  const initial=await collector.refreshCatalog({...options,fetcher:agundurFetcher([first,second])});assert.equal(initial.failures,0);assert.equal(measured,2);
+  const updated=await collector.refreshCatalog({...options,previous:initial.catalog,fetcher:agundurFetcher([{...first,title:'New Title'}])});
+  assert.equal(measured,2);assert.equal(updated.catalog.records.agundur.length,1);assert.equal(updated.catalog.records.agundur[0].title,'New Title');
+  const withdrawn=await collector.refreshCatalog({...options,previous:initial.catalog,fetcher:agundurFetcher([{...first,license:'All rights reserved',licenseUrl:'https://example.com/'}])});assert.equal(withdrawn.failures,0);assert.deepEqual(withdrawn.catalog.records.agundur,[]);
+  const offline=await collector.refreshCatalog({...options,previous:initial.catalog,fetcher:async()=>{throw Error('offline');}});assert.equal(offline.failures,1);assert.deepEqual(offline.catalog.records.agundur,initial.catalog.records.agundur);
+  const malformed=await collector.refreshCatalog({...options,previous:initial.catalog,fetcher:async()=>({ok:true,json:async()=>({encoding:'base64',content:Buffer.from('All rights reserved').toString('base64')})})});assert.equal(malformed.failures,1);assert.deepEqual(malformed.catalog.records.agundur,initial.catalog.records.agundur);
 });

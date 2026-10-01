@@ -81,14 +81,16 @@ async function repositoryFiles(provider,fetcher){
     throw Error('仓库目录未能完整读取');
   }
   const base='https://api.github.com/repos/'+source.repo;
-  const licenseFile=provider==='folium'?'README.md':'LICENSE';
+  const licenseFile=['folium','agundur'].includes(provider)?'README.md':'LICENSE';
   const license=await (await request(fetcher,base+'/contents/'+licenseFile+'?ref='+source.ref)).json();
   if(license.encoding!=='base64'||typeof license.content!=='string')throw Error('无法核对仓库图片许可');
   const declaration=Buffer.from(license.content,'base64').toString('utf8');
-  if(provider==='folium'?!/wallpapers.*released under CC:BY 4\.0/i.test(declaration):!declaration.includes('CC0 1.0 Universal'))throw Error('仓库的图片许可声明已变化');
+  const declared=provider==='agundur'?repositories.parseAgundurDeclaration(declaration):null;
+  if(provider==='agundur'?declared===null:provider==='folium'?!/wallpapers.*released under CC:BY 4\.0/i.test(declaration):!declaration.includes('CC0 1.0 Universal'))throw Error('仓库的图片许可声明已变化');
   const tree=await (await request(fetcher,base+'/git/trees/'+source.ref+'?recursive=1')).json();
   if(tree.truncated||!Array.isArray(tree.tree))throw Error('仓库目录未能完整读取');
-  return tree.tree.filter(entry=>entry.type==='blob').map(entry=>({path:entry.path,revision:entry.sha}));
+  const approved=provider==='agundur'?new Map(declared.map(record=>[record.path,record])):null;
+  return tree.tree.filter(entry=>entry.type==='blob'&&(!approved||approved.has(entry.path))).map(entry=>({path:entry.path,revision:entry.sha,...(approved?.get(entry.path)||{})}));
 }
 
 async function collectRepository(provider,{fetcher,dimensions,old,logger}){
@@ -107,7 +109,7 @@ async function collectRepository(provider,{fetcher,dimensions,old,logger}){
           try{size=await dimensions(fetcher,urls.download);}
           catch(error){if(!urls.fallbackImage)throw error;size=await dimensions(fetcher,urls.fallbackImage);}
         }
-        records[index]={...file,...size,license:source.license,licenseUrl:source.licenseUrl};
+        records[index]={...file,...size,license:file.license||source.license,licenseUrl:file.licenseUrl||source.licenseUrl};
       }catch(e){logger.warn('跳过暂时无法读取的仓库壁纸：'+file.path);}
     }
   }));
