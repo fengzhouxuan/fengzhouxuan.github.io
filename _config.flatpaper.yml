@@ -404,3 +404,4 @@ inject:
     # - <script src="/js/xxx.js"></script>
   bottom:
     # - <script src="/js/xxx.js" defer></script>
+    - <script src="/projects/blog-pet/widget.js" defer></script>

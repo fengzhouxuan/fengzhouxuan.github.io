@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>柚柚 · 动作小剧场</title>
+  <link rel="stylesheet" href="motion-preview.css">
+  <script defer src="core.js"></script><script defer src="motion.js"></script>
+  <script defer src="renderer.js"></script><script defer src="motion-preview.js"></script>
+</head>
+<body>
+  <main>
+    <a class="back" href="./">← 回到博客桌宠</a>
+    <p class="eyebrow">A LITTLE MOMENT WITH YOUYOU</p>
+    <h1>柚柚的动作小剧场</h1>
+    <p class="intro">抬手，停一下，再慢慢收回来。<br>四套衣服，同样的小心情。</p>
+    <section id="cast" class="cast" aria-label="四套衣服的动作演示"></section>
+    <div class="controls" role="group" aria-label="重播动作">
+      <button data-clip="pet">摸摸头</button><button data-clip="snack">吃饼干</button>
+      <button data-clip="stretch">伸懒腰</button><button data-clip="sleep">打个盹</button>
+      <button data-clip="idle">站一会儿</button>
+    </div>
+    <label class="pause"><input id="pause" type="checkbox"> 暂停，看看现在的小表情</label>
+    <p id="status" role="status" aria-live="polite">正在等柚柚换好衣服……</p>
+    <p class="note">这里可以重复看动作，不会改变博客里的饱腹度和亲密度。</p>
+  </main>
+</body>
+</html>
