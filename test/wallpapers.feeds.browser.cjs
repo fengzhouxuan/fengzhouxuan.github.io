@@ -1,0 +1,53 @@
+const assert=require('node:assert/strict');
+const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
+const catalog=require('../source/wallpapers/data/official-feeds.json');
+const feeds=require('../source/wallpapers/feeds.js');
+const items=feeds.normalizeCatalog(catalog),pepper=items.filter(item=>item.provider==='pepper'),met=items.filter(item=>item.provider==='met');
+const imageSVG='<svg xmlns="http://www.w3.org/2000/svg" width="384" height="216"><rect width="384" height="216" fill="#c0b8d8"/></svg>';
+
+(async()=>{
+  const browser=await chromium.launch({headless:true,channel:'chrome'});
+  try{
+    const context=await browser.newContext({viewport:{width:1440,height:1080},permissions:['clipboard-read','clipboard-write']});
+    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.route('https://openaccess-api.clevelandart.org/**',route=>route.abort());
+    await page.route('https://commons.wikimedia.org/w/api.php**',route=>route.abort());
+    for(const url of ['https://www.peppercarrot.com/cache/**','https://images.metmuseum.org/**','https://thumb.wikimedia.org/**','https://upload.wikimedia.org/**'])await page.route(url,route=>route.fulfill({contentType:'image/svg+xml',body:imageSVG}));
+    await page.goto('http://localhost:4011/wallpapers/');
+    await page.waitForFunction(total=>document.querySelector('#count').textContent===total+' 张壁纸',items.length+24);
+    assert.match(await page.locator('#provider option[value="pepper"]').textContent(),new RegExp(pepper.length+' 张'));
+    assert.match(await page.locator('#provider option[value="met"]').textContent(),new RegExp(met.length+' 张'));
+    await page.locator('#provider').selectOption('pepper');
+    assert.equal(await page.locator('#count').textContent(),pepper.length+' 张壁纸');
+    assert.equal(await page.locator('.card-credit').first().textContent(),'David Revoy');
+    assert.equal(await page.locator('.card-badge').evaluateAll(nodes=>nodes.every(node=>node.textContent==='CC BY 4.0')),true);
+    await page.locator('.card-open').first().click();assert.match(await page.locator('#preview-source').textContent(),/Pepper&Carrot/);
+    assert.match(await page.locator('#source-link').getAttribute('href'),/peppercarrot.com\/en\/wallpapers/);
+    assert.match(await page.locator('#art-download').getAttribute('href'),/\/wallpapers\/hi-res\//);
+    await page.locator('#copy-credit').click();assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/David Revoy · CC BY 4.0/);
+    await page.locator('#favorite').click();await page.keyboard.press('Escape');
+    await page.locator('#provider').selectOption('met');assert.equal(await page.locator('#count').textContent(),met.length+' 张壁纸');
+    await page.locator('.card-open').first().click();assert.match(await page.locator('#preview-source').textContent(),/大都会/);
+    assert.match(await page.locator('#license-link').textContent(),/CC0/);assert.match(await page.locator('#art-download').getAttribute('href'),/\/original\//);
+    await page.locator('#favorite').click();await page.keyboard.press('Escape');await page.reload();
+    await page.locator('[data-source="favorites"]').click();assert.equal(await page.locator('.card').count(),2);
+    await page.locator('.card-open').first().click();assert.match(await page.locator('#credit-text').textContent(),/David Revoy/);await page.keyboard.press('Escape');
+    await page.locator('[data-source="all"]').click();
+    await page.locator('[data-category="anime"]').click();await page.waitForFunction(()=>document.querySelector('#category-status').textContent.includes('暂时连接不上'));
+    assert.equal(await page.locator('#count').textContent(),(pepper.length+9)+' 张壁纸');
+    await page.locator('#provider').selectOption('pepper');assert.equal(await page.locator('#count').textContent(),pepper.length+' 张壁纸');
+    await page.locator('#orientation').selectOption('portrait');assert.equal(await page.locator('#count').textContent(),pepper.filter(item=>item.height>item.width).length+' 张壁纸');
+    await page.locator('#empty-reset').click();assert.equal(await page.locator('#provider').inputValue(),'');
+    await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.locator('#provider').selectOption('pepper');await page.locator('#collection').scrollIntoViewIfNeeded();
+    await page.screenshot({path:'test-results/wallpaper-sources-mobile.png'});
+    await page.route('**/wallpapers/data/official-feeds.json',route=>route.abort());await page.reload();
+    await page.locator('#provider').selectOption('met');assert.equal(await page.locator('#count').textContent(),met.length+' 张壁纸');
+    await page.locator('[data-source="favorites"]').click();assert.equal(await page.locator('.card').count(),2);
+    await page.route(pepper[0].image,route=>route.abort());await page.reload();await page.locator('#provider').selectOption('pepper');
+    await page.waitForFunction(count=>document.querySelector('#count').textContent===count+' 张壁纸',pepper.length-1);
+    assert.match(await page.locator('#provider option[value="pepper"]').textContent(),new RegExp((pepper.length-1)+' 张'));
+    assert.deepEqual(errors,[]);console.log('PASS: official catalogs, per-source counts and filters, attribution, native originals, favorite restoration, category merging, orientation, mobile layout and offline cached catalog.');
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

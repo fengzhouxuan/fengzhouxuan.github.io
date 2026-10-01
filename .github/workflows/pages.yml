@@ -44,7 +44,10 @@ jobs:
       - name: Export music station
         run: node .music-station/scripts/export-site.mjs source/music
 
-      - name: Build
+      - name: Refresh open wallpaper catalogs
+        run: node scripts/refresh-wallpaper-feeds.cjs
+
+      - name: Build Hexo
         run: npm run build
 
       - name: Upload Pages artifact

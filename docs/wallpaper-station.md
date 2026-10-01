@@ -14,6 +14,9 @@
 - 二次元、风景照片、城市、星空和动物按需从 Wikimedia Commons 分类加载，每类最多请求 40 个文件；每个浏览器每天成功加载后缓存。二次元开放图片较少，不承诺热门动漫 IP 或持续每天上新。
 - Commons 仅接收逐张标注为 CC0、Public domain、CC BY 或 CC BY-SA 且符合尺寸的 JPEG/PNG/WebP。CC BY 系列需要作者和与许可版本一致的链接；待审许可、删除请求和显式成人内容标签会排除。这依赖提供方的文件元数据，未声明的内容或错误授权仍需提供方处理。
 - 开放图库失败时优先使用上次成功缓存，再使用 `source/wallpapers/data/open-images.json` 的已验证初始目录；每次打开分类仍会尝试更新，无需逐张人工维护。外部缩略图和原图仍依赖 Wikimedia 服务及用户网络。
+- 另外接入两个独立官方来源：Pepper&Carrot 的 David Revoy 场景壁纸（CC BY 4.0）和大都会艺术博物馆公开领域风景画（CC0）。初始化目录收录 44 张与 24 张，不再只依赖 Commons 的动漫插画分类。图源筛选可以查看每个来源当前可用的数量，并与内容、设备方向和搜索组合。
+- `scripts/refresh-wallpaper-feeds.cjs` 在现有 GitHub Pages 每日构建中运行，更新 `source/wallpapers/data/official-feeds.json` 后再生成页面。只输出作者、许可、尺寸及官方图片链接，不把图片加入 Git 仓库，也不需要 API 密钥。Pepper 目录缺少跨域支持，采用构建时同步；新增壁纸通过读取最多 256 KiB 的 JPEG 头部取得真实尺寸，既有文件复用已验证尺寸。Met 使用新的 `/v1.1/search` 分页接口，每天轮换前六页，每次最多 32 个作品；逐张读取详情并明确过滤 `isPublicDomain=true` 和绘画类型，再检查原图尺寸。
+- 一个来源同步失败时，另一个仍会更新；失败来源保留仓库内已验证的初始目录及上次记录时间，不把错误页或空结果覆盖到目录。CI 生成的目录随 Pages 构建产物发布，不自动提交回仓库，因此不能保证保留上一次部署新发现的文件。页面另保存浏览器缓存，目录请求失败时仍可使用。此流程要在改动发布到默认分支后才开始运行。
 
 ## 下载与来源
 
@@ -21,7 +24,7 @@
 
 外部图源仍受网络、API 和博物馆图像服务可用性影响。艺术馆不是实时上新承诺：轮换的是馆藏搜索页。源标签基于提供方的授权数据，不是独立的版权核查。
 
-Commons 作品保留标题、作者、文件页和具体许可，不统一标为 CC0。提供复制署名信息按钮，CC BY 提示署名，CC BY-SA 同时提示相同方式共享；下载入口打开未修改原图。桌面与手机的裁切只用于效果示意。
+外部作品保留标题、作者、来源页和具体许可，不统一标为 CC0。提供复制署名信息按钮，CC BY 提示署名，CC BY-SA 同时提示相同方式共享；下载入口打开未修改原图。桌面与手机的裁切只用于效果示意。
 
 ## 浏览体验
 
@@ -36,10 +39,12 @@ Commons 作品保留标题、作者、文件页和具体许可，不统一标为
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.feeds.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
+node test/wallpapers.feeds.browser.cjs
+node scripts/refresh-wallpaper-feeds.cjs
 npm run build -- --config _config.yml,_config.flatpaper.yml
 npm run server -- --config _config.yml,_config.flatpaper.yml --port 4011
 ```
@@ -51,3 +56,5 @@ npm run server -- --config _config.yml,_config.flatpaper.yml --port 4011
 来源文档：<https://openaccess-api.clevelandart.org/>；许可说明：<https://www.clevelandart.org/open-access>。
 
 Commons API：<https://www.mediawiki.org/wiki/API:Imageinfo>；跨域请求：<https://www.mediawiki.org/wiki/API:Cross-site_requests>；使用说明：<https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia>。初始目录的每张文件都有自身的文件页及许可链接。
+
+Pepper&Carrot 官方壁纸：<https://www.peppercarrot.com/en/wallpapers/index.html>；作者与 CC BY 4.0：<https://www.peppercarrot.com/en/about/index.html#license>；Met API：<https://metmuseum.github.io/>；开放获取政策：<https://www.metmuseum.org/hubs/open-access>。

@@ -109,6 +109,8 @@ select option { background:var(--paper); }
 #count { color:#6d7868;white-space:nowrap; }
 .source-status { color:#999b8c;font-size:9px; }
 .results-actions { display:flex;gap:15px;align-items:center;white-space:nowrap; }
+#provider { max-width:190px; }
+.card-credit { display:block;font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px; }
 .gallery { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start; }
 .gallery-column { min-width:0; }
 .card { display:inline-block;width:100%;margin:0 0 19px;position:relative;break-inside:avoid;background:var(--paper);border-radius:9px;overflow:hidden;border:1px solid #e4dfd1;transition:box-shadow .2s,transform .2s; }
@@ -226,7 +228,7 @@ dialog::backdrop { background:#1c2d26ae;backdrop-filter:blur(7px); }
   .orientation-label { margin-top:7px;font-size:11px; }#orientation { min-height:34px; }.filter-details { padding:8px 0 11px;gap:7px; }
   .style-chips { gap:0;width:100%;justify-content:space-between; }.style-chips button { padding:7px 10px;min-height:34px;font-size:10px; }
   .palette-chips { gap:15px;min-height:35px; }.palette-chips>span { font-size:10px;margin-right:0; }.palette-chips button { width:20px;height:20px; }
-  .results-row { margin:12px 0 15px;font-size:9px; }.results-row>div:first-child { gap:6px; }.results-actions { gap:8px; }.results-actions select { max-width:90px;font-size:9px; }.results-actions .text-btn { font-size:9px; }
+  .results-row { margin:12px 0 15px;font-size:9px;flex-wrap:wrap; }.results-row>div:first-child { gap:6px; }.results-actions { gap:8px;max-width:100%;flex-wrap:wrap; }.results-actions select { max-width:90px;font-size:9px; }.results-actions #provider { max-width:150px; }.results-actions .text-btn { font-size:9px; }
   .gallery { grid-template-columns:repeat(2,minmax(0,1fr));gap:11px; }.card { border-radius:7px;margin-bottom:12px; }.card-info { padding:10px 8px 13px; }.card-title { font-size:11px;padding-right:30px; }.card-meta { font-size:8px;gap:5px; }
   .card-badge { top:7px;left:7px;font-size:7px;padding:2px 5px; }.card-actions { right:1px;bottom:6px; }.card-favorite,.card-download { min-width:35px;min-height:30px; }
   .about-strip { flex-wrap:wrap;gap:12px;padding:22px 0; }.about-strip>span { font-size:26px; }.about-strip p { font-size:10px;max-width:calc(100% - 40px); }.about-strip small { font-size:9px; }.about-strip a { margin-left:38px;font-size:10px; }footer span:last-child { display:none; }

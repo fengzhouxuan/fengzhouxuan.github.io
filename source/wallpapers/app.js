@@ -1,9 +1,11 @@
 (function(){
   'use strict';
-  const core=window.WallpaperStation,commons=window.WallpaperCommons,$=id=>document.getElementById(id);
+  const core=window.WallpaperStation,commons=window.WallpaperCommons,feeds=window.WallpaperFeeds,$=id=>document.getElementById(id);
   const favoritesKey='rabbit-wallpapers-favorites-v1';
   const state={day:core.dayKey(),batch:0,originals:core.dailyWallpapers(),artworks:[],source:'all',orientation:'all',query:'',style:'',palette:'',sort:'recommended',limit:24,favorites:new Map(),failed:new Set(),current:null,queue:[],loading:false,view:'image',downloading:false};
   state.category='';state.commons=new Map();state.commonsLoading=new Set();state.commonsStatus=new Map();
+  state.official=[];state.provider='';
+  const catalogKey='rabbit-wallpapers-official-v1';
   let storage,toastTimer,undoAction,touchStart,fallbackPromise;
   const columnCount=()=>window.innerWidth<=600?2:window.innerWidth<=1100?3:4;
   let columns=columnCount();
@@ -26,6 +28,9 @@
           if(!Number.isFinite(date.getTime()))continue;
           const restored=core.dailyWallpapers(date,batch)[index];
           if(restored.id===item.id)state.favorites.set(item.id,restored);
+        }else if(item.feedRecord&&Object.hasOwn(feeds.providers,item.provider)){
+          const restored=feeds.normalizeFeed([item.feedRecord],item.provider)[0];
+          if(restored?.id===item.id)state.favorites.set(item.id,restored);
         }else if(/^commons-\d+$/.test(item.id)){
           const restored=commons.normalizeCommons([item.commonsRecord],item.collection)[0];
           if(restored?.id===item.id)state.favorites.set(item.id,restored);
@@ -78,7 +83,7 @@
 
   function visibleItems(){
     const originals=state.originals.slice().sort((a,b)=>((a.index*7)%24)-((b.index*7)%24));
-    const openImages=[...new Map([...state.commons.values()].flat().map(item=>[item.id,item])).values()];
+    const openImages=[...new Map([...state.official,...[...state.commons.values()].flat()].map(item=>[item.id,item])).values()];
     const items=[];
     if(state.source==='favorites')items.push(...state.favorites.values());
     else if(state.source==='all'){
@@ -88,7 +93,7 @@
         if(openImages[index])items.push(openImages[index]);
       }
     }else items.push(...originals,...state.artworks,...openImages);
-    const filtered=core.filterWallpapers(items,{source:state.source==='favorites'?'all':state.source,orientation:state.orientation,query:state.query,style:state.style,palette:state.palette,category:state.category}).filter(item=>!state.failed.has(item.id));
+    const filtered=core.filterWallpapers(items,{source:state.source==='favorites'?'all':state.source,orientation:state.orientation,query:state.query,style:state.style,palette:state.palette,category:state.category,provider:state.provider}).filter(item=>!state.failed.has(item.id));
     if(state.sort==='resolution')filtered.sort((a,b)=>b.width*b.height-a.width*a.height);
     else if(state.sort==='title')filtered.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
     return filtered;
@@ -107,9 +112,15 @@
     for(const button of $('styles').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.style===state.style));
     for(const button of $('palettes').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.palette===state.palette));
     $('orientation').value=state.orientation;$('search').value=state.query;$('sort').value=state.sort;
+    $('provider').value=state.provider;
+    const catalog=[...state.originals,...state.artworks,...state.official,...[...state.commons.values()].flat()];
+    for(const option of $('provider').options){
+      const total=new Set(catalog.filter(item=>!state.failed.has(item.id)&&(!option.value||(item.provider||item.source)===option.value)).map(item=>item.id)).size;
+      option.textContent=option.dataset.label+' · '+total+' 张';
+    }
     $('styles').hidden=state.source==='art';$('palettes').hidden=state.source==='art';
-    document.querySelector('.filter-details').hidden=state.source==='art'||state.source==='commons'||['anime','illustration','city','animals'].includes(state.category);
-    $('reset-filters').hidden=!state.category&&!state.style&&state.palette===''&&!state.query&&state.orientation==='all';
+    document.querySelector('.filter-details').hidden=state.source==='art'||state.source==='commons'||state.provider&&state.provider!=='original'||['anime','illustration','city','animals'].includes(state.category);
+    $('reset-filters').hidden=!state.provider&&!state.category&&!state.style&&state.palette===''&&!state.query&&state.orientation==='all';
     const feed=state.category==='illustration'?'anime':state.category;
     const status=state.commonsStatus.get(feed);
     $('category-status').hidden=!Object.hasOwn(commons.categories,feed);
@@ -148,12 +159,15 @@
       image.src=item.source==='original'?svgURL(item):item.image;
       image.addEventListener('load',()=>card.classList.add('loaded'),{once:true});
       image.addEventListener('error',()=>{
-        state.failed.add(item.id);card.remove();updateResults();
+        state.failed.add(item.id);card.remove();syncFilters();updateResults();
         if(item.source==='art'&&state.artworks.every(art=>state.failed.has(art.id)))$('source-status').textContent='艺术图片暂时无法加载，原创壁纸照常浏览和下载。';
       },{once:true});
       const badge=element('span','card-badge',item.source==='original'?'原创 · 4K':item.source==='commons'?item.license:'开放艺术');
       const hint=element('span','card-open-hint','查看效果 ↗');open.append(image,badge,hint);open.addEventListener('click',()=>showPreview(item));
       const info=element('div','card-info');info.append(element('span','card-title',item.title));
+      if(item.source!=='original'){
+        const credit=element('a','card-credit',item.artist);credit.href=item.pageUrl;credit.target='_blank';credit.rel='noopener noreferrer';credit.title=item.artist+' · 查看来源';info.append(credit);
+      }
       const meta=element('div','card-meta');meta.append(element('span','',item.width+' × '+item.height),element('span','',item.height>item.width?'手机':'桌面'));info.append(meta);
       const actions=element('div','card-actions');
       const favorite=element('button','card-favorite');favorite.type='button';favorite.dataset.id=item.id;favorite.dataset.title=item.title;favorite.addEventListener('click',()=>toggleFavorite(item));
@@ -209,16 +223,17 @@
     }
     state.current=item;
     $('preview-title').textContent=item.title;$('preview-artist').textContent=item.artist;$('preview-image').alt=item.title;
-    $('preview-source').textContent=item.source==='original'?'每日原创 / '+item.day:item.source==='commons'?'开放图库 / WIKIMEDIA COMMONS':'开放艺术馆 / CLEVELAND';
+    const providerName=feeds.providers[item.provider]?.name||(item.source==='commons'?'Wikimedia Commons':'克利夫兰艺术博物馆');
+    $('preview-source').textContent=item.source==='original'?'每日原创 / '+item.day:'开放图库 / '+providerName;
     const original=item.source==='original';
     $('size-label').hidden=!original;$('download').hidden=!original;$('art-download').hidden=original;
     $('download-size').value=(state.view==='phone'||state.view==='image'&&item.height>item.width)?'2160x3840':'3840x2160';
     $('download-status').textContent='';$('source-link').hidden=original;
-    if(!original){$('source-link').href=item.pageUrl;$('art-download').href=item.download;$('source-link').textContent=item.source==='commons'?'Wikimedia Commons · 查看作品与作者 ↗':'克利夫兰艺术博物馆 · 查看作品 ↗';}
+    if(!original){$('source-link').href=item.pageUrl;$('art-download').href=item.download;$('source-link').textContent=providerName+' · 查看作品与作者 ↗';}
     $('license-link').href=item.licenseUrl;
     $('license-link').textContent=item.license+' · '+(item.license.startsWith('CC BY-SA')?'署名 · 相同方式共享':item.license.startsWith('CC BY')?'使用时署名':'可自由使用')+' ↗';
-    $('credit-block').hidden=item.source!=='commons';
-    $('credit-text').textContent=item.source==='commons'?item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl:'';
+    $('credit-block').hidden=original;
+    $('credit-text').textContent=original?'':item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl;
     $('preview-tags').replaceChildren(...item.tags.filter(tag=>!['横屏','竖屏','原创'].includes(tag)).map(tag=>element('span','',tag)));
     const position=state.queue.findIndex(entry=>entry.id===item.id);
     $('preview-position').textContent=(position+1)+' / '+state.queue.length;
@@ -264,7 +279,20 @@
   }
 
   function resetFilters(){
-    state.source='all';state.category='';state.style='';state.palette='';state.query='';state.orientation='all';state.limit=24;render();
+    state.source='all';state.category='';state.provider='';state.style='';state.palette='';state.query='';state.orientation='all';state.limit=24;render();
+  }
+
+  async function refreshOfficial(){
+    try{
+      const response=await fetch('./data/official-feeds.json',{cache:'no-cache',signal:AbortSignal.timeout(10000)});
+      if(!response.ok)throw Error('图库目录暂时不可用');
+      const catalog=await response.json(),items=feeds.normalizeCatalog(catalog);
+      if(!items.length)throw Error('没有符合要求的图片');
+      state.official=items;
+      for(const item of items)state.failed.delete(item.id);
+      try{storage?.setItem(catalogKey,JSON.stringify(catalog));}catch(e){/* A full cache must not hide usable images. */}
+    }catch(e){/* Keep the last validated catalog when the static file cannot load. */}
+    finally{render();}
   }
 
   async function refreshCommons(category){
@@ -286,7 +314,7 @@
     if(document.hidden)return;
     const today=core.dayKey();if(today===state.day)return;
     state.day=today;state.batch=0;state.originals=core.dailyWallpapers();state.failed.clear();
-    updateHero();render();refreshArtwork();
+    updateHero();render();refreshArtwork();refreshOfficial();
     if(state.category)refreshCommons(state.category);
   }
 
@@ -298,7 +326,7 @@
 
   $('sources').addEventListener('click',event=>{
     const button=event.target.closest('button[data-source]');if(!button)return;
-    state.source=button.dataset.source;state.category='';state.style='';state.palette='';state.limit=24;render();
+    state.source=button.dataset.source;state.category='';state.provider='';state.style='';state.palette='';state.limit=24;render();
     if(state.source==='commons'&&!state.commons.size)refreshCommons('anime');
   });
   $('styles').addEventListener('click',event=>{
@@ -322,6 +350,10 @@
     render();$('collection').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
   });
   $('orientation').addEventListener('change',event=>{state.orientation=event.target.value;state.limit=24;render();});
+  $('provider').addEventListener('change',event=>{
+    state.provider=event.target.value;state.source='all';state.style='';state.palette='';state.limit=24;render();
+    if(state.provider==='commons')refreshCommons(state.category||'anime');
+  });
   $('sort').addEventListener('change',event=>{state.sort=event.target.value;state.limit=24;render();});
   $('search').addEventListener('input',event=>{state.query=event.target.value;state.limit=24;render();});
   $('reset-filters').addEventListener('click',resetFilters);$('empty-reset').addEventListener('click',resetFilters);
@@ -378,5 +410,6 @@
   },{passive:true});
   document.addEventListener('visibilitychange',checkDay);setInterval(checkDay,60000);
   window.addEventListener('resize',()=>{const nextColumns=columnCount();if(nextColumns!==columns){columns=nextColumns;render();}});
-  restoreFavorites();updateHero();render();refreshArtwork();
+  try{state.official=feeds.normalizeCatalog(JSON.parse(storage?.getItem(catalogKey)||'null'));}catch(e){/* Ignore malformed cached catalogs. */}
+  restoreFavorites();updateHero();render();refreshArtwork();refreshOfficial();
 })();

@@ -10,6 +10,7 @@ const snapshot=require('../source/wallpapers/data/open-images.json');
     const page=await context.newPage(),errors=[],requests=[];
     page.on('pageerror',error=>errors.push(error.message));await page.emulateMedia({reducedMotion:'reduce'});
     await page.clock.install({time:new Date('2026-10-01T12:00:00Z')});
+    await page.route('**/wallpapers/data/official-feeds.json',route=>route.fulfill({json:{version:1,records:{}}}));
     await page.route('https://openaccess-api.clevelandart.org/**',route=>route.abort());
     await page.route('https://commons.wikimedia.org/w/api.php**',route=>{
       const cat=new URL(route.request().url()).searchParams.get('gcmtitle').slice(9);requests.push(cat);

@@ -8,6 +8,7 @@ const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
   const errors=[];
   try{
     const context=await browser.newContext({viewport:{width:1440,height:1080},acceptDownloads:true});
+    await context.route('**/wallpapers/data/official-feeds.json',route=>route.fulfill({json:{version:1,records:{}}}));
     const page=await context.newPage();
     page.on('pageerror',error=>errors.push(error.message));
     await page.clock.install({time:new Date('2026-10-01T12:00:00Z')});
@@ -69,6 +70,7 @@ const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
     await context.close();
 
     const broken=await browser.newPage();
+    await broken.route('**/wallpapers/data/official-feeds.json',route=>route.fulfill({json:{version:1,records:{}}}));
     await broken.route('https://openaccess-api.clevelandart.org/**',route=>route.fulfill({json:{data:[{id:123,accession_number:'1915.534',share_license_status:'CC0',title:'Broken image',images:{web:{url:'https://openaccess-cdn.clevelandart.org/1915.534/1915.534_web.jpg'},print:{url:'https://openaccess-cdn.clevelandart.org/1915.534/1915.534_print.jpg',width:3000,height:2000}}}]}}));
     await broken.route('https://openaccess-cdn.clevelandart.org/**',route=>route.abort());
     await broken.goto('http://localhost:4011/wallpapers/');
@@ -81,6 +83,7 @@ const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
     await broken.close();
 
     const live=await browser.newPage({viewport:{width:1440,height:1080}});
+    await live.route('**/wallpapers/data/official-feeds.json',route=>route.fulfill({json:{version:1,records:{}}}));
     live.on('pageerror',error=>errors.push(error.message));
     await live.goto('http://localhost:4011/wallpapers/');
     await live.waitForFunction(()=>!document.querySelector('#source-status').textContent.includes('正在打开'),{timeout:15000});

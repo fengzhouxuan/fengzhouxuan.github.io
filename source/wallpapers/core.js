@@ -100,12 +100,13 @@
     return items;
   }
 
-  function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null,style='',palette='',category=''}={}){
+  function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null,style='',palette='',category='',provider=''}={}){
     const keyword=String(query).trim().toLocaleLowerCase();
     return items.filter(item=>(source==='all'||item.source===source)&&
       (orientation==='all'||(orientation==='landscape'?item.width>=item.height:item.height>item.width))&&
       (!favorites||favorites.has(item.id))&&
       (!category||item.categories?.includes(category))&&
+      (!provider||(item.provider||item.source)===provider)&&
       (!style||item.tags.includes(style))&&
       (palette===''||item.source==='original'&&item.palette===Number(palette))&&
       (!keyword||[item.title,item.artist,...item.tags].join(' ').toLocaleLowerCase().includes(keyword)));
