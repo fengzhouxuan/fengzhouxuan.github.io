@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="每日自动生长的原创壁纸，以及开放授权的艺术作品。挑一张，让屏幕换个心情。">
+  <title>壁纸小站 · 打个大柚子</title>
+  <link rel="stylesheet" href="./theme.css">
+  <script defer src="./core.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="paper">
+      <a class="brand" href="/">▧ <span>打个大柚子的兔子洞</span></a>
+      <nav aria-label="主导航"><a href="/#flatpaper-home-content">首页</a><a href="/rabbit-holes/">兔子洞</a><a href="/music/">音乐站</a><a href="/wallpapers/" aria-current="page">壁纸站</a></nav>
+    </header>
+    <main>
+      <section class="intro">
+        <div><p class="eyebrow">兔子洞的另一面 / WALLPAPERS</p><h1>给屏幕，<br>换个好心情。</h1><p class="description">收好一片山野，一束柔光。<br>这里每天都有新的颜色，等你偶然路过。</p><div class="intro-actions"><button id="random" class="btn">随便挑一张 <span aria-hidden="true">↗</span></button><span class="daily-note" id="daily-note"></span></div></div>
+        <div class="hero-art"><img id="hero-image" alt="今日原创壁纸"><div class="tape"></div><p><span>今日的一点颜色</span><span id="hero-date"></span></p></div>
+      </section>
+      <section class="collection" aria-labelledby="collection-title">
+        <div class="collection-heading"><div><p class="eyebrow">慢慢挑，总有一张喜欢的</p><h2 id="collection-title">壁纸收藏室 <span id="count"></span></h2></div><button id="shuffle" class="text-btn">↻ 换一组原创</button></div>
+        <div class="toolbar paper">
+          <div id="sources" class="tabs" aria-label="壁纸来源"><button data-source="all" aria-pressed="true">全部</button><button data-source="original" aria-pressed="false">每日原创</button><button data-source="art" aria-pressed="false">艺术馆</button><button data-source="favorites" aria-pressed="false">♡ 我的收藏</button></div>
+          <div class="filters"><label class="search-label"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜颜色、山野、柔光…" aria-label="搜索壁纸"></label><select id="orientation" aria-label="壁纸方向"><option value="all">所有尺寸</option><option value="landscape">电脑 · 横屏</option><option value="portrait">手机 · 竖屏</option></select></div>
+        </div>
+        <p class="source-status" id="source-status" role="status">正在打开艺术馆，原创壁纸已准备好。</p>
+        <div id="gallery" class="gallery"></div>
+        <div id="empty" class="empty paper" hidden><span aria-hidden="true">✳</span><p id="empty-text">这里还没有壁纸，换个筛选试试。</p></div>
+      </section>
+      <section class="about-strip"><span aria-hidden="true">✳</span><p>每天自己长出的壁纸。<br><small>原创作品可自由下载使用；艺术作品保留来源与 CC0 标记。</small></p><a href="/music/">挑好了？去听听音乐 ↗</a></section>
+    </main>
+    <footer><span>© 打个大柚子 · 给日常一点颜色</span><span>MADE FOR QUIET MOMENTS</span></footer>
+  </div>
+  <dialog id="preview" aria-labelledby="preview-title">
+    <div class="preview-heading"><span>一张壁纸，一点心情</span><button id="close-preview" class="icon-btn" aria-label="关闭预览">×</button></div>
+    <div class="preview-layout"><div class="preview-canvas"><img id="preview-image" alt=""><div id="lock-clock" class="lock-clock" hidden><strong>09:41</strong><span>星期四 · 好心情</span></div></div><div class="preview-info"><p class="eyebrow" id="preview-source"></p><h2 id="preview-title"></h2><p id="preview-artist"></p><p class="dimensions" id="preview-dimensions"></p><label id="size-label">下载尺寸<select id="download-size"><option value="3840x2160">电脑 · 4K / 3840 × 2160</option><option value="2560x1440">电脑 · 2K / 2560 × 1440</option><option value="2160x3840">手机 · 2160 × 3840</option><option value="1920x1080">电脑 · 1920 × 1080</option></select></label><button id="lock-toggle" class="text-btn" aria-pressed="false">预览手机锁屏</button><button id="download" class="btn">下载 PNG 壁纸 ↓</button><a id="art-download" class="btn" target="_blank" rel="noopener noreferrer" hidden>打开原图 ↗</a><button id="favorite" class="btn secondary" aria-pressed="false">♡ 收藏这张</button><div class="credits"><a id="source-link" target="_blank" rel="noopener noreferrer" hidden>查看作品来源 ↗</a><a id="license-link" href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 · 可自由使用 ↗</a><p id="download-status" role="status"></p></div></div></div>
+  </dialog>
+  <noscript><p>开启 JavaScript 即可浏览和生成每日壁纸。</p></noscript>
+</body>
+</html>

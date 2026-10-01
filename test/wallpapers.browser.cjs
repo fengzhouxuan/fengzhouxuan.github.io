@@ -1,0 +1,103 @@
+/* Browser acceptance: install Playwright or set WALLPAPER_PLAYWRIGHT. */
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
+
+(async()=>{
+  const browser=await chromium.launch({headless:true,channel:'chrome'});
+  const errors=[];
+  try{
+    const context=await browser.newContext({viewport:{width:1440,height:1080},acceptDownloads:true});
+    const page=await context.newPage();
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.clock.install({time:new Date('2026-10-01T12:00:00Z')});
+    await page.route('https://openaccess-api.clevelandart.org/**',route=>route.abort());
+    await page.goto('http://localhost:4011/wallpapers/');
+    await page.waitForFunction(()=>document.querySelectorAll('.card').length===24);
+    await page.waitForFunction(()=>document.querySelector('#source-status').textContent.includes('暂时连接不上'));
+    await page.locator('.card-image').evaluateAll(async images=>{for(const image of images)image.loading='eager';await Promise.all(images.map(image=>image.decode()));});
+    assert.equal(await page.locator('.card-image').evaluateAll(images=>images.every(image=>image.complete&&image.naturalWidth>0)),true);
+    await page.screenshot({path:'test-results/wallpaper-preview.png'});
+    const firstTitle=await page.locator('.card-title').first().textContent();
+    await page.locator('.card-favorite').first().click();
+    await page.locator('[data-source="favorites"]').click();
+    assert.equal(await page.locator('.card').count(),1);
+    await page.reload();
+    await page.locator('[data-source="favorites"]').click();
+    assert.equal(await page.locator('.card-title').first().textContent(),firstTitle);
+    await page.locator('.card-open').first().click();
+    await page.locator('#download-size').selectOption('1920x1080');
+    const downloadEvent=page.waitForEvent('download');
+    await page.locator('#download').click();
+    const download=await downloadEvent;
+    const png=await fs.readFile(await download.path());
+    assert.equal(png.subarray(1,4).toString(),'PNG');
+    assert.equal(png.readUInt32BE(16),1920);assert.equal(png.readUInt32BE(20),1080);
+    await page.locator('#download-size').selectOption('3840x2160');
+    const fourKEvent=page.waitForEvent('download');await page.locator('#download').click();
+    const fourK=await fs.readFile(await (await fourKEvent).path());
+    assert.equal(fourK.readUInt32BE(16),3840);assert.equal(fourK.readUInt32BE(20),2160);
+    await page.locator('#lock-toggle').click();
+    assert.equal(await page.locator('#lock-clock').isVisible(),true);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#preview').evaluate(node=>node.open),false);
+    await page.locator('[data-source="original"]').click();
+    await page.locator('#orientation').selectOption('portrait');
+    assert.equal(await page.locator('.card').count(),12);
+    await page.locator('#orientation').selectOption('all');
+    await page.locator('#search').fill('山野');assert.equal(await page.locator('.card').count(),6);
+    await page.locator('#search').fill('不会存在的搜索词');assert.equal(await page.locator('#empty').isVisible(),true);
+    await page.locator('#search').fill('');
+    const before=await page.locator('.card-image').first().getAttribute('src');
+    await page.locator('#shuffle').click();assert.notEqual(await page.locator('.card-image').first().getAttribute('src'),before);
+    await page.clock.setSystemTime(new Date('2026-10-01T16:01:00Z'));
+    await page.clock.runFor(60000);
+    assert.equal(await page.locator('#hero-date').textContent(),'2026.10.02');
+    await page.locator('[data-source="favorites"]').click();assert.equal(await page.locator('.card').count(),1);
+    await page.locator('[data-source="original"]').click();
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+    await page.screenshot({path:'test-results/wallpaper-mobile-preview.png'});
+    await page.locator('.card-open').first().click();
+    await page.locator('#download-size').selectOption('2160x3840');
+    const phoneEvent=page.waitForEvent('download');await page.locator('#download').click();
+    const phonePNG=await fs.readFile(await (await phoneEvent).path());
+    assert.equal(phonePNG.readUInt32BE(16),2160);assert.equal(phonePNG.readUInt32BE(20),3840);
+    assert.equal(await page.locator('#preview').evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+    assert.deepEqual(errors,[]);
+    console.log('PASS: offline gallery, persistent favorites, PNG 1080p/4K/portrait, search, orientation, shuffle, midnight rollover, desktop/mobile layout, keyboard close.');
+    await context.close();
+
+    const broken=await browser.newPage();
+    await broken.route('https://openaccess-api.clevelandart.org/**',route=>route.fulfill({json:{data:[{id:123,accession_number:'1915.534',share_license_status:'CC0',title:'Broken image',images:{web:{url:'https://openaccess-cdn.clevelandart.org/1915.534/1915.534_web.jpg'},print:{url:'https://openaccess-cdn.clevelandart.org/1915.534/1915.534_print.jpg',width:3000,height:2000}}}]}}));
+    await broken.route('https://openaccess-cdn.clevelandart.org/**',route=>route.abort());
+    await broken.goto('http://localhost:4011/wallpapers/');
+    await broken.locator('[data-source="art"]').click();
+    await broken.waitForFunction(()=>document.querySelector('#source-status').textContent.includes('艺术图片暂时无法加载'));
+    assert.equal(await broken.locator('.card').count(),0);
+    assert.equal(await broken.locator('#empty').isVisible(),true);
+    await broken.locator('[data-source="original"]').click();assert.equal(await broken.locator('.card').count(),24);
+    console.log('PASS: failed external images disappear while original gallery stays available.');
+    await broken.close();
+
+    const live=await browser.newPage({viewport:{width:1440,height:1080}});
+    live.on('pageerror',error=>errors.push(error.message));
+    await live.goto('http://localhost:4011/wallpapers/');
+    await live.waitForFunction(()=>!document.querySelector('#source-status').textContent.includes('正在打开'),{timeout:15000});
+    console.log('Live source status:',await live.locator('#source-status').textContent());
+    await live.locator('[data-source="art"]').click();
+    console.log('Live artworks:',await live.locator('.card').count());
+    if(await live.locator('.card').count()){
+      await live.locator('.card-image').first().evaluate(image=>image.decode());
+      await live.locator('.card-open').first().click();
+      assert.equal(await live.locator('#source-link').isVisible(),true);
+      assert.equal(await live.locator('#art-download').isVisible(),true);
+      assert.equal(await live.locator('#download').isVisible(),false);
+      console.log('Live image decoded; source and original-image links verified.');
+      await live.keyboard.press('Escape');
+    }
+    await live.locator('.card-image').evaluateAll(async images=>{const top=images.slice(0,6);for(const image of top)image.loading='eager';await Promise.all(top.map(image=>image.decode().catch(()=>{})));});
+    await live.screenshot({path:'test-results/wallpaper-art-preview.png'});
+    assert.deepEqual(errors,[]);
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});
