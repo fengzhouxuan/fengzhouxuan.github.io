@@ -21,6 +21,9 @@
 - Morevna 新增或修改作品最多三路并发读取原始 JPEG/PNG/WebP 头部取得真实尺寸，预览选用官方不裁切的缩小版本。只有 API 明确提供 `original_image` 时才使用该原图文件，不猜测更高清的地址。作品修改时间、媒体 ID、原图链接及展示尺寸均不变时复用已验证尺寸；修改时间不是图片内容摘要。分页不完整、画廊许可或分类变化时保留上次目录和时间；已成功完整读取的目录中缺失、缺少作者或不再满足许可/尺寸要求的图片移除。原图暂时无法读取时保留相同原图链接的已验证记录。
 - AyomiArt 作者画廊补充 AI 动漫角色插画，采用 CC BY-NC-ND 4.0。这是附带非商业与不可改作条件的共享许可，不能称为允许任意用途的开源素材。首次实际验证并收录 213 张，竖屏 196 张、横屏 17 张；长边范围 1536–2919 像素，常见尺寸为 1024×1536。该来源要求短边至少 1024、长边至少 1536，页面保留原始尺寸，不标为 4K 或人为放大。逐图绑定作者 AyomiCat、版权声明、许可、原图地址和目录中的可见图片；根目录中缺少逐图许可数据的独立图片不收录。排除已识别到的 Pikachu/Pokemon、Kanade/Beast Tamer、Arona/Blue Archive 等现成角色名称、非动漫目录和显式成人关键词。作者称作品为原创，但目录中发现了现成角色名称，因此不能将其声明直接当作全部作品已清除第三方权利的证明。这仍依赖作者声明、结构化元数据与文本筛选，不是独立的逐像素权利或内容核查。
 - Ayomi 同步使用串行请求，两次请求至少间隔 1.5 秒；每次构建最多 150 次请求、30 个目录，HTML 与原图/预览头部共用预算。未读完时将待处理目录写入同一官方目录 JSON 的 `continuation.ayomi`，下次构建继续；原图和官方预览地址、修改时间不变时复用已经验证的尺寸。遇到 HTTP 429 立即停止本轮请求，保存已验证图片及待处理目录，遵循 `Retry-After` 的冷却时间，无有效值时至少等待一小时再尝试。只有完整读取并检查了一个目录才能移除该目录旧图片；未访问的目录和暂时故障的目录保留。顶层完整分页确认已删除的目录可以移除其旧图片。全部目录读完后，下轮再重新核对顶层目录；因此不承诺每天扫描完整图库或每天有新图。初次请求因限流只得到部分图库，已保存 168 个待处理目录；源站首页作品总数不是本站收录量。
+- OpenGameArt 补充经核对的五件作者发布作品：rubberduck 的绘画风格风景包、Eon Cire 的概念场景包、donte 的水下场景、Gariot 的城市剪影、leyren 的星云。逐作品核对作者身份、CC0 标签及对应 Creative Commons 链接，只接收该作品下载字段中的正式文件。素材包授权覆盖包内文件，不将整个 OpenGameArt 网站或收藏夹视为统一 CC0。首次实际下载检查了两个包的 53 个图片文件，40 张绘画风景与 4 张幻想场景通过尺寸筛选，再加 3 张独立场景，共 47 张，横屏 46、竖屏 1。排除低分辨率图、缩略拼图、草稿、透明素材及未验证的作品。风景包作者说明它们由自己的摄影经过 GIMP 滤镜处理，概念包作者说明为手工作画；不将这批混入二次元分类。
+- `scripts/collect-opengameart.cjs` 每次构建先读取原站 `robots.txt`，串行请求并遵守当前 10 秒间隔；本次完整读取使用 11 次请求。每日重新检查这五件作品的许可与下载列表、读取原始文件，核对目录中的文件大小及实际图片格式、尺寸、方向、透明区域，保存每张原图的 SHA-256。素材包新增或替换的合格文件自动更新；不承诺全站扫描、每天新增或热门角色。作品结构或文件读取失败时保留该作品旧记录，健康作品继续同步；已成功读到的许可撤回或空文件列表移除旧记录。HTTP 429/503 停止该来源后续请求，按 `Retry-After` 保存冷却时间，缺少有效值时至少等待一小时；其他来源仍可处理。
+- OpenGameArt 原始单图按原始字节缓存到 `source/wallpapers/originals/opengameart/`，文件名包含 SHA-256；下载打开同站单图，作者作品页保留为来源入口。ZIP 仅用于构建时读取，不在用户下载流程暴露素材包。原图不加入 Git，随 Actions cache 跨构建保留并随 Hexo 发布。初次或缓存丢失时必须重新成功同步才有原图；源站故障且本地缓存缺失时，旧元数据不能恢复原文件。该来源可以补充绘画、幻想、城市和星空风格，尚不能补齐大规模动漫角色图库。
 - 一个来源同步失败时，另一个仍会更新；失败来源保留已有目录及上次记录时间。CI 通过 Actions cache 在同一分支的每日构建间保存目录，不自动提交回仓库。缓存被清理或过期时回退到仓库内的初始目录；它不是永久云端档案。页面另保存浏览器缓存，目录请求失败时仍可使用。此流程要在改动发布到默认分支后才开始运行。
 - CI 恢复缓存前保存提交中的官方图源初始目录，再按各来源最后成功更新时间选择较新的已验证目录，避免旧缓存覆盖本次新增图源。较新的空目录仍然保留，不用旧初始图片恢复上游已删除的作品。此合并行为已通过模拟缓存与断网测试，实际 Actions 执行尚待发布后验证。
 - 新增三个作者发布的壁纸仓库：LibrePixels（AI 风景、幻想和动漫风场景，CC0）、Folium Creations（3D、抽象、自然摄影，CC BY 4.0）、metaory/Midjourney（AI 赛博朋克、像素城市等，CC0）。首轮实际收录分别为 107、30、146 张；网络超时或尺寸不合格的文件不计入。每次同步先核对图片许可声明，再完整读取目录；保留作者和文件页，并检查真实 JPEG、PNG、WebP 尺寸。图库只保存元数据，GitHub 仓库原图通过 jsDelivr 访问，失败时尝试 Fastly CDN 上的同一文件；GitLab 原图通过官方文件 API 访问。首次同步以三路并发检查，之后用 Git blob 摘要判断文件是否变化；相同摘要图片去重。LibrePixels 只收录 `_librepixels_` 作者文件，并排除目前识别到的路飞和马里奥角色文件及显式成人关键词。此筛选依赖作者声明和文件命名，不能证明所有未声明的第三方权利均已清除。
@@ -53,7 +56,9 @@
 
 `scripts/build-wallpaper-previews.cjs` 在每日图源同步之后运行，将已收录仓库图片缩小为 WebP。先验证完整原图的 Git blob 摘要，避免把 CDN 旧版本误当作新文件。每次最多处理 120 张尚未缓存的图片，三路并发；未完成部分在后续构建继续。已有预览只有在文件存在、格式、尺寸与记录一致时才复用；缺失或损坏时重建。已退出图库的预览会清理。
 
-生成的 `source/wallpapers/previews/` 和 `source/wallpapers/data/previews.json` 不进入 Git，通过 Actions cache 跨构建复用，并随 Hexo 页面一起发布到 GitHub Pages。缓存丢失时自动重新生成；单张处理失败仍可浏览来源图片。浏览器不需要 API Key，也不需要人工上传。初次生成会下载原图；每张限 32 MiB、6000 万像素、25 秒请求时间，以限制构建资源消耗。
+生成的 `source/wallpapers/previews/` 和 `source/wallpapers/data/previews.json` 不进入 Git，通过 Actions cache 跨构建复用，并随 Hexo 页面一起发布到 GitHub Pages。缓存丢失时自动重新生成；仓库单张处理失败仍可浏览来源图片。浏览器不需要 API Key，也不需要人工上传。仓库初次生成会下载原图；每张限 32 MiB、6000 万像素、25 秒请求时间，以限制构建资源消耗。
+
+OpenGameArt 预览使用已经同步到本站的 CC0 原文件，不重复请求原站；先核对 SHA-256，再按相同的 1280 像素完整画面规则生成 WebP，计入每次 120 张的总预算。原图与素材包分别不超过 32 MiB，素材包最多 250 个条目、展开总大小不超过 128 MiB，拒绝目录穿越及重复路径；只读取配置中的图片成员，不执行压缩包内容。原站请求时间上限 85 秒，包含串行请求间隔；因此这项构建并非无限制下载。
 
 该构建脚本也缓存 Ayomi 作者提供的预览，采用单路请求、1.5 秒间隔，与仓库预览共用每次 120 张的新文件预算。缓存保留作者发布的原始字节，最多 8 MiB、6000 万像素和 25 秒；没有作者缩小预览时只能按未修改原图尝试，不转码。文件按作者原始目录和作品修改时间保存，清理退出图库的已管理文件时保留其他文件。已有缓存每次检查格式、尺寸、字节数和 SHA-256；许可、链接或修改时间变化时重新读取。遇到 HTTP 429 立即停止该来源的缓存请求并把冷却时间写入预览 JSON，其他来源仍可处理。目录同步和图片缓存会读取彼此保存的冷却时间，采用较晚的有效时间，避免一项刚被限流而另一项立即继续请求。缓存丢失或首次构建时可能需要多次每日构建补齐，缺少缓存的 Ayomi 卡片可能无法显示，原图入口仍可在原站打开；不能承诺未缓存图片也能跨站嵌入。
 
@@ -62,7 +67,7 @@
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
@@ -90,6 +95,10 @@ Morevna 官方画廊与集合许可：<https://morevnaproject.org/anime/gallery/
 
 AyomiArt 作者与 AI 说明、默认非商业共享许可：<https://oc.nekosia.cat/>；作者图库：<https://oc.nekosia.cat/gallery?page=1>；逐图许可数据示例：<https://oc.nekosia.cat/gallery/anime-catgirl-black-dress-red-bow?page=1>；许可条件：<https://creativecommons.org/licenses/by-nc-nd/4.0/>。Creative Commons 的集合与改作说明：<https://creativecommons.org/faq/>。未接入聚合其他作者作品的 Nekosia 通用动漫 API，也未使用付费下载许可。
 
+OpenGameArt 已核对的作者作品页：<https://opengameart.org/content/40-game-backgrounds-1-painted-style-and-photorealistic>、<https://opengameart.org/content/concept-art-studies-bundle-1>、<https://opengameart.org/content/underwater-background-2>、<https://opengameart.org/content/simple-city-silhouetteskyline-with-clouds>、<https://opengameart.org/content/starsspace-background>。原站请求规则：<https://opengameart.org/robots.txt>。收藏夹中的其他作品没有自动获得这五件作品的许可，尚未进行全站自动发现。
+
+本轮另外查到三个开放授权的动漫场景候选：Unicorn Creates 的购物场景（作者页声明 CC BY 4.0，1920×1080 / 3840×2160，No AI）：<https://unicorncreates.itch.io/shopping-backgrounds>；Suzana Assets 的住宅场景（作者页声明 CC BY-NC 4.0，1920×1080，No AI）：<https://suzana-assets.itch.io/house-visual-novel-backgrounds>；Iletora 的学校走廊（CC0，1920×1080，早晚两个版本）：<https://iletora.itch.io/school-hallway>。研究工具可以读到这些许可说明，但当前本机访问 itch.io 被连接重置，素材包尚未实际下载验证，未接入自动同步或计入图库。仓库开源、提供下载 API 或只写免费，均不能替代图片本身允许再分发的授权。
+
 Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个人及非商业许可说明：<https://wallpapers.com/faq/licensing-and-help/can-i-use-wallpaperscom-wallpapers-commercially/>。原站入口不代表其中全部图片为开放授权。
 
 仓库图源：<https://gitlab.com/librepixels/ia.Wallpapers>；<https://github.com/FoliumCreations/Wallpapers>；<https://github.com/metaory/midjourney>。许可声明分别位于 LibrePixels README/LICENCE、Folium README/CC:BY 4.0 Licence、metaory LICENSE。
@@ -105,5 +114,7 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 2026-10-02 的 Morevna 增量实际验证了 26 张原始图片的 JPEG/PNG 尺寸，长边范围 1605–7550 像素；未计入作者缺失的两件场景及尺寸不足的六件作品。77 项测试通过，所加载模块行覆盖率 97.51%，新图源模块行覆盖率 100%；Hexo 构建通过，发布目录中的新增脚本和图源 JSON 与源文件一致。本机浏览器在加载 Commons 二次元分类缓存后显示合计 1364 张、二次元 141 张、Morevna 26 张，其中竖屏 6 张。已验证 `Sunset Wallpaper` 的 1024×576 作者预览成功解码、3555×2000 高清入口与署名许可正确、收藏刷新后恢复；另一位作者的 `Laboratory` 1536×862 预览及 4698×2638 原图入口也验证通过。没有新增手机实机验收，也尚未验证实际 Actions/Pages 发布。以上数量会随实时图库缓存及加载失败变化。
 
 2026-10-02 的 Ayomi 增量先实际验证了 216 张原图和预览的文件尺寸，最终目录核查排除 Arona/Blue Archive 的三张同人候选，收录 213 张。213 个作者预览按原始字节实际缓存完成，总计 13,551,874 字节；与三个仓库原有的 283 个预览合计 496 个文件。重新构建后核对了所有 Ayomi 缓存的 SHA-256、源文件与发布文件字节一致性，以及七个相关脚本/目录文件的构建一致性。限速后的真实目录同步使用 20 次请求后正确停止，保存 168 个待处理目录；该待处理数量不能当作尚未收录的图片数。102 项测试通过，所加载模块行覆盖率 97.74%，新图源和目录同步模块行覆盖率均为 100%。本机浏览器二次元筛选显示 354 张，Ayomi 为 213 张，竖屏 196、横屏 17；已验证本地预览成功显示、AI 标签、真实 1024×1536 原图入口、署名/非商业/不可改作提示及作者版权声明。收藏刷新后恢复，测试收藏随后清理。没有新增手机实机验收，也没有推送或验证真实 Actions/Pages 发布。
+
+2026-10-02 的 OpenGameArt 增量实际同步 47 张，长边范围 1600–3300 像素，原图合计 30,116,123 字节；新增 WebP 预览合计 2,305,006 字节，与既有来源合计 543 张本地预览。逐文件核对了 47 个原图的 SHA-256、47 个预览的原作比例、源文件与发布文件字节一致性，以及六个相关脚本/目录文件的构建一致性。111 项测试通过，所加载模块行覆盖率 98.03%，新增图源与同步模块行覆盖率均为 100%。本机浏览器显示 OpenGameArt 47 张，幻想筛选为 4 张；四张预览实际解码为 1280×960 或 1280×989，作者、CC0 及原始尺寸可见。`cloud farm` 从页面高清入口实际下载为原始 JPEG，3264×2448、2,157,267 字节，摘要与已验证文件一致；收藏刷新后恢复，测试收藏随后清理。截图为项目工作区上层的 `wallpaper-opengameart-scenes.png`。没有新增手机实机验收，也未推送或验证真实 Actions/Pages 发布。
 
 2026-10-02 真实同步已收录 Commons 分类记录 875 条，按文件 ID 去重后为 862 张图片。各分类记录数为风景 498、城市 258、星空 100、动物 10、二次元 9，一张图片可以属于多个分类。城市分类在第六页之后遭遇 HTTP 429，已保存这些页面和续传游标；二次元分类本轮连接失败，保留已有目录。不能把未读取的后续页面计入图库，也不保证上游图片服务持续可用。新增恢复和分类合并逻辑后共 55 项测试通过；请求重试、正文超时、部分进度保存及游标续传有模拟测试，部分进度保存也已经在真实城市目录上验证。浏览器已验证 Commons 风景筛选为 498 张，与已验证的目录一致。仓库图片的首次同步和预览生成已实际执行。浏览器加载数量可能随艺术馆实时结果、已有缓存和加载失败而变化。

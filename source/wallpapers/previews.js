@@ -3,9 +3,13 @@
   'use strict';
   const repositories=typeof module!=='undefined'&&module.exports?require('./repositories.js'):root.WallpaperRepositories;
   const ayomi=typeof module!=='undefined'&&module.exports?require('./ayomi.js'):root.WallpaperAyomi;
+  const opengameart=typeof module!=='undefined'&&module.exports?require('./opengameart.js'):root.WallpaperOpenGameArt;
   const version=1,maxEdge=1280,maxBytes=2*1024*1024,authorMaxBytes=8*1024*1024;
 
   function filenameFor(item){
+    if(item?.provider==='opengameart'){
+      const normalized=opengameart.normalizeRecords([item.feedRecord])[0];return normalized&&normalized.id===item.id?'opengameart-'+normalized.feedRecord.revision+'-v'+version+'.webp':null;
+    }
     if(item?.provider==='ayomi'){
       const normalized=ayomi.normalizeRecords([item.feedRecord])[0];if(!normalized||normalized.id!==item.id)return null;
       const file=new URL(normalized.download).pathname.slice('/images/gallery/'.length),extension=new URL(normalized.image).pathname.split('.').pop();

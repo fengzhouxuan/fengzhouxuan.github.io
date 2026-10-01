@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Test wallpaper ingestion and fallback
-        run: node --test test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs
+        run: node --test test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs
 
       - name: Checkout music station
         uses: actions/checkout@v4
@@ -58,6 +58,7 @@ jobs:
             source/wallpapers/data/open-images.json
             source/wallpapers/data/previews.json
             source/wallpapers/previews
+            source/wallpapers/originals/opengameart
           key: wallpaper-catalog-v3-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wallpaper-catalog-v3-${{ github.ref_name }}-
@@ -82,6 +83,7 @@ jobs:
             source/wallpapers/data/open-images.json
             source/wallpapers/data/previews.json
             source/wallpapers/previews
+            source/wallpapers/originals/opengameart
           key: wallpaper-catalog-v3-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Build Hexo

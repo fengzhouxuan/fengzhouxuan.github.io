@@ -8,6 +8,7 @@ public/
 _multiconfig.yml
 .cache/
 source/wallpapers/previews/
+source/wallpapers/originals/opengameart/
 source/wallpapers/data/previews.json
 source/wallpapers/data/previews.json.tmp
 .env

@@ -54,11 +54,11 @@ async function cachedPreview(outputDir,filename,entry,author=false){
   }catch(error){if(error.code!=='ENOENT'&&error.code!=='ENOTDIR'&&error.code)throw error;return false;}
 }
 
-async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputDir=path.join(root,'previews'),maxNew=120,now=new Date(),logger=console,wait=delay=>new Promise(resolve=>setTimeout(resolve,delay))}={}){
+async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputDir=path.join(root,'previews'),originalsDir=path.join(root,'originals/opengameart'),maxNew=120,now=new Date(),logger=console,wait=delay=>new Promise(resolve=>setTimeout(resolve,delay))}={}){
   if(!Number.isSafeInteger(maxNew)||maxNew<0||maxNew>1000)throw Error('预览处理预算无效');
   await fs.mkdir(outputDir,{recursive:true});
   const approved=(Array.isArray(items)?items:[]).flatMap(item=>{
-    const normalized=item?.provider==='ayomi'?feeds.normalizeFeed([item.feedRecord],'ayomi')[0]:repositories.normalizeRepository([item?.feedRecord],item?.provider)[0];return normalized&&normalized.id===item?.id?[normalized]:[];
+    const normalized=['ayomi','opengameart'].includes(item?.provider)?feeds.normalizeFeed([item.feedRecord],item.provider)[0]:repositories.normalizeRepository([item?.feedRecord],item?.provider)[0];return normalized&&normalized.id===item?.id?[normalized]:[];
   });
   const ordered=feeds.mixSources([...new Map(approved.map(item=>[previews.filenameFor(item),item])).values()],core.dayKey(now));
   const manifest={version:previews.version,generatedAt:now.toISOString(),images:{}},pending=[];
@@ -73,6 +73,11 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
       try{
         let encoded,lastError;
         if(item.provider==='ayomi')encoded=await copyAuthorPreview(await readImage(fetcher,item.image,{maxBytes:previews.authorMaxBytes}),item);
+        else if(item.provider==='opengameart'){
+          const filename=item.feedRecord.revision+'.'+item.feedRecord.extension,bytes=await fs.readFile(path.join(originalsDir,filename));
+          if(bytes.length!==item.feedRecord.bytes||crypto.createHash('sha256').update(bytes).digest('hex')!==item.feedRecord.revision)throw Error('原图缓存与已验证摘要不一致');
+          encoded=await encodePreview(bytes);
+        }
         else for(const url of [item.image,item.fallbackImage].filter(Boolean)){
           try{
             const bytes=await readImage(fetcher,url);
@@ -101,7 +106,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
     }
   }));
   const keep=new Set(ordered.filter(item=>manifest.images[item.id]).map(previews.filenameFor));
-  for(const filename of await fs.readdir(outputDir))if(/^(librepixels|folium|midjourney)-[a-f0-9]{40}-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
+  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney)-[a-f0-9]{40}|opengameart-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   const authorDir=path.join(outputDir,'ayomi');
   let authorFiles;try{authorFiles=await fs.readdir(authorDir,{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;authorFiles=[];}
   for(const filename of authorFiles)if(/\.(png|jpe?g|webp)\.\d+\.(png|jpe?g|webp)$/.test(filename)&&!keep.has('ayomi/'+filename))await fs.unlink(path.join(authorDir,filename));
