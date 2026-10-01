@@ -1,9 +1,10 @@
 (function(){
   'use strict';
-  const core=window.WallpaperStation,$=id=>document.getElementById(id);
+  const core=window.WallpaperStation,commons=window.WallpaperCommons,$=id=>document.getElementById(id);
   const favoritesKey='rabbit-wallpapers-favorites-v1';
   const state={day:core.dayKey(),batch:0,originals:core.dailyWallpapers(),artworks:[],source:'all',orientation:'all',query:'',style:'',palette:'',sort:'recommended',limit:24,favorites:new Map(),failed:new Set(),current:null,queue:[],loading:false,view:'image',downloading:false};
-  let storage,toastTimer,undoAction,touchStart;
+  state.category='';state.commons=new Map();state.commonsLoading=new Set();state.commonsStatus=new Map();
+  let storage,toastTimer,undoAction,touchStart,fallbackPromise;
   const columnCount=()=>window.innerWidth<=600?2:window.innerWidth<=1100?3:4;
   let columns=columnCount();
   try{storage=window.localStorage;}catch(e){/* Private browsing may disable storage. */}
@@ -25,6 +26,9 @@
           if(!Number.isFinite(date.getTime()))continue;
           const restored=core.dailyWallpapers(date,batch)[index];
           if(restored.id===item.id)state.favorites.set(item.id,restored);
+        }else if(/^commons-\d+$/.test(item.id)){
+          const restored=commons.normalizeCommons([item.commonsRecord],item.collection)[0];
+          if(restored?.id===item.id)state.favorites.set(item.id,restored);
         }else if(/^art-\d+$/.test(item.id)){
           const restored=core.normalizeArtworks([{id:Number(item.id.slice(4)),accession_number:item.accessionNumber,share_license_status:item.license,title:item.title,creators:[{description:item.artist}],images:{web:{url:item.image},print:{url:item.download,width:item.width,height:item.height}}}])[0];
           if(restored)state.favorites.set(item.id,restored);
@@ -74,15 +78,17 @@
 
   function visibleItems(){
     const originals=state.originals.slice().sort((a,b)=>((a.index*7)%24)-((b.index*7)%24));
+    const openImages=[...new Map([...state.commons.values()].flat().map(item=>[item.id,item])).values()];
     const items=[];
     if(state.source==='favorites')items.push(...state.favorites.values());
     else if(state.source==='all'){
-      for(let index=0;index<Math.max(originals.length,state.artworks.length);index++){
+      for(let index=0;index<Math.max(originals.length,state.artworks.length,openImages.length);index++){
         if(originals[index])items.push(originals[index]);
         if(state.artworks[index])items.push(state.artworks[index]);
+        if(openImages[index])items.push(openImages[index]);
       }
-    }else items.push(...originals,...state.artworks);
-    const filtered=core.filterWallpapers(items,{source:state.source==='favorites'?'all':state.source,orientation:state.orientation,query:state.query,style:state.style,palette:state.palette}).filter(item=>!state.failed.has(item.id));
+    }else items.push(...originals,...state.artworks,...openImages);
+    const filtered=core.filterWallpapers(items,{source:state.source==='favorites'?'all':state.source,orientation:state.orientation,query:state.query,style:state.style,palette:state.palette,category:state.category}).filter(item=>!state.failed.has(item.id));
     if(state.sort==='resolution')filtered.sort((a,b)=>b.width*b.height-a.width*a.height);
     else if(state.sort==='title')filtered.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
     return filtered;
@@ -96,16 +102,22 @@
   }
 
   function syncFilters(){
+    for(const button of $('content-categories').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.category===state.category));
     for(const tab of $('sources').querySelectorAll('button'))tab.setAttribute('aria-pressed',String(tab.dataset.source===state.source));
     for(const button of $('styles').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.style===state.style));
     for(const button of $('palettes').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.palette===state.palette));
     $('orientation').value=state.orientation;$('search').value=state.query;$('sort').value=state.sort;
     $('styles').hidden=state.source==='art';$('palettes').hidden=state.source==='art';
-    document.querySelector('.filter-details').hidden=state.source==='art';
-    $('reset-filters').hidden=!state.style&&state.palette===''&&!state.query&&state.orientation==='all';
+    document.querySelector('.filter-details').hidden=state.source==='art'||state.source==='commons'||['anime','illustration','city','animals'].includes(state.category);
+    $('reset-filters').hidden=!state.category&&!state.style&&state.palette===''&&!state.query&&state.orientation==='all';
+    const feed=state.category==='illustration'?'anime':state.category;
+    const status=state.commonsStatus.get(feed);
+    $('category-status').hidden=!Object.hasOwn(commons.categories,feed);
+    $('category-status').textContent=state.commonsLoading.has(feed)?'正在更新开放图库，已收录的图片可以先看。':status==='fresh'?'开放图库已更新 · 每张保留作者与许可':status==='cached'?'今日图库已更新 · 每张保留作者与许可':status==='stale'?'图源暂时连接不上，正在展示已收录的开放图片。':status==='unavailable'?'当前图源无法连接，请稍后重试。':'只收录明确开放授权的图片 · 作者与许可随图保留';
+    $('retry-commons').hidden=!Object.hasOwn(commons.categories,feed)||state.commonsLoading.has(feed)||!['stale','unavailable'].includes(status);
     for(const tile of document.querySelectorAll('[data-collection]')){
       const name=tile.dataset.collection;
-      tile.setAttribute('aria-pressed',String(name==='art'?state.source==='art':name==='night'?state.palette==='1':state.style===name));
+      tile.setAttribute('aria-pressed',String(name==='anime'?state.category==='anime':name==='art'?state.source==='art':name==='night'?state.palette==='1':state.style===name));
     }
   }
 
@@ -117,7 +129,7 @@
     $('shown-count').textContent=total?'已看 '+Math.min(state.limit,total)+' / '+total+' 张':'';
     $('load-more').textContent='再看 '+Math.min(24,total-state.limit)+' 张 ↓';
     $('empty-title').textContent=state.source==='favorites'?'给喜欢的风景留个位置。':'换个心情，再挑一次。';
-    $('empty-text').textContent=state.source==='favorites'?'点壁纸上的 ♡ 即可收藏，刷新后也会保留。':state.source==='art'&&!state.artworks.length?(state.loading?'正在打开艺术馆，请稍等一下。':'艺术馆暂时连接不上，先看看今天的原创壁纸。'):'这些条件下暂时没有壁纸，试试其他主题或配色。';
+    $('empty-text').textContent=state.source==='favorites'?'点壁纸上的 ♡ 即可收藏，刷新后也会保留。':state.commonsLoading.has(state.category==='illustration'?'anime':state.category)?'正在打开这个分类，稍等一下就好。':state.source==='art'&&!state.artworks.length?(state.loading?'正在打开艺术馆，请稍等一下。':'艺术馆暂时连接不上，先看看今天的原创壁纸。'):'这些条件下暂时没有壁纸，试试其他主题或配色。';
     $('retry-art').hidden=state.source!=='art'||state.loading||state.artworks.length>0;
     $('shuffle').hidden=state.source==='art'||state.source==='favorites';
     $('random').disabled=!total;
@@ -139,7 +151,7 @@
         state.failed.add(item.id);card.remove();updateResults();
         if(item.source==='art'&&state.artworks.every(art=>state.failed.has(art.id)))$('source-status').textContent='艺术图片暂时无法加载，原创壁纸照常浏览和下载。';
       },{once:true});
-      const badge=element('span','card-badge',item.source==='original'?'原创 · 4K':'开放艺术');
+      const badge=element('span','card-badge',item.source==='original'?'原创 · 4K':item.source==='commons'?item.license:'开放艺术');
       const hint=element('span','card-open-hint','查看效果 ↗');open.append(image,badge,hint);open.addEventListener('click',()=>showPreview(item));
       const info=element('div','card-info');info.append(element('span','card-title',item.title));
       const meta=element('div','card-meta');meta.append(element('span','',item.width+' × '+item.height),element('span','',item.height>item.width?'手机':'桌面'));info.append(meta);
@@ -197,13 +209,16 @@
     }
     state.current=item;
     $('preview-title').textContent=item.title;$('preview-artist').textContent=item.artist;$('preview-image').alt=item.title;
-    $('preview-source').textContent=item.source==='original'?'每日原创 / '+item.day:'开放艺术馆 / CLEVELAND';
+    $('preview-source').textContent=item.source==='original'?'每日原创 / '+item.day:item.source==='commons'?'开放图库 / WIKIMEDIA COMMONS':'开放艺术馆 / CLEVELAND';
     const original=item.source==='original';
     $('size-label').hidden=!original;$('download').hidden=!original;$('art-download').hidden=original;
     $('download-size').value=(state.view==='phone'||state.view==='image'&&item.height>item.width)?'2160x3840':'3840x2160';
     $('download-status').textContent='';$('source-link').hidden=original;
-    if(!original){$('source-link').href=item.pageUrl;$('art-download').href=item.download;}
+    if(!original){$('source-link').href=item.pageUrl;$('art-download').href=item.download;$('source-link').textContent=item.source==='commons'?'Wikimedia Commons · 查看作品与作者 ↗':'克利夫兰艺术博物馆 · 查看作品 ↗';}
     $('license-link').href=item.licenseUrl;
+    $('license-link').textContent=item.license+' · '+(item.license.startsWith('CC BY-SA')?'署名 · 相同方式共享':item.license.startsWith('CC BY')?'使用时署名':'可自由使用')+' ↗';
+    $('credit-block').hidden=item.source!=='commons';
+    $('credit-text').textContent=item.source==='commons'?item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl:'';
     $('preview-tags').replaceChildren(...item.tags.filter(tag=>!['横屏','竖屏','原创'].includes(tag)).map(tag=>element('span','',tag)));
     const position=state.queue.findIndex(entry=>entry.id===item.id);
     $('preview-position').textContent=(position+1)+' / '+state.queue.length;
@@ -249,7 +264,22 @@
   }
 
   function resetFilters(){
-    state.source='all';state.style='';state.palette='';state.query='';state.orientation='all';state.limit=24;render();
+    state.source='all';state.category='';state.style='';state.palette='';state.query='';state.orientation='all';state.limit=24;render();
+  }
+
+  async function refreshCommons(category){
+    const feed=category==='illustration'?'anime':category;
+    if(!Object.hasOwn(commons.categories,feed)||state.commonsLoading.has(feed))return;
+    state.commonsLoading.add(feed);render();
+    try{
+      if(!fallbackPromise)fallbackPromise=fetch('./data/open-images.json').then(response=>{if(!response.ok)throw Error('图库数据暂时不可用');return response.json();}).catch(()=>null);
+      const snapshot=await fallbackPromise;
+      const fallback=snapshot?.version===1?snapshot.records?.[feed]||[]:[];
+      if(!state.commons.has(feed)){state.commons.set(feed,commons.normalizeCommons(fallback,feed));render();}
+      const result=await commons.loadCommons({category:feed,fetcher:window.fetch.bind(window),storage,fallback});
+      state.commons.set(feed,result.items);state.commonsStatus.set(feed,result.state);
+      for(const item of result.items)state.failed.delete(item.id);
+    }finally{state.commonsLoading.delete(feed);render();}
   }
 
   function checkDay(){
@@ -257,11 +287,19 @@
     const today=core.dayKey();if(today===state.day)return;
     state.day=today;state.batch=0;state.originals=core.dailyWallpapers();state.failed.clear();
     updateHero();render();refreshArtwork();
+    if(state.category)refreshCommons(state.category);
   }
+
+  $('content-categories').addEventListener('click',event=>{
+    const button=event.target.closest('button[data-category]');if(!button)return;
+    state.category=button.dataset.category;state.source='all';state.style='';state.palette='';state.limit=24;render();refreshCommons(state.category);
+  });
+  $('retry-commons').addEventListener('click',()=>refreshCommons(state.category));
 
   $('sources').addEventListener('click',event=>{
     const button=event.target.closest('button[data-source]');if(!button)return;
-    state.source=button.dataset.source;state.style='';state.palette='';state.limit=24;render();
+    state.source=button.dataset.source;state.category='';state.style='';state.palette='';state.limit=24;render();
+    if(state.source==='commons'&&!state.commons.size)refreshCommons('anime');
   });
   $('styles').addEventListener('click',event=>{
     const button=event.target.closest('button[data-style]');if(!button)return;
@@ -278,7 +316,8 @@
   document.querySelector('.collections').addEventListener('click',event=>{
     const tile=event.target.closest('[data-collection]');if(!tile)return;
     resetFilters();const name=tile.dataset.collection;
-    if(name==='art')state.source='art';
+    if(name==='anime'){state.category='anime';refreshCommons('anime');}
+    else if(name==='art')state.source='art';
     else{state.source='original';if(name==='night')state.palette='1';else state.style=name;}
     render();$('collection').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
   });
@@ -317,6 +356,9 @@
   $('preview-image').addEventListener('error',()=>{$('download-status').textContent='图片暂时无法加载，可以打开来源页面查看。';});
   $('download').addEventListener('click',()=>downloadItem(state.current,$('download-size').value));
   $('favorite').addEventListener('click',()=>toggleFavorite(state.current));
+  $('copy-credit').addEventListener('click',async()=>{
+    try{await navigator.clipboard.writeText($('credit-text').textContent);toast('作者、来源和许可已复制。');}catch(e){toast('复制未完成，可以选中下方署名信息手动复制。');}
+  });
   $('toast-close').addEventListener('click',()=>{$('toast').hidden=true;clearTimeout(toastTimer);});
   $('toast-undo').addEventListener('click',()=>{const undo=undoAction;undoAction=null;if(undo)undo();});
   document.addEventListener('keydown',event=>{

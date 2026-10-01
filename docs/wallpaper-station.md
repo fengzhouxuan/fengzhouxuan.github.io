@@ -10,12 +10,18 @@
 - 艺术馆自动调用克利夫兰艺术博物馆公开 API，筛选 `share_license_status === 'CC0'`、官方图片 CDN 地址、长边至少 1600 且短边至少 800 的风景绘画作品。每天从搜索结果的前四页轮换一页，最多请求 48 条，去重后展示。
 - 每个浏览器每天成功请求一次后使用 localStorage 缓存；10 秒超时或接口失败时保留上次成功结果。本次页面会隐藏加载失败的图片，不删除用户收藏。
 - 这不是持续积累的云端图库：原创每日轮换，收藏在当前浏览器保存，包括旧日期和旧批次的作品。清理浏览器数据会清空收藏。
+- 内容分类独立于来源，包括二次元、插画、风景、城市、星空、动物、极简和艺术。二次元与插画目前共享同一组动漫插画；动物图源目前为猫科精选图片。极简来自原创图案，艺术来自开放馆藏。
+- 二次元、风景照片、城市、星空和动物按需从 Wikimedia Commons 分类加载，每类最多请求 40 个文件；每个浏览器每天成功加载后缓存。二次元开放图片较少，不承诺热门动漫 IP 或持续每天上新。
+- Commons 仅接收逐张标注为 CC0、Public domain、CC BY 或 CC BY-SA 且符合尺寸的 JPEG/PNG/WebP。CC BY 系列需要作者和与许可版本一致的链接；待审许可、删除请求和显式成人内容标签会排除。这依赖提供方的文件元数据，未声明的内容或错误授权仍需提供方处理。
+- 开放图库失败时优先使用上次成功缓存，再使用 `source/wallpapers/data/open-images.json` 的已验证初始目录；每次打开分类仍会尝试更新，无需逐张人工维护。外部缩略图和原图仍依赖 Wikimedia 服务及用户网络。
 
 ## 下载与来源
 
 原创 SVG 由本项目生成，发布为 CC0。浏览器本地渲染并导出 PNG，支持 3840×2160、2560×1440、1920×1080 和 2160×3840，不依赖图片服务器。艺术作品提供作品页、CC0 链接和原图入口；外部原图在新标签打开，由浏览器保存，不依赖跨域下载权限。手机锁屏是示意预览。
 
 外部图源仍受网络、API 和博物馆图像服务可用性影响。艺术馆不是实时上新承诺：轮换的是馆藏搜索页。源标签基于提供方的授权数据，不是独立的版权核查。
+
+Commons 作品保留标题、作者、文件页和具体许可，不统一标为 CC0。提供复制署名信息按钮，CC BY 提示署名，CC BY-SA 同时提示相同方式共享；下载入口打开未修改原图。桌面与手机的裁切只用于效果示意。
 
 ## 浏览体验
 
@@ -30,9 +36,10 @@
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
+node test/wallpapers.categories.browser.cjs
 npm run build -- --config _config.yml,_config.flatpaper.yml
 npm run server -- --config _config.yml,_config.flatpaper.yml --port 4011
 ```
@@ -42,3 +49,5 @@ npm run server -- --config _config.yml,_config.flatpaper.yml --port 4011
 浏览器验收脚本需先启动 4011 端口服务，使用本机 Chrome 和 Codex 内置 Playwright；可通过 `WALLPAPER_PLAYWRIGHT` 指定其他 Playwright 模块路径。
 
 来源文档：<https://openaccess-api.clevelandart.org/>；许可说明：<https://www.clevelandart.org/open-access>。
+
+Commons API：<https://www.mediawiki.org/wiki/API:Imageinfo>；跨域请求：<https://www.mediawiki.org/wiki/API:Cross-site_requests>；使用说明：<https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia>。初始目录的每张文件都有自身的文件页及许可链接。

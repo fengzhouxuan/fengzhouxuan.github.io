@@ -56,6 +56,9 @@ test('filter combines source, orientation, query and favorites',()=>{
   assert.equal(core.filterWallpapers(items,{style:'山野',palette:'1',orientation:'portrait'}).length,1);
   assert.equal(core.filterWallpapers(items,{source:'art',palette:'0'}).length,0);
   assert.equal(core.filterWallpapers(items,{palette:'unknown'}).length,0);
+  assert.equal(core.filterWallpapers(items,{category:'nature'}).length,7);
+  assert.equal(core.filterWallpapers(items,{category:'minimal'}).length,18);
+  assert.equal(core.filterWallpapers(items,{category:'anime'}).length,0);
 });
 test('fresh artwork request filters, deduplicates and saves a daily cache',async()=>{
   const storage=memory();let calledURL;

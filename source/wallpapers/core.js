@@ -38,6 +38,7 @@
         title:palettes[palette].name+' · '+patterns[pattern],paletteName:palettes[palette].name,colors:palettes[palette].colors,
         artist:'兔子洞 · 程序绘制',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',
         width:portrait?2160:3840,height:portrait?3840:2160,
+        categories:pattern===0?['nature']:pattern===2?['minimal','space']:['minimal'],
         tags:[patterns[pattern],palettes[palette].name,'原创',portrait?'竖屏':'横屏']};
     });
   }
@@ -94,16 +95,17 @@
         artist:(Array.isArray(raw.creators)?raw.creators:[]).map(creator=>typeof creator?.description==='string'?creator.description:'').filter(Boolean).join(' / ')||'作者未注明',
         width,height,image,download,accessionNumber:raw.accession_number,
         pageUrl:'https://www.clevelandart.org/art/'+raw.accession_number,
-        license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',tags:['艺术','绘画',width>=height?'横屏':'竖屏']});
+        license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',categories:['art','nature'],tags:['艺术','绘画',width>=height?'横屏':'竖屏']});
     }
     return items;
   }
 
-  function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null,style='',palette=''}={}){
+  function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null,style='',palette='',category=''}={}){
     const keyword=String(query).trim().toLocaleLowerCase();
     return items.filter(item=>(source==='all'||item.source===source)&&
       (orientation==='all'||(orientation==='landscape'?item.width>=item.height:item.height>item.width))&&
       (!favorites||favorites.has(item.id))&&
+      (!category||item.categories?.includes(category))&&
       (!style||item.tags.includes(style))&&
       (palette===''||item.source==='original'&&item.palette===Number(palette))&&
       (!keyword||[item.title,item.artist,...item.tags].join(' ').toLocaleLowerCase().includes(keyword)));

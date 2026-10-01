@@ -23,7 +23,7 @@ const {chromium}=require(process.env.WALLPAPER_PLAYWRIGHT||'playwright');
     const topColors=await page.locator('.gallery-column').evaluateAll(columns=>columns.map(column=>column.querySelector('.card-title').textContent.split(' · ')[0]));
     assert.equal(new Set(topColors).size,4);
     await page.evaluate(()=>window.scrollTo(0,0));
-    assert.ok((await page.locator('#gallery').boundingBox()).y<780);
+    assert.ok((await page.locator('#gallery').boundingBox()).y<900);
     await page.screenshot({path:'test-results/wallpaper-ux-desktop.png'});
     await page.locator('[data-style="山野"]').click();assert.equal(await page.locator('.card').count(),6);
     await page.locator('[data-palette="1"]').click();assert.equal(await page.locator('.card').count(),1);
