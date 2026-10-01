@@ -41,7 +41,7 @@ async function encodePreview(bytes){
 
 async function copyAuthorPreview(bytes,item){
   const normalized=feeds.normalizeFeed([item?.feedRecord],item?.provider)[0];
-  if(normalized?.provider!=='ayomi'||normalized.id!==item?.id||bytes.length>previews.authorMaxBytes)throw Error('作者预览的图片或许可无效');
+  if(!['ayomi','revoy'].includes(normalized?.provider)||normalized.id!==item?.id||bytes.length>previews.authorMaxBytes)throw Error('作者预览的图片或许可无效');
   const metadata=await sharp(bytes,{limitInputPixels:60000000}).metadata();
   if(metadata.format!==({png:'png',jpg:'jpeg',jpeg:'jpeg',webp:'webp'})[normalized.image.split('.').pop()]||metadata.width!==normalized.feedRecord.imageWidth||metadata.height!==normalized.feedRecord.imageHeight||(metadata.pages||1)!==1)throw Error('作者预览的格式或尺寸已变化');
   return {data:bytes,width:metadata.width,height:metadata.height,digest:crypto.createHash('sha256').update(bytes).digest('hex')};
@@ -58,21 +58,26 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
   if(!Number.isSafeInteger(maxNew)||maxNew<0||maxNew>1000)throw Error('预览处理预算无效');
   await fs.mkdir(outputDir,{recursive:true});
   const approved=(Array.isArray(items)?items:[]).flatMap(item=>{
-    const normalized=['ayomi','opengameart'].includes(item?.provider)?feeds.normalizeFeed([item.feedRecord],item.provider)[0]:repositories.normalizeRepository([item?.feedRecord],item?.provider)[0];return normalized&&normalized.id===item?.id?[normalized]:[];
+    const normalized=['ayomi','opengameart','revoy'].includes(item?.provider)?feeds.normalizeFeed([item.feedRecord],item.provider)[0]:repositories.normalizeRepository([item?.feedRecord],item?.provider)[0];return normalized&&normalized.id===item?.id?[normalized]:[];
   });
   const ordered=feeds.mixSources([...new Map(approved.map(item=>[previews.filenameFor(item),item])).values()],core.dayKey(now));
   const manifest={version:previews.version,generatedAt:now.toISOString(),images:{}},pending=[];
   let reused=0,created=0,failures=0,attempted=0,next=0;
   for(const item of ordered){
     const filename=previews.filenameFor(item),entry=previous?.images?.[item.id];
-    if(previews.previewFor(item,previous)&&await cachedPreview(outputDir,filename,entry,item.provider==='ayomi')){manifest.images[item.id]=entry;reused++;}
+    if(previews.previewFor(item,previous)&&await cachedPreview(outputDir,filename,entry,['ayomi','revoy'].includes(item.provider))){manifest.images[item.id]=entry;reused++;}
     else pending.push(item);
   }
   async function create(item){
       const filename=previews.filenameFor(item);attempted++;
       try{
         let encoded,lastError;
-        if(item.provider==='ayomi')encoded=await copyAuthorPreview(await readImage(fetcher,item.image,{maxBytes:previews.authorMaxBytes}),item);
+        if(['ayomi','revoy'].includes(item.provider)){
+          encoded=await copyAuthorPreview(await readImage(fetcher,item.image,{maxBytes:previews.authorMaxBytes}),item);
+          if(item.provider==='revoy'){
+            encoded=await encodePreview(encoded.data);encoded.digest=crypto.createHash('sha256').update(encoded.data).digest('hex');
+          }
+        }
         else if(item.provider==='opengameart'){
           const filename=item.feedRecord.revision+'.'+item.feedRecord.extension,bytes=await fs.readFile(path.join(originalsDir,filename));
           if(bytes.length!==item.feedRecord.bytes||crypto.createHash('sha256').update(bytes).digest('hex')!==item.feedRecord.revision)throw Error('原图缓存与已验证摘要不一致');
@@ -88,7 +93,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
         }
         if(!encoded)throw lastError;
         const temporary=path.join(outputDir,filename+'.tmp');await fs.mkdir(path.dirname(temporary),{recursive:true});await fs.writeFile(temporary,encoded.data);await fs.rename(temporary,path.join(outputDir,filename));
-        manifest.images[item.id]={revision:item.feedRecord.revision,width:encoded.width,height:encoded.height,bytes:encoded.data.length,...(item.provider==='ayomi'?{url:item.image,digest:encoded.digest}:{})};created++;
+        manifest.images[item.id]={revision:item.feedRecord.revision,width:encoded.width,height:encoded.height,bytes:encoded.data.length,...(['ayomi','revoy'].includes(item.provider)?{url:item.image,digest:encoded.digest}:{})};created++;
         if(created%20===0)logger.log('已生成 '+created+' 张预览');
       }catch(error){failures++;logger.warn('预览暂未生成：'+item.title+'（'+error.message+'）');if(item.provider==='ayomi'&&error.status===429){manifest.authorRetryAt=retryTime(error.retryAfter,now);return false;}}
       return true;
@@ -107,6 +112,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
   }));
   const keep=new Set(ordered.filter(item=>manifest.images[item.id]).map(previews.filenameFor));
   for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur)-[a-f0-9]{40}|opengameart-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
+  for(const filename of await fs.readdir(outputDir))if(/^revoy-[a-f0-9]{64}-v1\.(jpg|webp)$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   const authorDir=path.join(outputDir,'ayomi');
   let authorFiles;try{authorFiles=await fs.readdir(authorDir,{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;authorFiles=[];}
   for(const filename of authorFiles)if(/\.(png|jpe?g|webp)\.\d+\.(png|jpe?g|webp)$/.test(filename)&&!keep.has('ayomi/'+filename))await fs.unlink(path.join(authorDir,filename));

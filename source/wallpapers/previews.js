@@ -4,9 +4,13 @@
   const repositories=typeof module!=='undefined'&&module.exports?require('./repositories.js'):root.WallpaperRepositories;
   const ayomi=typeof module!=='undefined'&&module.exports?require('./ayomi.js'):root.WallpaperAyomi;
   const opengameart=typeof module!=='undefined'&&module.exports?require('./opengameart.js'):root.WallpaperOpenGameArt;
+  const revoy=typeof module!=='undefined'&&module.exports?require('./revoy.js'):root.WallpaperRevoy;
   const version=1,maxEdge=1280,maxBytes=2*1024*1024,authorMaxBytes=8*1024*1024;
 
   function filenameFor(item){
+    if(item?.provider==='revoy'){
+      const normalized=revoy.normalizeRecords([item.feedRecord])[0];return normalized&&normalized.id===item.id?'revoy-'+normalized.revision+'-v'+version+'.webp':null;
+    }
     if(item?.provider==='opengameart'){
       const normalized=opengameart.normalizeRecords([item.feedRecord])[0];return normalized&&normalized.id===item.id?'opengameart-'+normalized.feedRecord.revision+'-v'+version+'.webp':null;
     }
@@ -25,6 +29,7 @@
     if(item.provider==='ayomi'){
       if(entry.url!==item.feedRecord.image||entry.width!==item.feedRecord.imageWidth||entry.height!==item.feedRecord.imageHeight||!/^([a-f0-9]{64})$/.test(entry.digest))return null;
     }else if(!Number.isSafeInteger(entry.width)||!Number.isSafeInteger(entry.height)||entry.width<1||entry.height<1||entry.width>maxEdge||entry.height>maxEdge)return null;
+    if(item.provider==='revoy'&&(entry.url!==item.image||!/^[a-f0-9]{64}$/.test(entry.digest)||Math.abs(item.width*entry.height/(item.height*entry.width)-1)>=0.01))return null;
     if(!Number.isSafeInteger(entry.bytes)||entry.bytes<1||entry.bytes>(item.provider==='ayomi'?authorMaxBytes:maxBytes))return null;
     return './previews/'+filename;
   }

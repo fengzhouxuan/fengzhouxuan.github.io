@@ -3,6 +3,8 @@ const path=require('node:path');
 const feeds=require('../source/wallpapers/feeds.js');
 const repositories=require('../source/wallpapers/repositories.js');
 const morevna=require('../source/wallpapers/morevna.js');
+const revoy=require('../source/wallpapers/revoy.js');
+const crypto=require('node:crypto');
 const {collectAyomi}=require('./collect-ayomi.cjs');
 const {collectOpenGameArt}=require('./collect-opengameart.cjs');
 const catalogPath=path.resolve(__dirname,'../source/wallpapers/data/official-feeds.json');
@@ -191,6 +193,47 @@ async function collectMorevna({fetcher=fetch,dimensions=readDimensions,old=[],lo
   return records.filter(Boolean);
 }
 
+async function collectRevoy({fetcher=fetch,dimensions=readDimensions,old=[],existingWorks=[],logger=console}={}){
+  const discovered=revoy.parseGallery(await (await request(fetcher,revoy.source.gallery)).text());
+  if(!discovered.length)throw Error('作者画廊无法完整解析');
+  const duplicates=new Set(feeds.normalizeFeed((Array.isArray(existingWorks)?existingWorks:[]).map(item=>item?.feedRecord),'pepper').map(item=>item.feedRecord.filename.toLowerCase()));
+  const gallery=discovered.filter(item=>!duplicates.has(item.filename.toLowerCase()));
+  const previous=revoy.normalizeRecords((Array.isArray(old)?old:[]).map(item=>item?.feedRecord)),known=new Map(previous.map(item=>[item.feedRecord.filename,item.feedRecord]));
+  const checked=new Array(gallery.length);let next=0,limited=false;
+  async function lookup(url,method='GET'){
+    if(limited)throw Error('作者图源要求冷却');
+    const response=await fetcher(url,{method,headers:{'User-Agent':userAgent},signal:AbortSignal.timeout(20000)});
+    if(response.status===429||response.status===503)limited=true;
+    if(!response.ok)throw Error('图片元数据返回 HTTP '+response.status);
+    return response;
+  }
+  async function metadata(url){
+    const response=await lookup(url,'HEAD');
+    const modified=response.headers.get('last-modified');
+    if(!Number.isFinite(Date.parse(modified))||!/^image\/jpeg(?:;|$)/i.test(response.headers.get('content-type')||''))throw Error('图片修改时间或格式无效');
+    return modified;
+  }
+  await Promise.all(Array.from({length:3},async()=>{
+    while(next<gallery.length){
+      const index=next++,candidate=gallery[index],saved=known.get(candidate.filename);
+      if(limited){if(saved)checked[index]=saved;continue;}
+      let raw;
+      try{raw=revoy.parseWork(await (await lookup(candidate.pageUrl)).text(),candidate);}
+      catch(error){if(saved)checked[index]=saved;logger.warn('作者作品页暂不可用：'+candidate.filename);continue;}
+      if(!raw)continue;
+      try{
+        const modified=await metadata(raw.download),previewModified=await metadata(raw.image),revision=crypto.createHash('sha256').update(JSON.stringify([raw.download,raw.image,modified,previewModified])).digest('hex');
+        const reusable=saved&&saved.revision===revision;
+        const original=reusable?{width:saved.width,height:saved.height}:await dimensions(fetcher,raw.download);
+        const preview=reusable?{width:saved.imageWidth,height:saved.imageHeight}:await dimensions(fetcher,raw.image);
+        checked[index]={...raw,...original,imageWidth:preview.width,imageHeight:preview.height,modified,previewModified,revision};
+      }catch(error){if(saved)checked[index]={...saved,...raw};logger.warn('作者图片暂不可读取：'+candidate.filename);}
+    }
+  }));
+  if(limited)throw Error('作者图源要求冷却，保留上次目录');
+  return checked.filter(Boolean);
+}
+
 async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers),ayomiOptions={},openGameArtOptions={}}={}){
   if(providerIds.some(provider=>!Object.hasOwn(feeds.providers,provider)))throw Error('壁纸来源不存在');
   const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},continuation:{},records:{}};
@@ -205,6 +248,8 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
         records=await collectPepper({fetcher,dimensions,old,logger});
       }else if(provider==='morevna'){
         records=await collectMorevna({fetcher,dimensions,old,logger});
+      }else if(provider==='revoy'){
+        records=await collectRevoy({fetcher,dimensions,old,logger,existingWorks:feeds.normalizeFeed(catalog.records.pepper||previous?.records?.pepper,'pepper')});
       }else if(provider==='ayomi'){
         ayomiResult=await collectAyomi({...ayomiOptions,fetcher,dimensions,old,logger,now,continuation:previous?.version===1?previous.continuation?.ayomi:null});
         records=ayomiResult.records;catalog.continuation.ayomi=ayomiResult.continuation;if(ayomiResult.interrupted)failures++;
@@ -224,7 +269,7 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
           }catch(e){logger.warn('跳过无法读取的馆藏作品：'+id);}
         }
       }
-      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi','opengameart'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
+      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi','opengameart','revoy'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
       if(provider==='met')items=[...new Map([...old,...items].map(item=>[item.id,item])).values()];
       catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=(ayomiResult&&!ayomiResult.updated||sceneResult&&!sceneResult.updated)?previous?.updatedAt?.[provider]||null:now.toISOString();
       logger.log(feeds.providers[provider].name+'：'+items.length+' 张');
@@ -270,5 +315,5 @@ async function main(){
   if(failures)console.warn('部分图源未更新，站点构建可继续使用已有目录。');
 }
 
-module.exports={jpegDimensions,imageDimensions,readDimensions,metURL,repositoryFiles,collectRepository,collectPepper,collectMorevna,refreshCatalog,mergeCatalogs};
+module.exports={jpegDimensions,imageDimensions,readDimensions,metURL,repositoryFiles,collectRepository,collectPepper,collectMorevna,collectRevoy,refreshCatalog,mergeCatalogs};
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1;});

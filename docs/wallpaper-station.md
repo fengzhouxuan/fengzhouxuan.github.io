@@ -28,6 +28,7 @@
 - CI 恢复缓存前保存提交中的官方图源初始目录，再按各来源最后成功更新时间选择较新的已验证目录，避免旧缓存覆盖本次新增图源。较新的空目录仍然保留，不用旧初始图片恢复上游已删除的作品。此合并行为已通过模拟缓存与断网测试，实际 Actions 执行尚待发布后验证。
 - 新增三个作者发布的壁纸仓库：LibrePixels（AI 风景、幻想和动漫风场景，CC0）、Folium Creations（3D、抽象、自然摄影，CC BY 4.0）、metaory/Midjourney（AI 赛博朋克、像素城市等，CC0）。首轮实际收录分别为 107、30、146 张；网络超时或尺寸不合格的文件不计入。每次同步先核对图片许可声明，再完整读取目录；保留作者和文件页，并检查真实 JPEG、PNG、WebP 尺寸。图库只保存元数据，GitHub 仓库原图通过 jsDelivr 访问，失败时尝试 Fastly CDN 上的同一文件；GitLab 原图通过官方文件 API 访问。首次同步以三路并发检查，之后用 Git blob 摘要判断文件是否变化；相同摘要图片去重。LibrePixels 只收录 `_librepixels_` 作者文件，并排除目前识别到的路飞和马里奥角色文件及显式成人关键词。此筛选依赖作者声明和文件命名，不能证明所有未声明的第三方权利均已清除。
 - Agundur 的作者仓库补充 22 张实际尺寸为 3840×2160 的壁纸，21 张 CC BY 4.0、1 张 CC BY-SA 4.0。每次同步从作者 README 的每个作品段落分别绑定文件、标题和许可链接，再与完整 Git 文件目录及内容摘要绑定；不把图片许可扩展到仓库中的其他文件，预览目录也不计作新壁纸。尺寸不足的文件、缺少逐图许可的新增文件和含糊的许可段落不收录；读取失败保留原目录，完整读取后已退出许可列表的图片移除。动漫旅人、城市和幻想场景按作品名称与作者说明分类；作者未明确说明创作方式，因此页面标注“创作方式未注明”，不宣称手绘或无 AI。许可及原始水印保留，预览仅等比例缩小为 WebP，高清入口仍是作者原 PNG；有相同方式共享要求的图片保留该许可。
+- David Revoy 的 Misc 画廊单独作为原创绘画图源，不与 Pepper&Carrot 正式角色插画混为同一分类。同步先发现官方作品页，再逐图核对 David Revoy 署名、作品标题、CC BY 4.0 或 CC BY-SA 4.0 以及相互对应的原图和作者预览。按文件名与标题过滤文章配图、漫画条、教程、标志、贴纸、明确成人内容及已识别的其他作品角色；这不是独立的逐像素内容与权利核查。仅收录长边至少 1600、短边至少 800 的图片，并确认作者预览不放大且比例一致。与正式插画区同名同日期的已验证作者文件去重，优先保留既有来源；不同日期的其他版本不凭短标题合并。每次同步读取原图与预览的 HTTP 修改时间；未改变时复用尺寸，改变时重新读取图片头部。目录中的版本签名是地址和修改时间的 SHA-256，不是原图内容摘要。预览先核对作者 JPEG 格式及实际尺寸，再等比例缩小到长边不超过 1280 并转为 WebP，保留原许可和修改方式说明；缓存另有实际 WebP 字节的 SHA-256 校验，原图下载入口仍是作者原文件。作品退出完整目录或成功读到的作品页不再具备许可时移除；暂时无法读取时保留已验证记录，429 / 503 停止本轮并保留上次目录。图源没有保证每日新增作品。
 - 各仓库支持自动同步新增图片，但不保证上游每天上传。来源网络失败或尺寸无法读取时保留已验证目录；成功读到空的完整目录时移除该来源旧图片，避免把已经删除的文件持续展示。
 - Wallpapers.com 目前仅作为原站推荐入口，提供二次元、自然风景、4K、手机和电脑分类。在对应分类或设备筛选旁可直接打开原站，在全部内容下可跳到推荐区。其官方 API 示例及实测响应未给出可核验的逐张开放许可字段，详情页的 `Free / Attribution required` 不自动视为 CC0 或 CC BY，因此不接入自动图片采集，不载入它的缩略图、原图或脚本，也不计入站内图库数量。预览、许可查看及下载在原站完成；以后只有核实到明确允许展示的许可才可加入站内目录。
 
@@ -68,7 +69,7 @@ OpenGameArt 预览使用已经同步到本站的 CC0 原文件，不重复请求
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs test/wallpapers.revoy.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
@@ -102,6 +103,8 @@ OpenGameArt 已核对的作者作品页：<https://opengameart.org/content/40-ga
 
 继续核对的作者来源：Agundur 的逐图许可及正式图片位于 <https://github.com/Agundur-KDE/Wallpapers>，已实际接入。Unicorn Creates 另有三张 1920×1080 的数字绘画天空（CC BY 4.0）：<https://unicorncreates.itch.io/sky-backgrounds>；Clifton Lambert 有三张手绘扫描场景，作者声明 1920×1080 与 CC0：<https://prismshard77.itch.io/handpainted-visual-novel-backgrounds>，仍是未下载接入的候选。Screaming Brain Studios 的下载页明确声明所有公开素材包为 CC0，并允许重新分发：<https://screamingbrainstudios.com/downloads/>；尚未把其中的材质、贴图或素材组件当成完整壁纸收录。
 
+David Revoy 的作者 Misc 画廊：<https://www.peppercarrot.com/en/artworks/misc.html>；历史绘画重新开放的作者说明：<https://www.davidrevoy.com/article1074/releasing-my-vintage-artwork-as-cc-by-with-source>；逐作品许可示例：<https://www.peppercarrot.com/en/viewer/misc__2026-07-12_The-Scythe-Mage-Between-Worlds_by-David-Revoy.html>。本轮实际读取社区插画区的 194 个作品页，只有 4 件标注 CC 许可，其余 190 件明确要求另行取得作者许可，未按整库接入；保留公开展示许可不能推及博客壁纸下载图库。作者 Misc 区实际读取 246 个作品页，193 件标注 CC BY 4.0、33 件 CC BY-SA 4.0、20 件未标注开放许可。这些数量是来源页核对结果，不等于尺寸、内容与署名筛选后的收录量。
+
 动漫大图库候选 <https://huggingface.co/datasets/alfredplpl/anime-with-caption-cc0> 的发布者声明 15,000 张原创提示词生成的 AI 插画并放弃版权，标签为 CC0；实际读取前五张的官方数据 API，均标为 1024×1024，尚未下载整个数据集或独立验证全部图片。不能把总条数当成符合高清尺寸的壁纸数量。其他来源中，Spiral Atlas 的住宅包虽然在 OpenGameArt 标为 CC BY 3.0，但其当前作者页及作者答复明确禁止重新分发原图片：<https://spiralatlas.itch.io/house-visual-novel-backgrounds>，存在许可说明冲突，未接入。NoranekoGames 的动漫场景使用自定规则并限制与 AI 的相关使用，没有按统一开放许可接入：<https://noranekogames.itch.io/yumebackground>。
 
 Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个人及非商业许可说明：<https://wallpapers.com/faq/licensing-and-help/can-i-use-wallpaperscom-wallpapers-commercially/>。原站入口不代表其中全部图片为开放授权。
@@ -123,5 +126,7 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 2026-10-02 的 OpenGameArt 增量实际同步 47 张，长边范围 1600–3300 像素，原图合计 30,116,123 字节；新增 WebP 预览合计 2,305,006 字节，与既有来源合计 543 张本地预览。逐文件核对了 47 个原图的 SHA-256、47 个预览的原作比例、源文件与发布文件字节一致性，以及六个相关脚本/目录文件的构建一致性。111 项测试通过，所加载模块行覆盖率 98.03%，新增图源与同步模块行覆盖率均为 100%。本机浏览器显示 OpenGameArt 47 张，幻想筛选为 4 张；四张预览实际解码为 1280×960 或 1280×989，作者、CC0 及原始尺寸可见。`cloud farm` 从页面高清入口实际下载为原始 JPEG，3264×2448、2,157,267 字节，摘要与已验证文件一致；收藏刷新后恢复，测试收藏随后清理。截图为项目工作区上层的 `wallpaper-opengameart-scenes.png`。没有新增手机实机验收，也未推送或验证真实 Actions/Pages 发布。
 
 2026-10-02 的 Agundur 增量实际同步 22 张，全部读取原图头部确认 3840×2160。新增 22 张等比例 WebP 预览，总计 1,655,498 字节，与既有来源合计 565 张本地预览；全部新预览为 1280×720，源文件与发布文件字节一致。115 项测试通过，所加载模块行覆盖率 98.07%，仓库图源模块行及函数覆盖率均为 100%，Hexo 构建通过。本机浏览器显示该图源 22 张、二次元分类 3 张，三张预览实际解码成功；已核对 CC BY 与 CC BY-SA 的逐图许可、作者署名及预览修改说明。`Sunset Dreamer` 从页面高清入口实际下载为 3840×2160 PNG，11,750,118 字节，Git blob SHA-1 与已验证目录一致；收藏刷新后恢复，测试收藏随后清理。截图为项目工作区上层的 `wallpaper-agundur-anime.png`。实际像素尺寸不能证明未经放大，作者也未明确说明是否使用 AI。没有新增手机实机验收，也未推送或验证真实 Actions/Pages 发布。
+
+2026-10-02 的 David Revoy Misc 增量实际同步并去重后收录 138 张，136 张 CC BY 4.0、2 张 CC BY-SA 4.0，原图长边范围 1662–7000 像素；其中竖屏 37 张，按名称分类为二次元 10 张、幻想 15 张。全部 138 张作者预览等比例压缩为 WebP，总计 10,730,374 字节，比压缩前的 53,659,387 字节减少约 80%，与既有来源合计 703 张本地预览；逐文件核对格式、尺寸、比例、实际 WebP SHA-256，以及源文件与发布文件字节一致性。123 项测试通过，所加载模块行覆盖率 98.21%，新增图源模块行与函数覆盖率均为 100%，Hexo 构建通过，六个相关脚本与目录文件的发布字节一致。本机浏览器显示图源 138 张，幻想加横屏筛选为 9 张，这九张本地 WebP 均成功解码；`Fantasy Landscape` 从页面高清入口实际下载为 3948×2000 JPEG，3,047,128 字节，收藏刷新后恢复，测试收藏随后清理。另核对了 `Owl princess` 的 2500×3452 原图入口、CC BY-SA 4.0、署名及预览修改说明。截图为项目工作区上层的 `wallpaper-revoy-fantasy.png`。名称分类不能替代图像内容核查，预览体积减少也不等同于已测得相同比例的访问提速。没有新增手机实机验收，也未推送或验证真实 Actions/Pages 发布。
 
 2026-10-02 真实同步已收录 Commons 分类记录 875 条，按文件 ID 去重后为 862 张图片。各分类记录数为风景 498、城市 258、星空 100、动物 10、二次元 9，一张图片可以属于多个分类。城市分类在第六页之后遭遇 HTTP 429，已保存这些页面和续传游标；二次元分类本轮连接失败，保留已有目录。不能把未读取的后续页面计入图库，也不保证上游图片服务持续可用。新增恢复和分类合并逻辑后共 55 项测试通过；请求重试、正文超时、部分进度保存及游标续传有模拟测试，部分进度保存也已经在真实城市目录上验证。浏览器已验证 Commons 风景筛选为 498 张，与已验证的目录一致。仓库图片的首次同步和预览生成已实际执行。浏览器加载数量可能随艺术馆实时结果、已有缓存和加载失败而变化。
