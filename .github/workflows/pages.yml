@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - wallpaper-station
   pull_request:
     branches:
       - main
