@@ -11,11 +11,16 @@
   ];
   const patterns=['山野','柔光','轨道','几何'];
   const cacheKey='rabbit-wallpapers-art-v2';
+  const sunsetAlias=[/\b(?:sunset|dusk|twilight)\b/];
   const searchAliases=Object.freeze({
     猫耳:[/\b(?:catgirls?|cat[ -]ears?|neko(?:mimi|[ -]girls?)?)\b/],
     狐耳:[/\b(?:foxgirls?|fox[ -]ears?)\b/],
     少女:[/\b(?:girls?|catgirls?|foxgirls?|neko[ -]girls?)\b/],
     教室:[/\bclassrooms?\b/],
+    校服:[/\b(?:school|schoolgirl|sailor)[ -]uniforms?\b/],
+    卫衣:[/\bhoodies?\b|\bhooded[ -]sweatshirts?\b/],
+    湖边:[/\blakeside\b|\blake[ -]shores?\b|\b(?:near|by|beside|along)[ -](?:a[ -]|the[ -])?lake\b/],
+    天台:[/\brooftops?\b|\broof[ -]terraces?\b/],
     壁炉:[/\bfireplaces?\b/],
     读书:[/\b(?:reads?|reading)\b/,/\bbooks?\b/],
     摩天轮:[/\bferris[ -]wheel\b/],
@@ -25,7 +30,9 @@
     山川:[/\bmountains?\b/],
     夜景:[/\b(?:night|nighttime|nightscape|midnight)\b/],
     雨夜:[/\b(?:rain|rainy|raining)\b/,/\b(?:night|nighttime|midnight)\b/],
-    夕阳:[/\b(?:sunset|dusk|twilight)\b/],
+    雨天:[/\b(?:rain|rainy|raining|rainfall|drizzle|drizzling)\b/],
+    夕阳:sunsetAlias,
+    日落:sunsetAlias,
     樱花:[/\b(?:sakura|cherry blossoms?)\b/],
     雪景:[/\b(?:snow|snowy|snowfall)\b/],
     星空:[/\b(?:starry|stars|stargazing|galaxy|galaxies|milky way)\b/],
