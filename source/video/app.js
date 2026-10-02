@@ -4,10 +4,10 @@ import {
   loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation,
 } from './core.js';
 import { createCatalogLoader, catalogSummary } from './catalog.js';
-import { createHomeLoader } from './home.js';
+import { createHomeLoader, requestHomeSources } from './home.js';
 import { sameFavorite, snapshotFavorite, favoriteSummary, acknowledgeFavorite, createWatchlistRefresher } from './watchlist.js';
 import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resumePosition, playbackSummary, screenPresentation, matchingEpisode, matchingLine } from './playback.js';
-import { createPlaybackExperience } from './experience.js';
+import { createPlaybackExperience, createSourceHealth } from './experience.js';
 
 const $ = id => document.getElementById(id);
 const config = window.VIDEO_CONFIG || {};
@@ -17,6 +17,7 @@ try { storage = window.localStorage; } catch { storage = null; }
 let navigationStorage;
 try { navigationStorage = window.sessionStorage; } catch { navigationStorage = null; }
 const listNavigation = createListNavigation(navigationStorage);
+const sourceHealth = createSourceHealth({ storage });
 if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
 const state = {
   route: { view: '' }, lastList: listNavigation.get(), hero: '', home: null,
@@ -312,18 +313,32 @@ function renderHome() {
 
 function renderSources() {
   $('source-info').replaceChildren(...SOURCES.map(source => {
-    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · 搜索要求验证' : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '尚未查询'));
+    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · 搜索要求验证' : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '本次尚未查询'));
+    for (const [operation, label] of [['search', '搜索'], ['browse', '分类']]) {
+      const value = sourceHealth.profile(source.id, operation);
+      if (!value.observed) continue;
+      const message = value.cooldownMs ? '暂时避开 · 约 ' + Math.ceil(value.cooldownMs / 60000) + ' 分钟后可再次自动查询，可手动重试'
+        : value.failures ? '最近连接失败，下次查询可再次尝试' : '近期查询约 ' + (value.latencyMs / 1000).toFixed(1) + ' 秒';
+      item.append(el('small', '', label + '：' + message));
+    }
     return item;
   }));
 }
 
-async function request(source, options) {
+async function request(source, options = {}) {
+  const operation = options.id ? 'detail' : options.mode === 'browse' ? 'browse' : 'search';
+  if (operation !== 'detail' && !options.retrySources && sourceHealth.profile(source, operation).cooldownMs) {
+    const error = new Error('这个来源最近连接失败，已暂时避开；可以手动重试'); error.name = 'SourceCooldownError'; throw error;
+  }
+  const ticket = sourceHealth.begin(source, operation);
   const started = performance.now();
   try {
     const response = await requestVideos(source, { ...options, base: config.apiBase || '' });
+    sourceHealth.finish(ticket, { successful: true, elapsedMs: performance.now() - started, ignored: options.signal?.aborted || document.hidden || navigator.onLine === false });
     state.health.set(source, '目录查询成功 · ' + ((performance.now() - started) / 1000).toFixed(1) + ' 秒');
     renderSources(); return response;
   } catch (error) {
+    sourceHealth.finish(ticket, { successful: false, elapsedMs: performance.now() - started, ignored: error.name === 'AbortError' || options.signal?.aborted || document.hidden || navigator.onLine === false });
     if (error.name !== 'AbortError') state.health.set(source, '目录查询失败，可切换其他来源');
     renderSources(); throw error;
   }
@@ -331,10 +346,8 @@ async function request(source, options) {
 
 async function homeRequest(options) {
   const route = options.mode === 'browse' ? { view: 'browse', type: options.type ?? CATEGORIES.find(cat => cat.id === options.category).types[0][0] } : { view: 'search' };
-  for (const source of SOURCES.filter(item => supportsSource(item, route))) {
-    try { return await request(source.id, options); } catch { /* Try the next configured source. */ }
-  }
-  throw new Error('来源暂时无法连接');
+  const sources = sourceHealth.order(SOURCES.filter(item => supportsSource(item, route)).map(source => source.id), route.view, { retry: options.retrySources });
+  return requestHomeSources(sources, options, request);
 }
 
 function resetFilters() {
@@ -424,6 +437,7 @@ function renderCatalog() {
   const messages = {
     loading: progress.count ? (state.catalog.restoring ? '正在恢复目录，已返回的影片可以先看…' : '已显示返回的影片，其他来源仍在查询…') : (state.catalog.restoring ? '正在恢复上次浏览的目录…' : '正在查询目录…'), scanning: '正在补查匹配影片…', paused: '查询已暂停，可继续查询剩余目录。',
     failed: progress.failed.map(sourceName).join('、') + '查询未完成，可继续查询重试。',
+    deferred: progress.deferred.map(sourceName).join('、') + '最近连接失败，已暂时避开；可继续查询立即重试。',
     partial: progress.filtered ? '还有目录未查完，可继续查找匹配影片。' : '还有更多影片可以浏览。',
     limited: '已达到本次查询上限，可换片名搜索更多影片。', complete: '所选来源本次返回的目录已查完。',
   };
@@ -432,6 +446,7 @@ function renderCatalog() {
   const scope = ['查询进度 ' + progress.queried + ' / ' + progress.total + ' 页'];
   if (progress.limited) scope.push('每个来源最多查询 20 页');
   if (progress.missingMetadata) scope.push('部分影片缺少筛选信息，结果可能不完整');
+  if (progress.deferred.length && progress.phase !== 'deferred') scope.push(progress.deferred.map(sourceName).join('、') + '暂时避开，可继续查询重试');
   $('catalog-scope').textContent = scope.join(' · ');
   $('catalog-progress').max = Math.max(1, progress.total); $('catalog-progress').value = progress.queried;
   $('pause-catalog').hidden = !state.catalog.loading;
@@ -439,7 +454,7 @@ function renderCatalog() {
   $('catalog-empty-hint').textContent = progress.hasMore ? '继续查询剩余目录，或调整筛选条件。' : '试试调整筛选或搜索片名；这不代表其他来源也没有资源。';
   $('load-more').hidden = !progress.hasMore;
   $('load-more').disabled = state.catalog.loading;
-  $('load-more').textContent = state.catalog.loading ? '正在查询…' : progress.filtered || progress.failed.length ? '继续查询' : '加载更多影片';
+  $('load-more').textContent = state.catalog.loading ? '正在查询…' : progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
   if (focusedControl && (focusedControl.hidden || focusedControl.disabled)) {
     const target = state.catalog.loading ? $('pause-catalog') : !progress.hasMore ? $('filter-toggle') : $('load-more');
     target.focus({ preventScroll: true });
@@ -495,7 +510,7 @@ async function loadCatalog(more = false, force = false, restore = null) {
   if (route.view === 'search' && !route.query) { $('query').focus(); return; }
   if (more) return catalogLoader.more();
   const previousKey = state.catalog.key;
-  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages });
+  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages, retrySources: force });
   if (force || previousKey !== state.catalog.key) for (const key of ['year', 'area', 'status']) $(key + '-filter').scrollLeft = 0;
   return pending;
 }
@@ -1323,6 +1338,7 @@ $('retry-play').addEventListener('click', retryCurrentPlayback);
 $('early-switch').addEventListener('click', () => { if (automaticPlaybackAllowed()) playbackError('已请求切换备用线路', state.playbackVersion, true); });
 $('reload-play').addEventListener('click', retryCurrentPlayback);
 $('clear-experience').addEventListener('click', () => { playbackExperience.clear(); if (state.current) renderWatch(); toast('近期选线记录已清除，当前播放继续。'); });
+$('clear-source-health').addEventListener('click', () => { sourceHealth.clear(); renderSources(); toast('查询记录已清除，下次查询按默认顺序尝试。'); });
 $('change-source').addEventListener('click', () => {
   const variants = state.group?.variants || []; const index = variants.findIndex(item => item.uid === state.current?.uid);
   if (variants.length > 1) switchVariant(variants[(index + 1) % variants.length]);

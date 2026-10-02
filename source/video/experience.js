@@ -6,6 +6,74 @@ const suspended = new Set(['paused', 'blocked', 'offline', 'background', 'seekin
 const phases = new Set(['loading', 'playing', 'buffering', 'recovering', 'failed', ...suspended]);
 const validKey = key => typeof key === 'string' && key.length <= 100 && SOURCES.some(source => key.startsWith(source.id + '|')) && !/[:<>?#]|\/\//.test(key) && key.split('|').length === 2 && Boolean(key.split('|')[1]);
 
+export function createSourceHealth({ storage = null, now = () => Date.now(), lifetime = 86400000 } = {}) {
+  if (typeof now !== 'function' || !Number.isFinite(lifetime) || lifetime <= 0) throw new Error('来源记录配置不正确');
+  const key = 'video-source-health'; const operations = ['search', 'browse', 'detail'];
+  const valid = (source, operation) => SOURCES.some(item => item.id === source) && operations.includes(operation);
+  const identity = value => value.source + '|' + value.operation;
+  let records = []; let previousRaw; const pending = new Map();
+
+  function refresh() {
+    try {
+      const raw = storage?.getItem(key);
+      if (raw !== previousRaw) {
+        previousRaw = raw;
+        let saved; try { saved = JSON.parse(raw || '[]'); } catch { saved = []; }
+        records = Array.isArray(saved) ? saved.slice(0, 100).filter(value => value && valid(value.source, value.operation)
+          && ['updatedAt', 'startedAt', 'retryAt'].every(field => Number.isFinite(value[field]) && value[field] >= 0)
+          && value.startedAt <= value.updatedAt && value.retryAt <= value.updatedAt + 300000
+          && Number.isInteger(value.failures) && value.failures >= 0 && value.failures <= 5
+          && (value.latencyMs === null || Number.isFinite(value.latencyMs) && value.latencyMs >= 0 && value.latencyMs <= 120000))
+          .map(({ source, operation, updatedAt, startedAt, retryAt, failures, latencyMs }) => ({ source, operation, updatedAt, startedAt, retryAt, failures, latencyMs })) : [];
+      }
+    } catch { /* Local query observations are optional. */ }
+    const time = now();
+    records = [...new Map(records.filter(value => value.updatedAt <= time && time - value.updatedAt <= lifetime)
+      .sort((a, b) => a.updatedAt - b.updatedAt).map(value => [identity(value), value])).values()];
+  }
+
+  function profile(source, operation) {
+    refresh();
+    const record = records.find(value => value.source === source && value.operation === operation);
+    const cooldownMs = record ? Math.max(0, record.retryAt - now()) : 0;
+    return { observed: Boolean(record), latencyMs: record?.latencyMs ?? null, failures: record?.failures || 0,
+      retryAt: record?.retryAt || 0, cooldownMs, score: (record?.latencyMs ?? 4000) + (record?.failures || 0) * 20000 };
+  }
+
+  function begin(source, operation) {
+    if (!valid(source, operation)) return null;
+    const ticket = { source, operation, startedAt: now() };
+    pending.set(identity(ticket), ticket); return ticket;
+  }
+
+  function finish(ticket, { successful, elapsedMs, ignored = false } = {}) {
+    if (!ticket || pending.get(identity(ticket)) !== ticket) return false;
+    pending.delete(identity(ticket));
+    if (ignored || typeof successful !== 'boolean' || !Number.isFinite(elapsedMs) || elapsedMs < 0 || elapsedMs > 120000) return false;
+    refresh(); const time = now();
+    const previous = records.find(value => identity(value) === identity(ticket));
+    if (ticket.startedAt > time || previous && previous.startedAt > ticket.startedAt) return false;
+    const failures = successful ? 0 : Math.min(5, (previous?.failures || 0) + 1);
+    const value = { source: ticket.source, operation: ticket.operation, startedAt: ticket.startedAt, updatedAt: time, failures,
+      latencyMs: successful ? Math.round(previous?.latencyMs == null ? elapsedMs : previous.latencyMs * 0.4 + elapsedMs * 0.6) : previous?.latencyMs ?? null,
+      retryAt: successful ? 0 : time + Math.min(300000, 60000 * 2 ** (failures - 1)) };
+    records = records.filter(record => identity(record) !== identity(ticket)); records.push(value);
+    const raw = JSON.stringify(records);
+    try { if (storage) { storage.setItem(key, raw); previousRaw = raw; } } catch { /* Keep the current-tab observation when storage is unavailable. */ }
+    return true;
+  }
+
+  function order(sources, operation, { retry = false } = {}) {
+    if (!Array.isArray(sources) || !operations.includes(operation)) throw new Error('来源查询范围不正确');
+    return [...new Set(sources)].filter(source => valid(source, operation)).map(source => ({ source, ...profile(source, operation) }))
+      .filter(value => retry || !value.cooldownMs).sort((a, b) => a.score - b.score).map(value => value.source);
+  }
+
+  function clear() { records = []; pending.clear(); try { storage?.removeItem(key); previousRaw = null; } catch {} }
+  refresh();
+  return { profile, begin, finish, order, clear };
+}
+
 export function playbackLineKey(item, line) {
   const name = plainText(item?.lines?.[line]?.name).slice(0, 80);
   const key = item?.source + '|' + name;
