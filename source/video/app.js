@@ -1092,7 +1092,7 @@ async function prepareVideo(route) {
     state.detailLoading = false; $('detail-status').textContent = error.message;
     playbackExperience.observe('failed'); playbackExperience.finish(); renderPlaybackExperience(true);
     $('playback-feedback').hidden = false;
-    $('play-status').textContent = error.message; screenMessage('未能获取剧集，请返回影片列表重试。');
+    $('play-status').textContent = error.message; screenMessage('暂时未能取得剧集，可以重试或返回列表。');
   }
 }
 
