@@ -115,6 +115,32 @@ test('hand-painted package extracts complete backgrounds and keeps native 4:3 di
   const paused=await sync({outputDir,old,workIds:['vnstyle'],fetcher:catalog(pausedMap)});assert.equal(paused.interrupted,true);assert.deepEqual(paused.records,[original,saved]);
 });
 
+test('hand-painted hallway and rain releases bind native filenames to Chinese titles and CC BY 4.0',async()=>{
+  const data=await sharp(await jpg('#dbc69b',2000,1124)).png().toBuffer();
+  for(const [key,fileURL,title] of [['hallway','entrance_-_brightly_lit_0.png','白昼玄关'],['hallway','entrance_-_dark_night.png','夜间玄关'],['rainy','rainy_2.png','雨天云层']]){
+    const [raw]=parseWork(workPage(key,data,{fileURL,license:'CC-BY 4.0'}),key),record=await inspectImage(data,raw,fileURL),[item]=oga.normalizeRecords([record]);
+    assert.ok(item.title.endsWith(title));assert.equal(item.artist,'LisadiKaprio');assert.equal(item.license,'CC BY 4.0');assert.equal(item.width,2000);assert.equal(item.height,1124);assert.ok(item.categories.includes('anime'));
+    assert.deepEqual(parseWork(workPage(key,data,{fileURL,license:'CC0'}),key),[]);
+    assert.deepEqual(oga.normalizeRecords([{...record,member:'preview.png'}]),[]);
+    assert.deepEqual(oga.normalizeRecords([{...record,sourceFile:oga.origin+'/sites/default/files/character.png'}]),[]);
+  }
+  assert.deepEqual(parseWork(workPage('hallway',data,{fileURL:'entrance_-_collage.png'}),'hallway'),[]);
+});
+
+test('hallway sync keeps both native scenes and preserves unrelated releases',async t=>{
+  const outputDir=await directory(t),bright=await sharp(await jpg('#dbc69b',2000,1124)).png().toBuffer(),dark=await sharp(await jpg('#22345b',2000,1124)).png().toBuffer();
+  const old=await record(),pageURL=oga.origin+'/content/'+oga.works.hallway.slug;
+  const brightPage=workPage('hallway',bright,{fileURL:'entrance_-_brightly_lit_0.png',fileID:164376}),darkPage=workPage('hallway',dark,{fileURL:'entrance_-_dark_night.png',fileID:164377});
+  const darkLink=darkPage.match(/<a href="[^"]+" type="image\/png[^>]+>File<\/a>/)[0],page=brightPage.replace('>File</a>','>File</a>'+darkLink);
+  const map=new Map([[oga.origin+'/robots.txt','User-agent: *\nCrawl-delay: 10'],[pageURL,page],[oga.origin+'/sites/default/files/entrance_-_brightly_lit_0.png',bright],[oga.origin+'/sites/default/files/entrance_-_dark_night.png',dark]]);
+  const first=await sync({outputDir,old:oga.normalizeRecords([old]),workIds:['hallway'],fetcher:catalog(map)});
+  assert.equal(first.records.length,3);assert.deepEqual(first.records.find(record=>record.work==='painted'),old);
+  const scenes=first.records.filter(record=>record.work==='hallway');assert.equal(scenes.length,2);assert.deepEqual(scenes.map(record=>record.title),['手绘走廊 · 白昼玄关','手绘走廊 · 夜间玄关']);
+  for(const [i,record] of scenes.entries())assert.deepEqual(await fs.readFile(path.join(outputDir,record.revision+'.png')),i===0?bright:dark);
+  map.set(pageURL,workPage('hallway',bright,{fileURL:'entrance_-_brightly_lit_0.png',fileID:164376}));
+  const second=await sync({outputDir,old:oga.normalizeRecords(first.records),workIds:['hallway'],fetcher:catalog(map)});assert.equal(second.records.length,2);assert.ok(!second.records.some(record=>record.fileID===164377));
+});
+
 test('collector preserves every original byte, follows crawl delay and updates archive contents automatically',async t=>{
   const outputDir=await directory(t),data=await jpg(),second=await jpg('#a47652'),archive=zipSync({[filename]:data,'40-game-backgrounds-1-painted-style/bg-02.JPG':second}),waits=[];
   const map=resources('painted',archive),options={outputDir,workIds:['painted'],fetcher:catalog(map),intervalMs:0,wait:async ms=>waits.push(ms)};
