@@ -8,6 +8,32 @@ export function screenPresentation(width, height, mode = 'auto') {
   return { portrait, ratio };
 }
 
+export function playbackQuality(levels = [], { selected = -1, current = -1, width = 0, height = 0, ready = false, native = false, paused = false } = {}) {
+  const dimension = value => Number.isInteger(value) && value > 0 && value <= 16384 ? value : 0;
+  const resolution = (w, h) => w && h ? Math.min(w, h) + 'p' : '';
+  const choices = (Array.isArray(levels) ? levels.slice(0, 100) : []).flatMap((level, index) => {
+    if (!level || typeof level !== 'object' || level.audioOnly === true) return [];
+    const w = dimension(level.width); const h = dimension(level.height);
+    const bitrate = Number.isFinite(level.bitrate) && level.bitrate > 0 && level.bitrate <= 1000000000 ? level.bitrate : 0;
+    return [{ index, width: w, height: h, bitrate, label: resolution(w, h) || (bitrate ? (bitrate / 1000000).toFixed(1) + ' Mbps' : '档位 ' + (index + 1)) }];
+  });
+  const counts = new Map();
+  for (const choice of choices) counts.set(choice.label, (counts.get(choice.label) || 0) + 1);
+  for (const choice of choices) {
+    if (counts.get(choice.label) > 1) choice.label += (choice.bitrate ? ' · ' + (choice.bitrate / 1000000).toFixed(1) + ' Mbps' : '') + ' · 档位 ' + (choice.index + 1);
+  }
+  choices.sort((a, b) => Math.min(b.width, b.height) - Math.min(a.width, a.height) || b.bitrate - a.bitrate || a.index - b.index);
+  const selectable = !native && choices.length > 1;
+  const selection = selectable && Number.isInteger(selected) && choices.some(choice => choice.index === selected) ? selected : -1;
+  const target = choices.find(choice => choice.index === selection);
+  const w = dimension(width); const h = dimension(height);
+  const actual = resolution(w, h);
+  const currentLabel = actual ? '当前画面：' + actual + ' · ' + w + '×' + h : '画面分辨率尚未取得';
+  const pending = Boolean(target && (current !== selection || (w && h && target.width && target.height && (w !== target.width || h !== target.height))));
+  const note = !ready ? '正在读取可用清晰度…' : native ? '清晰度由浏览器自动适配，可尝试其他来源。' : !selectable ? '此来源未提供多个清晰度，可尝试其他来源。' : pending ? '已选择 ' + target.label + '；' + (paused ? '继续播放后切换。' : '缓冲片段播放后生效。') : selection < 0 ? '自动根据网络情况选择清晰度。' : '已使用 ' + target.label + '。';
+  return { choices, selectable, selected: selection, currentLabel, note, pending };
+}
+
 export function playbackSummary(item, line = 0) {
   const episodes = item?.lines?.[line]?.episodes || [];
   const count = episodes.length;
