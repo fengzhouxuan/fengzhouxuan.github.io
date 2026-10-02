@@ -12,6 +12,9 @@ menu:
   音乐站:
     link: /music/
     icon: music
+  视频站:
+    link: /video/
+    icon: clapperboard
   归档:
     link: /archives/
     icon: archive
