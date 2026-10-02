@@ -139,6 +139,18 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 
 2026-10-02 新核对并接入 <https://github.com/Sermoris/sermor-ai-wallpapers> 与 <https://github.com/Sermoris/sermor-ai-generated-wallpapers>。作者的 README 分别明确将其 AI 图片按 CC0 和 CC BY-NC-SA 4.0 发布，LICENSE 内容也对应，非商业图库不描述为可任意使用的开源图片。实际收录的原始 PNG 尺寸为 1920×1080、3072×1728、4096×2304 或 6144×4096；同名尺寸版本去重后共 191 张，文件摘要全部不同，也没有与既有仓库图片的相同摘要。这是文件级去重，不是逐像素相似画面检索。文件名明确含 Anime 的作品仅一张，不把 191 张全部算成二次元；这是增加风景、幻想与赛博内容的作者来源。
 
+2026-10-02 新核对的 Blender Studio 原创动画来源：<https://studio.blender.org/projects/wing-it/pages/licensing/> 和 <https://studio.blender.org/projects/spring/pages/about/> 分别明确把项目发布内容按 CC BY 4.0 授权，允许署名再分发；标志、商标及非项目制作的第三方材料除外。<https://studio.blender.org/remixing/> 要求按每个素材的具体许可判断，因此不能把所有 Blender 项目统一视为 CC BY 4.0。公开图库同时包含工程、草稿、模型、视频和会员素材，尚未整体接入本站。
+
+实际通过 Wing It 的 Press 目录 <https://studio.blender.org/projects/wing-it/3c402f7c9ab362/> 和 Spring 的 Press 目录 <https://studio.blender.org/projects/spring/5ca60d7ff6c1380028000924/> 发现官方详情入口。素材 `7037`（Wing It - Shot Frames）和 `889`（Frames Selection）的详情分别绑定 Beau Gerbrands、Francesco Siddi、Free 标记、CC BY 4.0 链接及正式 ZIP 下载入口。匿名下载完整包后，实际检查到 9 张 1920×1080 JPEG 和 5 张 2048×858 PNG，共 14 张完整电影画面；Spring 的描述称七张，但实际当前包只有五张有效图片，排除 `__MACOSX` 辅助文件。两个包分别为 2,307,730 和 16,674,144 字节，尚未作为本站新增壁纸计数。后续可沿用构建时校验素材包、提取单图、缓存原字节及生成 WebP 的方式；应保留项目和逐素材署名，不能让用户下载 ZIP 代替壁纸单图。
+
+Wing It 的免费概念画 `6310`（Cockpit Interior）单独标明 Vivien Lulkowski、CC BY 4.0 和 2318×1249，存在正式 JPEG 下载入口；该尺寸目前来自作品页，尚未下载这个文件独立验证。Spring 的概念画 `347` 明确显示锁定及 Login to Download，仅有公开缩略图，未绕过会员限制。另有免费角色测试 `6392` 为 725×545，不符合本站尺寸条件。免费、授权和适合壁纸三个条件需分别核对；原创三维动画画面可补充动画电影与幻想题材，不能都归为日式二次元。
+
+新增作者壁纸候选 <https://le-pigeon-baladeur.itch.io/wallpapers-lowpoly>：作者明确声明自己生成并提供的 AI 壁纸为 CC0，允许使用、修改与分享；页面列出 1920×1080 与新增 3072×1728 版本，当前提供 116 MB 的 `WallpapersV4.zip`。尚未下载整个包、核对独立作品数或接入每日同步，不能把更新日志里的新增数量当作已验证收录量。The Outlander 的 <https://the-outlander.itch.io/free-japanese-backgrounds> 明确标为 CC0，但声明尺寸为 1536×1024；抽查其村庄、森林与角斗场包为 1536×1536，恐怖室内包为 1024×955，均不符合本站当前长边至少 1600 的门槛，未降低门槛收录。
+
+更贴近视觉小说场景的候选为 Uncle Mugen：原作者主帖 <https://lemmasoft.renai.us/forums/viewtopic.php?t=17302> 允许自由用途、商业与免费项目及修改，并在 2025 年的新教室、公寓帖子重复宽松使用声明；这是作者自定授权，不能改标 CC0。原作者主帖指向 Alte 整理的背景资源。<https://alte.itch.io/uncle-mugens-backgrounds> 列出 354 和 173 张两个包，共 527 张，题材包含校园、实验室、自然、城镇、公园、咖啡馆和住宅；这些是发布页声明的数量，尚未检查包内重复、分辨率、内容和具体来源。<https://alte.itch.io/uncle-mugens-20> 声明另有 62 张统一 1920×1080 的 JPEG，且约一半与 WebP 包重复，不能相加当作独立作品数。本机浏览器下载按钮两次均未取得 ZIP；读取页面公开的四个 `original` 图片入口，实际文件全为 1280×720 的示例图，未当作高清原图收录。原作者论坛的本机 HTTP 请求返回 403，未绕过防护，也未编写把论坛全帖自动搬运的采集器。
+
+Lornn 的 <https://lornn.itch.io/backgrounds-magic-school>、<https://lornn.itch.io/backgrounds-homes> 等包具有大量 AI 生成后编辑的动漫场景，页面声明 2432×1664，允许用于个人及商业项目；当前读到的许可没有明确允许将原始文件作为另一素材／壁纸图库提供下载，未按 CC0 或开放再分发来源接入。宽松项目使用说明不能直接解决本站提供壁纸单图下载的许可条件。
+
 桌面环境的官方壁纸仓库也是后续候选。<https://github.com/KDE/plasma-workspace-wallpapers> 在提交 `b55e5ad9af39d1c0b54dc5f97bc56d2c3a9f5f5e` 的完整目录中有 257 个不同尺寸及预览文件，不能当作 257 张独立作品；实际核对 38 个主题的元数据，18 个声明 CC BY-SA 4.0、20 个声明 LGPLv3。抽样 Altai 原图为 5120×2880。尚未接入，不计入本站数量；后续需按主题绑定作者、具体许可、最高分辨率文件，并处理不同于 Creative Commons 的许可规则，不能将整个仓库统一标为 CC0。
 
 另外排除的候选：<https://vizardio.com/en/free/license> 的免费 AI 图片集合声明为 CC0，但 <https://vizardio.com/en/terms-of-service> 第 9.1 节禁止未经书面许可的自动访问，未编写自动采集。<https://github.com/1nexoravel/inex-gpt-image-2> 虽然仓库采用 CC BY 4.0，主要提供提示词及示例，部分示例明确依赖外部角色参考图，不能把仓库许可当作底层角色素材的权利证明。<https://unicorncreates.itch.io/shopping-backgrounds> 的作者提供 CC BY 4.0 商店场景素材包与高清版本，但本机 HTTP 和浏览器实际连接失败，尚未下载验证，因此没有计入图库。
