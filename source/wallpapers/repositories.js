@@ -8,17 +8,31 @@
     librepixels:{name:'LibrePixels',artist:'LibrePixels',host:'gitlab',repo:'librepixels/ia.Wallpapers',ref:'main',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/'},
     folium:{name:'Folium Creations',artist:'Folium Creations',host:'github',repo:'FoliumCreations/Wallpapers',ref:'main',license:'CC BY 4.0',licenseUrl:'https://creativecommons.org/licenses/by/4.0/'},
     midjourney:{name:'Metaory · AI 壁纸',artist:'metaory',host:'github',repo:'metaory/midjourney',ref:'master',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/'},
+    sermor:{name:'Sermor · AI 壁纸',artist:'Sermoris',host:'github',repo:'Sermoris/sermor-ai-wallpapers',ref:'main',commitPinned:true,license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',categories:['anime','illustration','nature','city','abstract','fantasy','cyberpunk','space']},
+    sermornc:{name:'Sermor · 非商业 AI 壁纸',artist:'Sermoris',host:'github',repo:'Sermoris/sermor-ai-generated-wallpapers',ref:'main',commitPinned:true,license:'CC BY-NC-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-nc-sa/4.0/',categories:['illustration','nature','city','fantasy','cyberpunk','space']},
     agundur:{name:'Agundur · 4K',artist:'Agundur',host:'github',repo:'Agundur-KDE/Wallpapers',ref:'main',licenses:agundurLicenses,categories:['anime','illustration','nature','city','animals','minimal','fantasy','cyberpunk','space']},
     wallcolle:{name:'AOSC 社区壁纸',host:'github',repo:'AOSC-Archive/WallColle',ref:'master',licenses:wallcolleLicenses,categories:['nature','city','space']}
   });
   const labels={anime:'二次元',illustration:'插画',nature:'风景',city:'城市',animals:'动物',minimal:'极简',abstract:'抽象',fantasy:'幻想',cyberpunk:'赛博朋克',pixel:'像素',cars:'汽车',space:'星空'};
   const excluded=/luffy|mariobros|hentai|ecchi|ahegao|futanari|lolicon|shotacon|nude|nudity|erotic|sexual|porn/i;
 
+  function sermorWorkKey(path){
+    if(typeof path!=='string'||! /^[A-Za-z][A-Za-z0-9 &.:_-]{0,140}[_:]\d{3,5}x\d{3,5}\.png$/.test(path))return null;
+    return path.replace(/[_:]\d+x\d+\.png$/,'').replace(/_+$/,'').toLowerCase();
+  }
+
+  function sermorDeclarationLicensed(markdown,license,provider){
+    if(!['sermor','sermornc'].includes(provider)||typeof markdown!=='string'||typeof license!=='string'||markdown.length>131072||license.length>131072||/except|third.party|all rights reserved|not allowed|not permitted/i.test(markdown))return false;
+    if(provider==='sermor')return /images created by me using artificial intelligence/i.test(markdown)&&/^All images in this repository are released via Creative Commons Zero License V1\.0 Universal \(CC0\)\.\s*$/m.test(markdown)&&/^Creative Commons Legal Code\s+CC0 1\.0 Universal\b/.test(license);
+    return /^Wallpapers created by me using AI\.\s*$/m.test(markdown)&&/^Images released under CC BY-NC-SA 4\.0 \(Creative Commons Attribution-NonCommercial-ShareAlike 4\.0 International\) license: https:\/\/creativecommons\.org\/licenses\/by-nc-sa\/4\.0\/legalcode\s*$/m.test(markdown)&&/^Attribution-NonCommercial-ShareAlike 4\.0 International\b/.test(license);
+  }
+
   function validPath(path,provider){
     if(typeof path!=='string'||path.length>500||/[\\\x00-\x1f?#]/.test(path)||path.split('/').some(part=>!part||part==='.'||part==='..')||!/[.](png|jpe?g|webp)$/i.test(path)||excluded.test(path))return false;
     if(provider==='librepixels')return /^wallpapers\/\[[^\]]+\]_librepixels_[^/]+$/i.test(path);
     if(provider==='folium')return /^(Abstract|De-Minted|HardSurface|Mint|Mobile|Mushroom|Nature)\//.test(path);
     if(provider==='agundur')return /^[a-z0-9]+(?:-[a-z0-9]+)*-4k\.png$/.test(path);
+    if(['sermor','sermornc'].includes(provider))return sermorWorkKey(path)!==null&&!/sensual|drowinspired/i.test(path);
     if(provider==='wallcolle')return /^contributors\/[a-zA-Z0-9_-]{1,80}\/(?:0|[1-9][0-9]{0,5})\.(jpg|png)$/.test(path);
     return provider==='midjourney'&&/^assets\/[^/]+$/.test(path);
   }
@@ -33,6 +47,9 @@
     }else if(provider==='agundur'){
       const content=name+' '+commons.plainText(description).toLowerCase();categories.add('illustration');
       for(const [category,pattern] of Object.entries({anime:/anime|samurai woman/,nature:/bonsai|tree|garden|mountain|highlands|lake/,city:/city|town|street|skyline/,animals:/cat gardener|cyborg tiger|penguin|tux/,minimal:/minimalist/,fantasy:/fantasy|dragon|floating-islands|excalibur/,cyberpunk:/cyberpunk|cybernetic|steampunk/,space:/nebula|galaxy|milky way|shooting stars/}))if(pattern.test(content))categories.add(category);
+    }else if(['sermor','sermornc'].includes(provider)){
+      const content=path.replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase();categories.add('illustration');
+      for(const [category,pattern] of Object.entries({anime:/\banime\b/,nature:/forest|landscape|mountain|valley|hills|shoreline|coastal|sky meets the sea|silent bay|summer/,city:/city|metropolis|citadel|pagoda|skyscraper|rome|tower/,abstract:/abstract|minimal|silhouette|binary/,fantasy:/fantasy|elf|elven|elvish|witch|enchantress|knight|valkyrie|ethereal|alien|two moons|dreamscape/,cyberpunk:/cyberpunk|cybernetic|cyberlab|neon|steampunk|brass|electric|steel/,space:/galaxy|nebula|orbital|starry|aurora|celestial/}))if(pattern.test(content))categories.add(category);
     }else{
       categories.add('illustration');
       if(/8bit|pixel|pixle/.test(name))categories.add('pixel');
@@ -97,19 +114,25 @@
 
   function urlsFor(path,provider,commit){
     const source=sources[provider];if(!source||!validPath(path,provider))return null;
-    if(provider==='wallcolle'&&(typeof commit!=='string'||! /^[a-f0-9]{40}$/.test(commit)))return null;
-    const ref=provider==='wallcolle'?commit:source.ref;
+    const pinned=provider==='wallcolle'||source.commitPinned;
+    if(pinned&&(typeof commit!=='string'||! /^[a-f0-9]{40}$/.test(commit)))return null;
+    const ref=pinned?commit:source.ref;
     const encoded=path.split('/').map(encodeURIComponent).join('/');
     const pagePath=provider==='wallcolle'?encoded.replace(/\/[^/]+$/,'/me.json'):encoded;
     const pageUrl='https://'+source.host+'.com/'+source.repo+(source.host==='gitlab'?'/-/blob/':'/blob/')+ref+'/'+pagePath;
     const download=source.host==='gitlab'?'https://gitlab.com/api/v4/projects/68715866/repository/files/'+encodeURIComponent(path)+'/raw?ref='+source.ref:'https://cdn.jsdelivr.net/gh/'+source.repo+'@'+ref+'/'+encoded;
+    if(source.commitPinned){
+      const original='https://raw.githubusercontent.com/'+source.repo+'/'+ref+'/'+encoded;
+      return {image:download,download:original,pageUrl,fallbackImage:original};
+    }
     return {image:download,download,pageUrl,...(source.host==='github'?{fallbackImage:download.replace('cdn.jsdelivr.net','fastly.jsdelivr.net')}:{})};
   }
 
   function normalizeRepository(records,provider){
     const source=sources[provider];if(!source)return [];
-    const items=[],seen=new Set();
-    for(const raw of Array.isArray(records)?records:[]){
+    const items=[],seen=new Set(),input=Array.isArray(records)?records.slice():[];
+    if(source.commitPinned)input.sort((a,b)=>(Number(b?.width)*Number(b?.height)||0)-(Number(a?.width)*Number(a?.height)||0));
+    for(const raw of input){
       const perImage=provider==='agundur'?agundurLicenses:provider==='wallcolle'?wallcolleLicenses:null;
       const license=perImage&&Object.hasOwn(perImage,raw?.license)?raw.license:source.license,licenseUrl=perImage?perImage[license]:source.licenseUrl;
       if(!raw||!license||!validPath(raw.path,provider)||typeof raw.revision!=='string'||! /^[a-f0-9]{40}$/.test(raw.revision)||raw.license!==license||raw.licenseUrl!==licenseUrl||seen.has(raw.path)||seen.has('sha:'+raw.revision))continue;
@@ -117,17 +140,23 @@
       if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width>30000||height>30000||Math.max(width,height)<1600||Math.min(width,height)<800)continue;
       if(provider==='agundur'&&(width!==3840||height!==2160||typeof raw.description!=='string'||raw.description.length>3000))continue;
       if(provider==='wallcolle'&&(width*height>60000000||typeof raw.declarationRevision!=='string'||! /^[a-f0-9]{40}$/.test(raw.declarationRevision)||typeof raw.artist!=='string'||!raw.artist.trim()||raw.artist.length>100||typeof raw.title!=='string'||raw.title.length>100||!validWallcolleTags(raw.tags)||excluded.test(raw.title)))continue;
+      const workKey=source.commitPinned?sermorWorkKey(raw.path):null;
+      if(source.commitPinned){
+        const dimensions=raw.path.match(/[_:](\d+)x(\d+)\.png$/);
+        if(width*height>60000000||width!==Number(dimensions[1])||height!==Number(dimensions[2])||typeof raw.declarationRevision!=='string'||! /^[a-f0-9]{40}$/.test(raw.declarationRevision)||seen.has('work:'+workKey))continue;
+      }
       const description=provider==='agundur'?commons.plainText(raw.description):'',urls=urlsFor(raw.path,provider,raw.commit),categories=provider==='wallcolle'?wallcolleCategories(raw.tags):categoriesFor(raw.path,provider,description);
-      const title=perImage?commons.plainText(raw.title):raw.path.split('/').pop().replace(/^\[[^\]]+\]_librepixels_/,'').replace(/\.(png|jpe?g|webp)$/i,'').replace(/_[a-f0-9]{6,10}$/,'').replace(/[_-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').slice(0,100);
+      const title=perImage?commons.plainText(raw.title):raw.path.split('/').pop().replace(/^\[[^\]]+\]_librepixels_/,'').replace(source.commitPinned?/[_:]\d+x\d+\.png$/:/\.(png|jpe?g|webp)$/i,'').replace(/_[a-f0-9]{6,10}$/,'').replace(/[_-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').trim().slice(0,100);
       const artist=provider==='wallcolle'?commons.plainText(raw.artist):source.artist;
       if(!urls||!categories.length||!artist||!title||title.length>100||description.length>3000)continue;
       seen.add(raw.path);seen.add('sha:'+raw.revision);
-      const feedRecord={path:raw.path,revision:raw.revision,license,licenseUrl,width,height,...(provider==='agundur'?{title,description}:provider==='wallcolle'?{title,artist,tags:[...raw.tags],commit:raw.commit,declarationRevision:raw.declarationRevision}:{})};
-      items.push({id:'repo-'+provider+'-'+encodeURIComponent(raw.path),source:'commons',provider,title,artist,...urls,width,height,license,licenseUrl,categories,tags:[...categories.map(category=>labels[category]),...(['librepixels','midjourney'].includes(provider)?['AI 插画']:provider==='agundur'?['创作方式未注明']:[]),source.name,width>=height?'横屏':'竖屏'],...(perImage?{copyrightNotice:'本站预览等比例缩小为 WebP，高清入口保留作者原图。'+(provider==='wallcolle'?' 原作编号：'+raw.path.split('/').pop().split('.')[0]+'；逐图许可见来源清单。':'')}:{}),feedRecord});
+      if(workKey)seen.add('work:'+workKey);
+      const feedRecord={path:raw.path,revision:raw.revision,license,licenseUrl,width,height,...(provider==='agundur'?{title,description}:provider==='wallcolle'?{title,artist,tags:[...raw.tags],commit:raw.commit,declarationRevision:raw.declarationRevision}:source.commitPinned?{commit:raw.commit,declarationRevision:raw.declarationRevision}:{})};
+      items.push({id:'repo-'+provider+'-'+encodeURIComponent(raw.path),source:'commons',provider,title,artist,...urls,width,height,license,licenseUrl,categories,tags:[...categories.map(category=>labels[category]),...(['librepixels','midjourney'].includes(provider)||source.commitPinned?['AI 插画']:provider==='agundur'?['创作方式未注明']:[]),source.name,width>=height?'横屏':'竖屏'],...(perImage||source.commitPinned?{copyrightNotice:'本站预览等比例缩小为 WebP，高清入口保留作者原图。'+(provider==='wallcolle'?' 原作编号：'+raw.path.split('/').pop().split('.')[0]+'；逐图许可见来源清单。':'')}:{}),feedRecord});
     }
     return items;
   }
 
-  const api={sources,validPath,categoriesFor,parseAgundurDeclaration,parseWallcolleDeclaration,wallcolleCategories,urlsFor,normalizeRepository};
+  const api={sources,validPath,categoriesFor,sermorWorkKey,sermorDeclarationLicensed,parseAgundurDeclaration,parseWallcolleDeclaration,wallcolleCategories,urlsFor,normalizeRepository};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperRepositories=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

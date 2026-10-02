@@ -10,12 +10,12 @@ const {retryTime,cooldownUntil}=require('./wallpaper-request-policy.cjs');
 const root=path.resolve(__dirname,'../source/wallpapers');
 const outputPath=path.join(root,'data/previews.json');
 
-async function readImage(fetcher,url,{maxBytes=32*1024*1024,timeout=25000}={}){
+async function readImage(fetcher,url,{maxBytes=32*1024*1024,timeout=25000,range=false}={}){
   const controller=new AbortController();let reader,timer;
   try{
     return await Promise.race([
       (async()=>{
-        const response=await fetcher(url,{signal:controller.signal,headers:{'User-Agent':'RabbitWallpaperStation/1.2 (licensed wallpaper previews)'}});
+        const response=await fetcher(url,{signal:controller.signal,headers:{'User-Agent':'RabbitWallpaperStation/1.2 (licensed wallpaper previews)',...(range?{Range:'bytes=0-'+(maxBytes-1)}:{})}});
         if(!response.ok){const error=Error('图源返回 HTTP '+response.status);error.status=response.status;error.retryAfter=response.headers?.get?.('retry-after');try{await response.body?.cancel?.();}finally{throw error;}}
         if(Number(response.headers.get('content-length'))>maxBytes)throw Error('原图超过处理大小限制');
         reader=response.body.getReader();const chunks=[];let size=0;
@@ -93,12 +93,13 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
         }
         else for(const url of [item.image,item.fallbackImage].filter(Boolean)){
           try{
-            const bytes=await readImage(fetcher,url);
+            const rawFallback=repositories.sources[item.provider]?.commitPinned&&url===item.fallbackImage;
+            const bytes=await readImage(fetcher,url,{timeout:rawFallback?45000:25000,range:rawFallback});
             const revision=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
             if(revision!==item.feedRecord.revision)throw Error('原图与已收录的文件摘要不一致');
-            if(item.provider==='wallcolle'){
+            if(item.provider==='wallcolle'||repositories.sources[item.provider]?.commitPinned){
               const metadata=await sharp(bytes,{limitInputPixels:60000000}).metadata();
-              if(metadata.width!==item.width||metadata.height!==item.height||(metadata.pages||1)!==1||metadata.orientation>=5)throw Error('社区原图的尺寸或方向与已验证目录不一致');
+              if(metadata.width!==item.width||metadata.height!==item.height||(metadata.pages||1)!==1||metadata.orientation>=5||repositories.sources[item.provider]?.commitPinned&&metadata.format!=='png')throw Error('仓库原图的格式、尺寸或方向与已验证目录不一致');
             }
             encoded=await encodePreview(bytes);break;
           }catch(error){lastError=error;}
@@ -125,7 +126,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
     }
   }));
   const keep=new Set(ordered.filter(item=>manifest.images[item.id]).map(previews.filenameFor));
-  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur|wallcolle)-[a-f0-9]{40}|(?:opengameart|hdwallpapers)-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
+  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur|wallcolle|sermor|sermornc)-[a-f0-9]{40}|(?:opengameart|hdwallpapers)-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   for(const filename of await fs.readdir(outputDir))if(/^(?:revoy|tyson)-[a-f0-9]{64}-v1\.(jpg|webp)$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   const authorDir=path.join(outputDir,'ayomi');
   let authorFiles;try{authorFiles=await fs.readdir(authorDir,{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;authorFiles=[];}
