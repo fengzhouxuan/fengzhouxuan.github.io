@@ -20,7 +20,8 @@ function parseWork(html,key){
   if(!root||!field(root,'author-submitter')||!field(root,'field-art-licenses')||!field(root,'field-art-files'))throw Error('作品页结构无法核对');
   const author=links(field(root,'author-submitter')).find(link=>link.attribs.href===work.artistPath);
   const licenses=links(field(root,'field-art-licenses'));
-  if(value(author)!==work.artist||!licenses.some(link=>['http://creativecommons.org/publicdomain/zero/1.0/',oga.licenseUrl].includes(link.attribs.href)&&value(link)==='CC0'))return [];
+  const license=work.license||'CC0',licenseUrl=work.licenseUrl||oga.licenseUrl;
+  if(value(author)!==work.artist||!licenses.some(link=>[licenseUrl,licenseUrl.replace('https:','http:')].includes(link.attribs.href)&&value(link).replace(/^CC-/,'CC ')===license))return [];
   const notice=value(dom.findOne(node=>hasClass(node,'field-items'),field(root,'field-copyright-notice')?.children||[],true));
   const body=value(field(root,'body'));
   if(/\b(?:no redistribution|all rights reserved|non.?commercial only|AI.generated|stable diffusion|midjourney)\b/i.test(body+' '+notice))return [];
@@ -29,7 +30,7 @@ function parseWork(html,key){
     const url=oga.fileURL(link.attribs.href),type=link.attribs.type?.match(/^(application\/(?:zip|x-7z-compressed)|image\/(?:png|jpeg|webp)); length=(\d+)$/),fileID=Number(link.attribs['data-fid']);
     const archiveMime=work.archive==='7z'?'application/x-7z-compressed':work.archive?'application/zip':null;
     if(!url||!type||!Number.isSafeInteger(fileID)||fileID<1||Number(type[2])<1||Number(type[2])>32*1024*1024||!work.file.test(decodeURIComponent(new URL(url).pathname.split('/').pop()))||(archiveMime?type[1]!==archiveMime:!type[1].startsWith('image/')))continue;
-    records.push({work:key,fileID,sourceFile:url,sourceBytes:Number(type[2]),artist:work.artist,pageUrl:oga.origin+'/content/'+work.slug,license:'CC0',licenseUrl:oga.licenseUrl,copyrightNotice:notice});
+    records.push({work:key,fileID,sourceFile:url,sourceBytes:Number(type[2]),artist:work.artist,pageUrl:oga.origin+'/content/'+work.slug,license,licenseUrl,copyrightNotice:notice});
   }
   return [...new Map(records.map(record=>[record.sourceFile,record])).values()];
 }
@@ -40,8 +41,9 @@ function archiveImages(bytes,key){
 }
 
 async function inspectImage(data,raw,member){
-  const image=sharp(data,{limitInputPixels:60000000}),meta=await image.metadata();
-  if(!['jpeg','png','webp'].includes(meta.format)||(meta.pages||1)!==1||(meta.orientation||1)!==1||Math.max(meta.width,meta.height)<1600||Math.min(meta.width,meta.height)<800||meta.hasAlpha&&!(await image.stats()).isOpaque)return null;
+  const image=sharp(data,{limitInputPixels:60000000,failOn:'warning'}),meta=await image.metadata();
+  if(!['jpeg','png','webp'].includes(meta.format)||(meta.pages||1)!==1||(meta.orientation||1)!==1||Math.max(meta.width,meta.height)<1600||Math.min(meta.width,meta.height)<800)return null;
+  const stats=await image.stats();if(meta.hasAlpha&&!stats.isOpaque)return null;
   const extension={jpeg:'jpg',png:'png',webp:'webp'}[meta.format];
   const name=member.split('/').pop().replace(/\.[^.]+$/,'').replaceAll('-',' ');
   const work=oga.works[raw.work],detail=work.titles?.[name.replace(/_\d+$/,'')]||(raw.work==='manga'?name.replace(/^manga_bg_/,''):name);

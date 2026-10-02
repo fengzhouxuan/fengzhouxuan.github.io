@@ -255,7 +255,7 @@
     $('license-link').href=item.licenseUrl;
     $('license-link').textContent=item.license+' · '+feeds.licenseHint(item.license)+' ↗';
     $('credit-block').hidden=original;
-    const previewCredit=['pepper','morevna'].includes(item.provider)&&previews.previewFor(item,state.previews)?'\n预览等比例缩小并转为 WebP；高清入口保留作者原图。':'';
+    const previewCredit=['pepper','morevna','opengameart'].includes(item.provider)&&previews.previewFor(item,state.previews)?'\n预览等比例缩小并转为 WebP；高清入口保留作者原图。':'';
     $('credit-text').textContent=original?'':item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl+(item.copyrightNotice?'\n'+item.copyrightNotice:'')+previewCredit;
     $('preview-tags').replaceChildren(...item.tags.filter(tag=>!['横屏','竖屏','原创'].includes(tag)).map(tag=>element('span','',tag)));
     const position=state.queue.findIndex(entry=>entry.id===item.id);

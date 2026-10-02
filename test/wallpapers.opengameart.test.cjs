@@ -19,8 +19,8 @@ const filename='40-game-backgrounds-1-painted-style/bg-01.JPG';
 const jpg=(color='#53749a',width=1800,height=900)=>sharp({create:{width,height,channels:3,background:color}}).jpeg().toBuffer();
 async function directory(t){const dir=await fs.mkdtemp(path.join(os.tmpdir(),'wallpaper-oga-test-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));return dir;}
 
-function workPage(key,bytes,{license='CC0',licenseLink=oga.licenseUrl,artist,body='Author made these backgrounds',fileID=10,fileURL,mime,notice='Artwork by the author',empty=false}={}){
-  const work=oga.works[key],file=fileURL||(key==='painted'?'40-game-backgrounds-1-painted-style.zip':key==='studies'?'Concept-Art-Studies_0.zip':key==='underwater'?'bg_13.png':key==='skyline'?'bg_silhouette2.png':key==='manga'?'manga_bg.7z':key==='ink'?'bamboo_3.png':key==='office'?'Belle Tutorial.zip':'Starset_6.png');
+function workPage(key,bytes,{license=oga.works[key].license||'CC0',licenseLink=oga.works[key].licenseUrl||oga.licenseUrl,artist,body='Author made these backgrounds',fileID=10,fileURL,mime,notice='Artwork by the author',empty=false}={}){
+  const work=oga.works[key],file=fileURL||(key==='painted'?'40-game-backgrounds-1-painted-style.zip':key==='studies'?'Concept-Art-Studies_0.zip':key==='underwater'?'bg_13.png':key==='skyline'?'bg_silhouette2.png':key==='manga'?'manga_bg.7z':key==='ink'?'bamboo_3.png':key==='office'?'Belle Tutorial.zip':key==='sunny'?'sunny.png':key==='auditorium'?'audi_scaled_2.png':key==='vnstyle'?'visual novel style backgrounds.zip':'Starset_6.png');
   mime??=work.archive==='7z'?'application/x-7z-compressed':work.archive?'application/zip':'image/png';
   return '<div class="node node-art view-mode-full"><div class="field-name-author-submitter"><div class="field-items"><a href="'+work.artistPath+'">'+(artist||work.artist)+'</a></div></div><div class="field-name-field-art-licenses"><a href="'+licenseLink+'"><div class="license-name">'+license+'</div></a></div><div class="field-name-body">'+body+'</div><div class="field-name-field-copyright-notice"><div class="field-items">'+notice+'</div></div><div class="field-name-field-art-files">'+(empty?'':'<a href="'+oga.origin+'/sites/default/files/'+file+'" type="'+mime+'; length='+bytes.length+'" data-fid="'+fileID+'">File</a>')+'</div></div>';
 }
@@ -83,8 +83,36 @@ test('real native inspection rejects tiny, transparent, animated or unsupported 
   assert.equal(await inspectImage(transparent,{...raw,work:'underwater',sourceFile:oga.origin+'/sites/default/files/bg_13.png'},'bg_13.png'),null);
   const svg=Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900"/>');assert.equal(await inspectImage(svg,raw,filename),null);
   await assert.rejects(inspectImage(Buffer.from('not an image'),raw,filename));
+  const complete=await jpg();await assert.rejects(inspectImage(complete.subarray(0,complete.length-100),raw,filename));
   const png=await sharp({create:{width:1800,height:900,channels:4,background:{r:10,g:20,b:30,alpha:1}}}).png().toBuffer();
   const [file]=parseWork(workPage('underwater',png),'underwater');assert.equal((await inspectImage(png,file,'bg_13.png')).extension,'png');
+});
+
+test('attribution licenses bind each new author release without broadening existing CC0 work grants',async()=>{
+  const data=await sharp(await jpg()).png().toBuffer();
+  for(const key of ['sunny','auditorium','vnstyle']){
+    const work=oga.works[key],html=workPage(key,data,{license:work.license.replace('CC ','CC-')}),[raw]=parseWork(html,key);
+    assert.equal(raw.license,work.license);assert.equal(raw.licenseUrl,work.licenseUrl);assert.equal(raw.artist,work.artist);
+    assert.equal(parseWork(html.replace('https://creativecommons.org/','http://creativecommons.org/'),key).length,1);
+    for(const options of [{license:'CC0'},{licenseLink:oga.licenseUrl},{artist:'Other'},{notice:'No redistribution allowed'}])assert.deepEqual(parseWork(workPage(key,data,options),key),[]);
+    const unrelated=html.replace(work.licenseUrl,'https://example.test/license')+'<a href="'+work.licenseUrl+'">'+work.license+'</a>';assert.deepEqual(parseWork(unrelated,key),[]);
+    const member=key==='vnstyle'?'outside.png':decodeURIComponent(new URL(raw.sourceFile).pathname.split('/').pop()),record=await inspectImage(data,raw,member),[item]=oga.normalizeRecords([record]);
+    assert.equal(item.license,work.license);assert.equal(item.licenseUrl,work.licenseUrl);assert.ok(item.title.includes(key==='sunny'?'晴空与白云':key==='auditorium'?'礼堂舞台':'夜间后门'));
+    for(const changes of [{license:'CC0'},{licenseUrl:oga.licenseUrl},{license:key==='sunny'?'CC BY 3.0':'CC BY 4.0'},{pageUrl:oga.origin+'/content/'+oga.works.painted.slug}])assert.deepEqual(oga.normalizeRecords([{...record,...changes}]),[]);
+  }
+  const old=await record();assert.deepEqual(oga.normalizeRecords([{...old,license:'CC BY 4.0',licenseUrl:oga.works.sunny.licenseUrl}]),[]);
+  assert.ok(!oga.normalizeRecords([{...old}])[0].categories.includes('anime'));
+});
+
+test('hand-painted package extracts complete backgrounds and keeps native 4:3 dimensions and per-author licenses',async t=>{
+  const outputDir=await directory(t),data=await sharp(await jpg('#53749a',4000,3000)).png().toBuffer(),archive=zipSync({'outside.png':data,'bar.png':data,'dressing room.png':data,'green room.png':data,'preview.png':data,'character.png':data});
+  assert.deepEqual(archiveImages(archive,'vnstyle').map(image=>image.member),['outside.png','bar.png','dressing room.png','green room.png']);
+  const first=await sync({outputDir,workIds:['vnstyle'],fetcher:catalog(resources('vnstyle',archive))});assert.equal(first.records.length,1);
+  const saved=first.records[0];assert.equal(saved.license,'CC BY 3.0');assert.equal(saved.width,4000);assert.equal(saved.height,3000);assert.deepEqual(await fs.readFile(path.join(outputDir,saved.revision+'.png')),data);
+  const original=await record(),old=oga.normalizeRecords([original,saved]);
+  const withdrawn=await sync({outputDir,old,workIds:['vnstyle'],fetcher:catalog(resources('vnstyle',archive,{license:'All rights reserved'}))});assert.deepEqual(withdrawn.records,[original]);
+  const pausedMap=resources('vnstyle',archive),[raw]=parseWork(pausedMap.get(oga.origin+'/content/'+oga.works.vnstyle.slug),'vnstyle');pausedMap.set(raw.sourceFile,new Response('limited',{status:429,headers:{'retry-after':'120'}}));
+  const paused=await sync({outputDir,old,workIds:['vnstyle'],fetcher:catalog(pausedMap)});assert.equal(paused.interrupted,true);assert.deepEqual(paused.records,[original,saved]);
 });
 
 test('collector preserves every original byte, follows crawl delay and updates archive contents automatically',async t=>{
