@@ -49,12 +49,14 @@ async function copyAuthorPreview(bytes,item){
 
 async function cachedPreview(outputDir,filename,entry,author=false){
   try{
-    const bytes=await fs.readFile(path.join(outputDir,filename)),metadata=await sharp(bytes).metadata();
-    return (author?['jpeg','png','webp'].includes(metadata.format):metadata.format==='webp')&&metadata.width===entry.width&&metadata.height===entry.height&&bytes.length===entry.bytes&&(!author||crypto.createHash('sha256').update(bytes).digest('hex')===entry.digest);
+    const bytes=await fs.readFile(path.join(outputDir,filename)),image=sharp(bytes,{limitInputPixels:60000000,failOn:'warning'}),metadata=await image.metadata();
+    const matches=(author?['jpeg','png','webp'].includes(metadata.format):metadata.format==='webp')&&metadata.width===entry.width&&metadata.height===entry.height&&bytes.length===entry.bytes&&(!author||crypto.createHash('sha256').update(bytes).digest('hex')===entry.digest);
+    if(!matches)return false;
+    await image.stats();return true;
   }catch(error){if(error.code!=='ENOENT'&&error.code!=='ENOTDIR'&&error.code)throw error;return false;}
 }
 
-async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputDir=path.join(root,'previews'),originalsDir=path.join(root,'originals/opengameart'),hdOriginalsDir=path.join(root,'originals/hdwallpapers'),blenderOriginalsDir=path.join(root,'originals/blender'),unicornOriginalsDir=path.join(root,'originals/unicorn'),maxNew=120,now=new Date(),logger=console,wait=delay=>new Promise(resolve=>setTimeout(resolve,delay))}={}){
+async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputDir=path.join(root,'previews'),originalsDir=path.join(root,'originals/opengameart'),hdOriginalsDir=path.join(root,'originals/hdwallpapers'),blenderOriginalsDir=path.join(root,'originals/blender'),unicornOriginalsDir=path.join(root,'originals/unicorn'),maxNew=120,bootstrap=false,now=new Date(),logger=console,wait=delay=>new Promise(resolve=>setTimeout(resolve,delay))}={}){
   if(!Number.isSafeInteger(maxNew)||maxNew<0||maxNew>1000)throw Error('预览处理预算无效');
   await fs.mkdir(outputDir,{recursive:true});
   const approved=(Array.isArray(items)?items:[]).flatMap(item=>{
@@ -71,6 +73,8 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
       if(item.provider==='pepper'&&(checked>now.getTime()||now.getTime()-checked>=previews.recheckAfterMs))pending.push(item);
     }else pending.push(item);
   }
+  const budget=bootstrap&&maxNew>0&&pending.length&&!Object.keys(manifest.images).length?2000:maxNew;
+  if(budget!==maxNew)logger.log('没有可复用的预览缓存，首次恢复最多处理 '+budget+' 张。');
   async function create(item){
       const filename=previews.filenameFor(item);attempted++;
       try{
@@ -114,15 +118,15 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
   }
   const author=pending.filter(item=>item.provider==='ayomi'),generated=pending.filter(item=>item.provider!=='ayomi');
   const generatedSources=new Set(generated.map(item=>item.provider)).size;
-  const authorBudget=Math.max(1,maxNew-Math.min(generated.length,Math.ceil(maxNew*generatedSources/(generatedSources+1))));
+  const authorBudget=Math.max(1,budget-Math.min(generated.length,Math.ceil(budget*generatedSources/(generatedSources+1))));
   const cooling=cooldownUntil(now,previous?.authorRetryAt,sourceRetryAt);if(cooling)manifest.authorRetryAt=cooling;
   if(!manifest.authorRetryAt)for(const item of author){
-    if(attempted>=maxNew||attempted>=authorBudget)break;
+    if(attempted>=budget||attempted>=authorBudget)break;
     if(attempted)await wait(1500);
     if(!await create(item))break;
   }
   await Promise.all(Array.from({length:3},async()=>{
-    while(next<generated.length&&attempted<maxNew){
+    while(next<generated.length&&attempted<budget){
       const item=generated[next++];if(!limited.has(item.provider))await create(item);
     }
   }));
@@ -147,7 +151,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
 async function main(){
   const catalog=JSON.parse(await fs.readFile(path.join(root,'data/official-feeds.json'),'utf8'));let previous;
   try{previous=JSON.parse(await fs.readFile(outputPath,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
-  const {manifest}=await buildPreviews({items:feeds.normalizeCatalog(catalog),previous,sourceRetryAt:catalog.continuation?.ayomi?.retryAt});
+  const {manifest}=await buildPreviews({items:feeds.normalizeCatalog(catalog),previous,sourceRetryAt:catalog.continuation?.ayomi?.retryAt,bootstrap:true});
   const temporary=outputPath+'.tmp';await fs.writeFile(temporary,JSON.stringify(manifest,null,2)+'\n');await fs.rename(temporary,outputPath);
 }
 

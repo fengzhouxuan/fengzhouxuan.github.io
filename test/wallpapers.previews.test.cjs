@@ -178,6 +178,33 @@ test('cold caches reserve preview capacity for each source and resume without st
   const small=await buildPreviews({...options,items:[...authors,repos[0]],previous:null,maxNew:8});assert.equal(small.created,8);assert.ok(small.manifest.images[repos[0].id]);
 });
 
+test('damaged WebP pixels are rebuilt even when the cached header and byte count match',async t=>{
+  const outputDir=await directory(t),bytes=await png(),image=item(bytes);let requested=0;
+  const options={items:[image],outputDir,now,logger,fetcher:async()=>{requested++;return new Response(bytes);}};
+  const first=await buildPreviews(options),file=path.join(outputDir,previews.filenameFor(image)),saved=await fs.readFile(file),damaged=Buffer.from(saved);damaged.fill(0,40);
+  assert.equal(damaged.length,saved.length);const metadata=await sharp(damaged).metadata();assert.equal(metadata.width,first.manifest.images[image.id].width);assert.equal(metadata.height,first.manifest.images[image.id].height);
+  await assert.rejects(sharp(damaged,{failOn:'warning'}).stats());await fs.writeFile(file,damaged);
+  const repaired=await buildPreviews({...options,previous:first.manifest});assert.equal(repaired.created,1);assert.equal(repaired.reused,0);assert.equal(repaired.failures,0);assert.equal(requested,2);assert.deepEqual(await fs.readFile(file),saved);
+});
+
+test('an empty or lost cache restores more than the daily budget, then returns to incremental work',async t=>{
+  const outputDir=await directory(t),bytes=await authorBytes(),repoBytes=await png();
+  const authors=Array.from({length:125},(_,index)=>authorItem('bootstrap-'+index)),repo=item(repoBytes),waits=[];
+  const options={items:[repo,...authors],outputDir,now,logger,bootstrap:true,wait:async ms=>waits.push(ms),fetcher:async url=>new Response(url===repo.image?repoBytes:bytes)};
+  const first=await buildPreviews(options);assert.equal(first.created,126);assert.equal(first.failures,0);assert.equal(first.deferred,0);assert.equal(waits.length,124);assert.ok(waits.every(ms=>ms===1500));
+  await fs.rm(outputDir,{recursive:true});
+  const lost=await buildPreviews({...options,previous:first.manifest});assert.equal(lost.created,126);assert.equal(lost.reused,0);assert.equal(lost.deferred,0);
+  const added=Array.from({length:125},(_,index)=>authorItem('new-'+index));
+  const daily=await buildPreviews({...options,previous:lost.manifest,items:[...options.items,...added]});assert.equal(daily.created,120);assert.equal(daily.reused,126);assert.equal(daily.deferred,5);
+  const paused=await buildPreviews({...options,previous:null,maxNew:0,fetcher:()=>assert.fail('zero budget cannot fetch')});assert.equal(paused.created,0);assert.equal(paused.deferred,126);
+});
+
+test('initial restoration honors author cooldowns and keeps other sources usable',async t=>{
+  const outputDir=await directory(t),bytes=await png(),repo=item(bytes),author=authorItem();let requested=0;
+  const result=await buildPreviews({items:[author,repo],outputDir,now,logger,bootstrap:true,sourceRetryAt:'2026-10-02T04:00:00Z',fetcher:async url=>{requested++;assert.equal(url,repo.image);return new Response(bytes);}});
+  assert.equal(result.created,1);assert.equal(requested,1);assert.equal(result.deferred,1);assert.equal(result.manifest.authorRetryAt,'2026-10-02T04:00:00.000Z');
+});
+
 test('copying stops on HTTP 429 and persists the cooldown while other sources still build',async t=>{
   const outputDir=await directory(t),bytes=await authorBytes(),repoBytes=await png(),authors=[authorItem('one'),authorItem('two'),authorItem('three')],repo=item(repoBytes),calls=[],waits=[];
   let count=0;

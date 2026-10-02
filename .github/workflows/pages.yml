@@ -4,17 +4,18 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
   schedule:
     - cron: '17 3 * * *'
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Test wallpaper ingestion and fallback
-        run: node --test test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs test/wallpapers.revoy.test.cjs test/wallpapers.tyson.test.cjs test/wallpapers.hdwallpapers.test.cjs test/wallpapers.wallcolle.test.cjs test/wallpapers.sermor.test.cjs test/wallpapers.blender.test.cjs test/wallpapers.pop.test.cjs test/wallpapers.unicorn.test.cjs
+        run: node --test test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs test/wallpapers.revoy.test.cjs test/wallpapers.tyson.test.cjs test/wallpapers.hdwallpapers.test.cjs test/wallpapers.wallcolle.test.cjs test/wallpapers.sermor.test.cjs test/wallpapers.blender.test.cjs test/wallpapers.pop.test.cjs test/wallpapers.unicorn.test.cjs test/wallpapers.release.test.cjs
 
       - name: Checkout music station
         uses: actions/checkout@v4
@@ -66,6 +67,8 @@ jobs:
           restore-keys: |
             wallpaper-catalog-v3-${{ github.ref_name }}-
             wallpaper-catalog-v2-${{ github.ref_name }}-
+            wallpaper-catalog-v3-main-
+            wallpaper-catalog-v2-main-
 
       - name: Refresh open wallpaper catalogs
         run: node scripts/refresh-wallpaper-feeds.cjs
@@ -95,13 +98,21 @@ jobs:
       - name: Build Hexo
         run: npm run build
 
+      - name: Verify wallpaper files before publication
+        run: node scripts/verify-wallpaper-release.cjs
+
       - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: public
 
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
