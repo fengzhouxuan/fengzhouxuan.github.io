@@ -3,7 +3,7 @@ const path=require('node:path');
 const crypto=require('node:crypto');
 const sharp=require('sharp');
 const {parseDocument,DomUtils:dom}=require('htmlparser2');
-const {unzipSync}=require('fflate');
+const {readZipImages}=require('./read-wallpaper-zip.cjs');
 const oga=require('../source/wallpapers/opengameart.js');
 const {readImage}=require('./build-wallpaper-previews.cjs');
 const {read7zImages}=require('./read-wallpaper-7z.cjs');
@@ -36,15 +36,7 @@ function parseWork(html,key){
 
 function archiveImages(bytes,key){
   const work=oga.works[key];if(work?.archive!==true||bytes.length>32*1024*1024)throw Error('素材包不符合大小限制');
-  let entries=0,total=0;const seen=new Set();
-  const files=unzipSync(bytes,{filter(file){
-    if(++entries>250||!Number.isSafeInteger(file.originalSize)||file.originalSize<0||file.originalSize>32*1024*1024)throw Error('素材包文件数或大小超过限制');
-    total+=file.originalSize;if(total>128*1024*1024)throw Error('素材包展开大小超过限制');
-    if(seen.has(file.name))throw Error('素材包包含重复路径');seen.add(file.name);
-    if(file.name.includes('\\')||file.name.split('/').some(part=>part==='..'||part==='.')||file.name.startsWith('/'))throw Error('素材包路径无效');
-    return work.member.test(file.name);
-  }});
-  return Object.entries(files).map(([member,data])=>({member,data:Buffer.from(data)}));
+  return readZipImages(bytes,work.member);
 }
 
 async function inspectImage(data,raw,member){

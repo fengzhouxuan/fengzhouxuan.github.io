@@ -10,7 +10,7 @@ const {retryTime,cooldownUntil}=require('./wallpaper-request-policy.cjs');
 const root=path.resolve(__dirname,'../source/wallpapers');
 const outputPath=path.join(root,'data/previews.json');
 
-async function readImage(fetcher,url,{maxBytes=32*1024*1024,timeout=25000,range=false}={}){
+async function readImage(fetcher,url,{maxBytes=32*1024*1024,timeout=25000,range=false,allowEmpty=false}={}){
   const controller=new AbortController();let reader,timer;
   try{
     return await Promise.race([
@@ -23,7 +23,7 @@ async function readImage(fetcher,url,{maxBytes=32*1024*1024,timeout=25000,range=
           const {done,value}=await reader.read();if(done)break;
           size+=value.length;if(size>maxBytes)throw Error('原图超过处理大小限制');chunks.push(value);
         }
-        if(!size)throw Error('原图内容为空');
+        if(!size&&!allowEmpty)throw Error('原图内容为空');
         return Buffer.concat(chunks,size);
       })(),
       new Promise((resolve,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('原图请求超时'));},timeout);})
@@ -54,11 +54,11 @@ async function cachedPreview(outputDir,filename,entry,author=false){
   }catch(error){if(error.code!=='ENOENT'&&error.code!=='ENOTDIR'&&error.code)throw error;return false;}
 }
 
-async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputDir=path.join(root,'previews'),originalsDir=path.join(root,'originals/opengameart'),hdOriginalsDir=path.join(root,'originals/hdwallpapers'),maxNew=120,now=new Date(),logger=console,wait=delay=>new Promise(resolve=>setTimeout(resolve,delay))}={}){
+async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputDir=path.join(root,'previews'),originalsDir=path.join(root,'originals/opengameart'),hdOriginalsDir=path.join(root,'originals/hdwallpapers'),blenderOriginalsDir=path.join(root,'originals/blender'),maxNew=120,now=new Date(),logger=console,wait=delay=>new Promise(resolve=>setTimeout(resolve,delay))}={}){
   if(!Number.isSafeInteger(maxNew)||maxNew<0||maxNew>1000)throw Error('预览处理预算无效');
   await fs.mkdir(outputDir,{recursive:true});
   const approved=(Array.isArray(items)?items:[]).flatMap(item=>{
-    const normalized=['ayomi','opengameart','revoy','tyson','pepper','morevna','hdwallpapers'].includes(item?.provider)?feeds.normalizeFeed([item.feedRecord],item.provider)[0]:repositories.normalizeRepository([item?.feedRecord],item?.provider)[0];return normalized&&normalized.id===item?.id&&previews.filenameFor(normalized)?[normalized]:[];
+    const normalized=['ayomi','opengameart','revoy','tyson','pepper','morevna','hdwallpapers','blender'].includes(item?.provider)?feeds.normalizeFeed([item.feedRecord],item.provider)[0]:repositories.normalizeRepository([item?.feedRecord],item?.provider)[0];return normalized&&normalized.id===item?.id&&previews.filenameFor(normalized)?[normalized]:[];
   });
   const ordered=feeds.mixSources([...new Map(approved.map(item=>[previews.filenameFor(item),item])).values()],core.dayKey(now));
   const manifest={version:previews.version,generatedAt:now.toISOString(),images:{}},pending=[];
@@ -86,8 +86,9 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
           if(metadata.format!=='jpeg'||metadata.width!==item.width||metadata.height!==item.height||(metadata.pages||1)!==1||metadata.orientation>=5)throw Error('作者原图的格式或尺寸已变化');
           encoded=await encodePreview(bytes);encoded.digest=crypto.createHash('sha256').update(encoded.data).digest('hex');
         }
-        else if(['opengameart','hdwallpapers'].includes(item.provider)){
-          const filename=item.feedRecord.revision+'.'+(item.feedRecord.extension||'jpg'),bytes=await fs.readFile(path.join(item.provider==='hdwallpapers'?hdOriginalsDir:originalsDir,filename));
+        else if(['opengameart','hdwallpapers','blender'].includes(item.provider)){
+          const directory={opengameart:originalsDir,hdwallpapers:hdOriginalsDir,blender:blenderOriginalsDir}[item.provider];
+          const filename=item.feedRecord.revision+'.'+(item.feedRecord.extension||'jpg'),bytes=await fs.readFile(path.join(directory,filename));
           if(bytes.length!==item.feedRecord.bytes||crypto.createHash('sha256').update(bytes).digest('hex')!==item.feedRecord.revision)throw Error('原图缓存与已验证摘要不一致');
           encoded=await encodePreview(bytes);
         }
@@ -126,7 +127,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
     }
   }));
   const keep=new Set(ordered.filter(item=>manifest.images[item.id]).map(previews.filenameFor));
-  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur|wallcolle|sermor|sermornc)-[a-f0-9]{40}|(?:opengameart|hdwallpapers)-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
+  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur|wallcolle|sermor|sermornc)-[a-f0-9]{40}|(?:opengameart|hdwallpapers|blender)-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   for(const filename of await fs.readdir(outputDir))if(/^(?:revoy|tyson)-[a-f0-9]{64}-v1\.(jpg|webp)$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   const authorDir=path.join(outputDir,'ayomi');
   let authorFiles;try{authorFiles=await fs.readdir(authorDir,{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;authorFiles=[];}

@@ -9,6 +9,7 @@ const {collectAyomi}=require('./collect-ayomi.cjs');
 const {collectOpenGameArt}=require('./collect-opengameart.cjs');
 const {collectTyson}=require('./collect-tyson.cjs');
 const {collectHDWallpapers}=require('./collect-hdwallpapers.cjs');
+const {collectBlender}=require('./collect-blender.cjs');
 const catalogPath=path.resolve(__dirname,'../source/wallpapers/data/official-feeds.json');
 const userAgent='RabbitWallpaperStation/1.0 (static open-license catalog)';
 
@@ -290,19 +291,19 @@ async function collectRevoy({fetcher=fetch,dimensions=readDimensions,old=[],exis
   return checked.filter(Boolean);
 }
 
-async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers),ayomiOptions={},openGameArtOptions={},hdWallpapersOptions={}}={}){
+async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers),ayomiOptions={},openGameArtOptions={},hdWallpapersOptions={},blenderOptions={}}={}){
   if(providerIds.some(provider=>!Object.hasOwn(feeds.providers,provider)))throw Error('壁纸来源不存在');
   const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},continuation:{},records:{}};
   if(previous?.version===1)for(const provider of Object.keys(feeds.providers))if(!providerIds.includes(provider)&&Array.isArray(previous.records?.[provider])){
     catalog.records[provider]=feeds.normalizeFeed(previous.records[provider],provider).map(item=>item.feedRecord);
     catalog.updatedAt[provider]=previous.updatedAt?.[provider]||null;
-    if(['ayomi','opengameart','hdwallpapers'].includes(provider))catalog.continuation[provider]=previous.continuation?.[provider]||null;
+    if(['ayomi','opengameart','hdwallpapers','blender'].includes(provider))catalog.continuation[provider]=previous.continuation?.[provider]||null;
   }
   let failures=0;
   for(const provider of providerIds){
     const old=feeds.normalizeFeed(previous?.version===1?previous.records?.[provider]:[],provider);
     try{
-      let records,ayomiResult,sceneResult,hdResult;
+      let records,ayomiResult,sceneResult,hdResult,blenderResult;
       if(Object.hasOwn(repositories.sources,provider)){
         records=await collectRepository(provider,{fetcher,dimensions,old,logger});
       }else if(provider==='pepper'){
@@ -322,6 +323,9 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
       }else if(provider==='opengameart'){
         sceneResult=await collectOpenGameArt({...openGameArtOptions,fetcher,old,logger,now,retryAt:previous?.continuation?.opengameart?.retryAt});
         records=sceneResult.records;catalog.continuation.opengameart=sceneResult.retryAt?{retryAt:sceneResult.retryAt}:null;if(sceneResult.interrupted)failures++;
+      }else if(provider==='blender'){
+        blenderResult=await collectBlender({...blenderOptions,fetcher,old,logger,now,retryAt:previous?.continuation?.blender?.retryAt});
+        records=blenderResult.records;catalog.continuation.blender=blenderResult.retryAt?{retryAt:blenderResult.retryAt}:null;if(blenderResult.interrupted)failures++;
       }else{
         const response=await request(fetcher,metURL(now)),payload=await response.json();records=[];
         const known=new Map(old.map(item=>[item.feedRecord.objectID,item.feedRecord]));
@@ -335,15 +339,16 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
           }catch(e){logger.warn('跳过无法读取的馆藏作品：'+id);}
         }
       }
-      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi','opengameart','revoy','tyson','hdwallpapers'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
+      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi','opengameart','revoy','tyson','hdwallpapers','blender'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
       if(provider==='met')items=[...new Map([...old,...items].map(item=>[item.id,item])).values()];
-      catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=(ayomiResult&&!ayomiResult.updated||sceneResult&&!sceneResult.updated||hdResult&&!hdResult.updated)?previous?.updatedAt?.[provider]||null:now.toISOString();
+      catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=(ayomiResult&&!ayomiResult.updated||sceneResult&&!sceneResult.updated||hdResult&&!hdResult.updated||blenderResult&&!blenderResult.updated)?previous?.updatedAt?.[provider]||null:now.toISOString();
       logger.log(feeds.providers[provider].name+'：'+items.length+' 张');
     }catch(e){
       failures++;catalog.records[provider]=old.map(item=>item.feedRecord);catalog.updatedAt[provider]=previous?.updatedAt?.[provider]||null;
       if(provider==='ayomi')catalog.continuation.ayomi=previous?.version===1?previous.continuation?.ayomi||null:null;
       if(provider==='opengameart')catalog.continuation.opengameart=previous?.version===1?previous.continuation?.opengameart||null:null;
       if(provider==='hdwallpapers')catalog.continuation.hdwallpapers=previous?.version===1?previous.continuation?.hdwallpapers||null:null;
+      if(provider==='blender')catalog.continuation.blender=previous?.version===1?previous.continuation?.blender||null:null;
       logger.warn(feeds.providers[provider].name+'更新失败，保留 '+old.length+' 张已有图片：'+e.message);
     }
   }
@@ -364,6 +369,7 @@ function mergeCatalogs(seed,cached){
     if(provider==='ayomi')catalog.continuation.ayomi=(useSeed?seed:cached)?.continuation?.ayomi||null;
     if(provider==='opengameart')catalog.continuation.opengameart=(useSeed?seed:cached)?.continuation?.opengameart||null;
     if(provider==='hdwallpapers')catalog.continuation.hdwallpapers=(useSeed?seed:cached)?.continuation?.hdwallpapers||null;
+    if(provider==='blender')catalog.continuation.blender=(useSeed?seed:cached)?.continuation?.blender||null;
   }
   return catalog;
 }
