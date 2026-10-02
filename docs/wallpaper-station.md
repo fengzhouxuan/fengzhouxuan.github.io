@@ -35,6 +35,8 @@
 - David Revoy 的 Misc 画廊单独作为原创绘画图源，不与 Pepper&Carrot 正式角色插画混为同一分类。同步先发现官方作品页，再逐图核对 David Revoy 署名、作品标题、CC BY 4.0 或 CC BY-SA 4.0 以及相互对应的原图和作者预览。按文件名与标题过滤文章配图、漫画条、教程、标志、贴纸、明确成人内容及已识别的其他作品角色；这不是独立的逐像素内容与权利核查。仅收录长边至少 1600、短边至少 800 的图片，并确认作者预览不放大且比例一致。与正式插画区同名同日期的已验证作者文件去重，优先保留既有来源；不同日期的其他版本不凭短标题合并。每次同步读取原图与预览的 HTTP 修改时间；未改变时复用尺寸，改变时重新读取图片头部。目录中的版本签名是地址和修改时间的 SHA-256，不是原图内容摘要。预览先核对作者 JPEG 格式及实际尺寸，再等比例缩小到长边不超过 1280 并转为 WebP，保留原许可和修改方式说明；缓存另有实际 WebP 字节的 SHA-256 校验，原图下载入口仍是作者原文件。作品退出完整目录或成功读到的作品页不再具备许可时移除；暂时无法读取时保留已验证记录，429 / 503 停止本轮并保留上次目录。图源没有保证每日新增作品。
 - 钛山（Tyson Tan）的作者站补充「电子之心」「灵兽化身」与「开源吉祥物」三个原创画廊。网站明确将自身内容及外部副本按 CC BY-SA 4.0 与木兰开放作品许可双重授权，并保留“另有声明除外”；这不是把绘画软件的开源许可推及用户作品。同步通过公开 WordPress API 核对作者身份、正式分类、完整分页及每篇文章的第一幅主插画，只使用该幅图注中的正式 Fullsize 链接。其他作品同人分类、草稿、教程、设计参考、透明素材、明确成人关键词，以及另行标注 MIT / CC0 等许可的文章排除；不将文章中的过程图和后续示例当成新的壁纸。每篇作品的公开页面重新核对作者版权声明、具体 CC BY-SA 4.0 链接、原图/预览绑定和 canonical 地址。许可依据是作者对网站内容的默认授权与例外筛选，不能表述为作者逐图设置了单独许可字段。
 - `scripts/collect-tyson.cjs` 串行同步，两次请求至少间隔 500 毫秒，完整读取前三个原创分类后检查主插画。原图长边至少 1600、短边至少 800，实际读取原图与预览头部确认尺寸且比例一致、不放大。版本签名绑定作品修改时间、文件地址及两个文件的 HTTP 修改时间，未变化时复用尺寸；该签名不是原图字节摘要。目录或作品读取失败时保留已有记录，完整目录中消失或成功查到许可不符合的作品移除；HTTP 429 / 503 停止该来源本轮同步并保留上次目录。预览在本站等比例缩小并转为 WebP，保留作者版权声明、相同方式共享要求及修改方式，缓存核对实际字节 SHA-256；原图下载继续指向作者正式文件，预览限流时停止本轮该来源的后续请求。一次同步不代表作者每天创作新作品。
+- HDWallpapers.org 由 `scripts/collect-hdwallpapers.cjs` 同步动漫分类。先核对当前公开访问规则与图片使用条款，再串行完整读取每页 16 件作品的目录，核对分类页总数及跨页重复，支持作品 URL 中的旧版大小写命名。逐件绑定官方作品页、站方作者名、明确的 `Public Domain CC0` 声明、AI 标记和最高分辨率下载字段；通用页脚或 JSON 中的服务条款链接不视为图片许可。只收录站方署名的 CC0 AI 作品，跳过已识别的热门 IP、成人主题、作者不符或授权不明的作品；筛选不能表述为独立核查了所有潜在第三方权利。
+- HDWallpapers 原始单图按源站提供的完整文件字节缓存，核对实际 JPEG 格式、尺寸及 SHA-256，下载使用本站单图；这是图源提供的最高分辨率版本，不承诺生成模型原始像素或作者未处理文件。每次请求至少间隔一秒，HTTP 429 / 503 保存已验证进度与冷却时间；目录故障保留旧目录，单件作品临时故障保留旧记录，已完整读取目录中消失或成功读到许可不合格的作品移除。HTTP 修改时间与 ETag 未变化且本地字节摘要正确时复用原图，否则重新读取。原图与预览不进入 Git，随 Actions cache 保留并随 Hexo 发布；缓存丢失时重新读取正式文件，不需要密钥或逐张人工上传。
 - 各仓库支持自动同步新增图片，但不保证上游每天上传。来源网络失败或尺寸无法读取时保留已验证目录；成功读到空的完整目录时移除该来源旧图片，避免把已经删除的文件持续展示。
 - Wallpapers.com 目前仅作为原站推荐入口，提供二次元、自然风景、4K、手机和电脑分类。在对应分类或设备筛选旁可直接打开原站，在全部内容下可跳到推荐区。其官方 API 示例及实测响应未给出可核验的逐张开放许可字段，详情页的 `Free / Attribution required` 不自动视为 CC0 或 CC BY，因此不接入自动图片采集，不载入它的缩略图、原图或脚本，也不计入站内图库数量。预览、许可查看及下载在原站完成；以后只有核实到明确允许展示的许可才可加入站内目录。
 
@@ -70,6 +72,8 @@
 
 OpenGameArt 预览使用已经同步到本站的 CC0 原文件，不重复请求原站；先核对 SHA-256，再按相同的 1280 像素完整画面规则生成 WebP，计入每次 120 张的总预算。原图与素材包分别不超过 32 MiB，素材包最多 250 个条目、展开总大小不超过 128 MiB，拒绝目录穿越及重复路径；只读取配置中的图片成员，不执行压缩包内容。原站请求时间上限 85 秒，包含串行请求间隔；因此这项构建并非无限制下载。
 
+HDWallpapers 的预览同样使用已核对 SHA-256 的本地原文件，不重复请求源站，等比例转为最长边 1280 像素的 WebP；下载继续使用原始单图，AI 标签、作者、具体作品页与 CC0 保留。原图最多 32 MiB、6000 万像素，预览最多 2 MiB，与其他来源共用每轮 120 张预算。目录记录不包含图片字节；Actions 原图缓存丢失且源站暂时不可访问时，无法仅凭记录恢复原图和新预览，需后续成功同步恢复。
+
 该构建脚本也缓存 Ayomi 作者提供的预览，采用单路请求、1.5 秒间隔，与仓库预览共用每次 120 张的新文件预算。缓存保留作者发布的原始字节，最多 8 MiB、6000 万像素和 25 秒；没有作者缩小预览时只能按未修改原图尝试，不转码。文件按作者原始目录和作品修改时间保存，清理退出图库的已管理文件时保留其他文件。已有缓存每次检查格式、尺寸、字节数和 SHA-256；许可、链接或修改时间变化时重新读取。遇到 HTTP 429 立即停止该来源的缓存请求并把冷却时间写入预览 JSON，其他来源仍可处理。目录同步和图片缓存会读取彼此保存的冷却时间，采用较晚的有效时间，避免一项刚被限流而另一项立即继续请求。缓存丢失或首次构建时可能需要多次每日构建补齐，缺少缓存的 Ayomi 卡片可能无法显示，原图入口仍可在原站打开；不能承诺未缓存图片也能跨站嵌入。
 
 在本地初次启动或要补齐预览时，运行 `node scripts/build-wallpaper-previews.cjs`；已有生成结果会复用。每天的站点构建已配置该命令，实际 GitHub Actions 和 Pages 效果仍需发布后验证。
@@ -77,7 +81,7 @@ OpenGameArt 预览使用已经同步到本站的 CC0 原文件，不重复请求
 ## 验证
 
 ```sh
-node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs test/wallpapers.revoy.test.cjs test/wallpapers.tyson.test.cjs
+node --test --experimental-test-coverage test/wallpapers.test.cjs test/wallpapers.commons.test.cjs test/wallpapers.commons.collector.test.cjs test/wallpapers.feeds.test.cjs test/wallpapers.repositories.test.cjs test/wallpapers.previews.test.cjs test/wallpapers.pepper-artworks.test.cjs test/wallpapers.morevna.test.cjs test/wallpapers.ayomi.test.cjs test/wallpapers.opengameart.test.cjs test/wallpapers.revoy.test.cjs test/wallpapers.tyson.test.cjs test/wallpapers.hdwallpapers.test.cjs
 node test/wallpapers.browser.cjs
 node test/wallpapers.ux.cjs
 node test/wallpapers.categories.browser.cjs
@@ -117,7 +121,7 @@ David Revoy 的作者 Misc 画廊：<https://www.peppercarrot.com/en/artworks/mi
 
 新增待接入候选 BudgetPixel：<https://budgetpixel.com/images/tag/anime> 本轮实际查到 119 张 AI 动漫场景，整个公开图片库声明为 CC BY 4.0：<https://budgetpixel.com/license>。作品页分别列出作者、许可、真实尺寸和正式文件，如 <https://budgetpixel.com/images/anime-rolling-grassland-hills-0b3e0041> 的 2016×864 JPG；不把总条数当作本站已验证高清壁纸数。<https://budgetpixel.com/terms> 第 5 节要求自动访问获得书面许可，不能据图片许可直接批量抓取网页。官方 <https://docs.budgetpixel.com/stock-images> 明确提供用于检索此图库的接口，免费计划也可用，但需要 API 密钥；成功搜索每次 10 积分、最多 20 张，分页另计一次搜索。免费计划当前每月 300 积分，每月最多可作 30 次这样的检索（未计其他积分消费），可采用月度预算限制。接口要求把返回文件下载后自行提供，不能在生产网页热链原图。尚未配置账户密钥、实际调用接口或接入本站，不计入图库数量。
 
-继续搜索发现 Wallpapers UHD 的自有图片采用 CC BY 4.0，但其 <https://www.wallpapersuhd.net/licenses> 明确禁止批量自动采集和把整个或大部分目录复制成另一壁纸站，不能作为免人工维护的直接批量图源。HDWallpapers.org 的 <https://www.hdwallpapers.org/terms-of-service/> 说明多数图片具有逐图 Creative Commons 许可；实际读到的 <https://www.hdwallpapers.org/wallpaper/anime/anime-girl-black-kitty-rain-umbrella-ai/3xx/2880x1800/> 将 AI 插画署名为 hdwallpapers.org 并标为 Public Domain CC0、2880×1800，但尚未实际下载核对像素或文件授权元数据。仍需逐件核对作者与作品许可，并另行确认适合自动同步的入口；本轮未接入、未下载图片，也不计入本站数量。
+继续搜索发现 Wallpapers UHD 的自有图片采用 CC BY 4.0，但其 <https://www.wallpapersuhd.net/licenses> 明确禁止批量自动采集和把整个或大部分目录复制成另一壁纸站，不能作为免人工维护的直接批量图源。HDWallpapers.org 的 <https://www.hdwallpapers.org/terms-of-service/> 要求遵循具体作品的许可，<https://www.hdwallpapers.org/robots.txt> 当前允许读取公开页面；访问规则不替代图片授权。已完整读取动漫分类五页共 80 件作品，只有一件通过站方作者署名、逐图 CC0、AI、内容与真实文件校验，已接入每日同步。<https://www.hdwallpapers.org/wallpaper/anime/anime-girl-black-kitty-rain-umbrella-ai/3xx/> 标为 Public Domain CC0，实际核对其提供的最高分辨率 JPEG 为 3840×2194；先前读到的 2880×1800 是另一个尺寸页面，不能当作最高分辨率。另行复查的 <https://www.hdwallpapers.org/wallpaper/anime/anime-girl-dark-fantasy-world-ai-art/MV5/>、<https://www.hdwallpapers.org/wallpaper/anime/anime-girl-tattoo-katana-ai-art/mgr/>、<https://www.hdwallpapers.org/wallpaper/anime/anime-girl-mask-katana-sword-ai-art/gNG/> 分别署名未知或第三方作者，标为 Personal Use，均未收录。这个来源可以继续自动跟踪后续合格作品，目前不能作为大型开放动漫图库。
 
 动漫大图库候选 <https://huggingface.co/datasets/alfredplpl/anime-with-caption-cc0> 的发布者声明 15,000 张原创提示词生成的 AI 插画并放弃版权，标签为 CC0；实际读取前五张的官方数据 API，均标为 1024×1024，尚未下载整个数据集或独立验证全部图片。不能把总条数当成符合高清尺寸的壁纸数量。其他来源中，Spiral Atlas 的住宅包虽然在 OpenGameArt 标为 CC BY 3.0，但其当前作者页及作者答复明确禁止重新分发原图片：<https://spiralatlas.itch.io/house-visual-novel-backgrounds>，存在许可说明冲突，未接入。NoranekoGames 的动漫场景使用自定规则并限制与 AI 的相关使用，没有按统一开放许可接入：<https://noranekogames.itch.io/yumebackground>。
 
@@ -168,6 +172,10 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 本机浏览器验证日式水墨搜索和极简分类均显示三张图片，实际本地预览全部成功解码；二次元加办公室搜索显示一张，作者 DasBilligeAlien、CC0、2484×1200 原始尺寸及单图入口正确。从页面实际下载的 PNG 为 839,909 字节，SHA-256 为 `da6e9bb9bce0957330d166ddb255033ed72d029247c6ccba9882dc3f67912ad1`，与作者原图一致。收藏刷新后恢复，测试收藏随后清理。截图为项目工作区上层的 `wallpaper-office-scene.png`。浏览器全图库当时显示 1993–2001 张，差异来自 Commons 实时目录及缓存，不据此承诺固定数量。没有新增手机实机验收，也未推送或验证真实 Actions/Pages 发布；完整目标仍需扩大内容种类、提高各来源的预览覆盖率，并验证线上速度与定时更新。
 
 2026-10-02 的预览覆盖增量实际生成 Pepper 全部 90 张和 Morevna 全部 26 张预览，新增 116 个 WebP 共 8,264,128 字节；复用其他来源已有 920 个文件，无失败或待处理项。本地预览达到十个来源、1036 个文件、70,166,572 字节，图库图片数量没有因生成预览而增加。逐文件核对全部预览的格式、尺寸、比例、字节数、已有摘要以及源文件与发布文件字节一致性，另核对五个前端脚本和目录文件的发布字节。144 项测试通过，所加载模块行覆盖率 98.45%，预览映射模块行与函数覆盖率均为 100%；新增测试验证未裁切原图、实际尺寸变化、错误格式、缓存摘要修复、每周重读、临时失败或零预算保留旧文件、修改时间变化及只清理管理文件。Hexo 构建通过。
+
+2026-10-02 的 HDWallpapers 增量完整读取动漫分类 80 件作品后新增一张站方署名的 CC0 AI 壁纸。原始 JPEG 为 3840×2194、1,590,796 字节，SHA-256 为 `51843f7ddee09419e7d4a1b5873d019ce9fd1fac84ac5c2214d1773d975b2eb4`；等比例 WebP 预览为 1280×731、147,062 字节。已有 11 个来源的原始记录、更新时间与续传状态逐项确认未变化，官方目录合计 12 个来源、1061 张。预览生成新增一张、复用 1036 张，无失败或待处理项；全部 1037 个预览共 70,313,634 字节，格式、尺寸、比例、字节数、已有摘要及源文件与发布文件字节一致性核对通过。新原图的源文件、发布文件、研究样本与浏览器实际下载文件四份字节摘要相同，七个相关脚本和目录文件的发布字节一致。
+
+本次全部 155 项测试通过，所加载模块行覆盖率 98.57%，新增前端图源和同步模块行覆盖率均为 100%；测试覆盖分页变化、混合大小写作品 URL、许可空白、通用条款不能充当逐图许可、原图版本变化、缓存丢失或损坏、作品下架、临时故障、429 / 503 冷却、实际像素与格式不符，以及本地原图生成预览。Hexo 构建通过。本机浏览器新图源筛选显示一张，完整预览成功解码，AI、作者、CC0 与原始尺寸可见；从页面实际下载上述原图，收藏刷新后恢复，测试收藏随后清理。截图为项目工作区上层的 `wallpaper-hdwallpapers-anime.png`。这是本机 Node 24 的测试与本地浏览器验证，没有推送或验证真实 Node 22 Actions/Pages 发布；大型动漫图库与线上自动更新仍是剩余目标。
 
 本机浏览器验证 `Episode 38 The Healer landscape` 使用 1280×800 本地完整画面预览，原图为 4200×2625；此前官方目录缩略图为 900×400 的裁切版本。从页面实际下载作者 JPEG 为 2,181,409 字节、4200×2625，SHA-256 为 `3badaea591acb4069e07c6c5d3a6f6791cfb3cad37f038b1d2ac9aea578505db`。Morevna 的 `Inner Light` 使用 1024×846 本地预览，原图入口为 2169×1792；两站署名、CC BY 4.0、原图入口及预览修改说明均正确。截图分别为项目工作区上层的 `wallpaper-pepper-full-frame.png` 与 `wallpaper-morevna-preview.png`。Commons、Met 和克利夫兰仍依赖外站预览，不能把十个来源的缓存描述成全站离线可用。本轮未推送，也未验证真实 Actions/Pages、线上速度或手机实机。
 

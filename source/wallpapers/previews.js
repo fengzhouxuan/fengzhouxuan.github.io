@@ -3,7 +3,6 @@
   'use strict';
   const repositories=typeof module!=='undefined'&&module.exports?require('./repositories.js'):root.WallpaperRepositories;
   const ayomi=typeof module!=='undefined'&&module.exports?require('./ayomi.js'):root.WallpaperAyomi;
-  const opengameart=typeof module!=='undefined'&&module.exports?require('./opengameart.js'):root.WallpaperOpenGameArt;
   const revoy=typeof module!=='undefined'&&module.exports?require('./revoy.js'):root.WallpaperRevoy;
   const tyson=typeof module!=='undefined'&&module.exports?require('./tyson.js'):root.WallpaperTyson;
   const feeds=typeof module!=='undefined'&&module.exports?require('./feeds.js'):root.WallpaperFeeds;
@@ -23,8 +22,8 @@
     if(item?.provider==='revoy'){
       const normalized=revoy.normalizeRecords([item.feedRecord])[0];return normalized&&normalized.id===item.id?'revoy-'+normalized.revision+'-v'+version+'.webp':null;
     }
-    if(item?.provider==='opengameart'){
-      const normalized=opengameart.normalizeRecords([item.feedRecord])[0];return normalized&&normalized.id===item.id?'opengameart-'+normalized.feedRecord.revision+'-v'+version+'.webp':null;
+    if(['opengameart','hdwallpapers'].includes(item?.provider)){
+      const normalized=feeds.normalizeFeed([item.feedRecord],item.provider)[0];return normalized&&normalized.id===item.id?item.provider+'-'+normalized.feedRecord.revision+'-v'+version+'.webp':null;
     }
     if(item?.provider==='ayomi'){
       const normalized=ayomi.normalizeRecords([item.feedRecord])[0];if(!normalized||normalized.id!==item.id)return null;

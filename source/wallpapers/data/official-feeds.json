@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-01T23:01:22.140Z",
+  "generatedAt": "2026-10-01T23:58:23.111Z",
   "updatedAt": {
     "pepper": "2026-10-01T17:25:24.420Z",
     "met": "2026-10-01T15:53:11.358Z",
@@ -12,7 +12,8 @@
     "opengameart": "2026-10-01T22:58:00.073Z",
     "agundur": "2026-10-01T20:33:39.877Z",
     "revoy": "2026-10-01T20:58:11.089Z",
-    "tyson": "2026-10-01T21:37:34.843Z"
+    "tyson": "2026-10-01T21:37:34.843Z",
+    "hdwallpapers": "2026-10-01T23:58:23.111Z"
   },
   "records": {
     "pepper": [
@@ -14793,6 +14794,33 @@
         "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
         "licenseSource": "https://tysontan.com/gallery/gallery-spirits/hikari-2007/"
       }
+    ],
+    "hdwallpapers": [
+      {
+        "workID": "3xx",
+        "title": "Anime Girl Black Kitty Rain Umbrella Ai",
+        "artist": "hdwallpapers.org",
+        "ai": true,
+        "tags": [
+          "Anime",
+          "Girl",
+          "Black",
+          "Kitty",
+          "Rain",
+          "Umbrella"
+        ],
+        "sourceFile": "https://www.hdwallpapers.org/uploads/converted/25/07/07/4047678160-Anime_Girl_Black_Kitty_Rain_Umbrella_Ai-3xx-3840x2194-MM-90.jpg",
+        "pageUrl": "https://www.hdwallpapers.org/wallpaper/anime/anime-girl-black-kitty-rain-umbrella-ai/3xx/",
+        "width": 3840,
+        "height": 2194,
+        "bytes": 1590796,
+        "revision": "51843f7ddee09419e7d4a1b5873d019ce9fd1fac84ac5c2214d1773d975b2eb4",
+        "modified": "Sat, 26 Sep 2026 22:26:23 GMT",
+        "etag": null,
+        "license": "CC0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "licenseSource": "https://www.hdwallpapers.org/wallpaper/anime/anime-girl-black-kitty-rain-umbrella-ai/3xx/"
+      }
     ]
   },
   "continuation": {
@@ -14890,6 +14918,7 @@
         "https://oc.nekosia.cat/gallery/kornelia/nekomimi-strawberry-shirt-black-shorts"
       ]
     },
-    "opengameart": null
+    "opengameart": null,
+    "hdwallpapers": null
   }
 }
