@@ -14,6 +14,7 @@ export function catalogSummary(state) {
   const missingMetadata = state.items.some(item => (filters.year && !item.year) || (filters.area && !item.area) || (filters.status && !filterVideos([item], { status: 'complete' }).length && !filterVideos([item], { status: 'updating' }).length));
   return {
     count, queried: state.feeds.reduce((sum, feed) => sum + feed.page, 0),
+    pages: Object.fromEntries(state.feeds.map(feed => [feed.source, Math.max(feed.page, feed.restorePage || 0)])),
     total: state.feeds.reduce((sum, feed) => sum + feed.pages, 0),
     filtered: hasFilters(filters), failed, deferred, limited, missingMetadata,
     hasMore: pending || Boolean(failed.length),
@@ -52,7 +53,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
             const items = new Map(state.items.map(item => [item.uid, item]));
             for (const item of result.videos) items.set(item.uid, item);
             state.items = [...items.values()];
-            feed.page = page; feed.pages = result.pages; feed.limited = Boolean(result.limited); feed.failed = false; feed.deferred = false;
+            feed.page = page; feed.pages = result.pages; feed.restorePage = Math.min(feed.restorePage, result.pages); feed.limited = Boolean(result.limited); feed.failed = false; feed.deferred = false;
           } catch (error) {
             if (current !== version) return;
             feed.deferred = error?.name === 'SourceCooldownError'; feed.failed = !feed.deferred;
@@ -66,19 +67,32 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
     }
   }
 
+  async function restorePages(current) {
+    const targets = Object.fromEntries(state.feeds.map(feed => [feed.source, feed.restorePage]));
+    try {
+      while (current === version && !state.loading && !state.stopped && state.feeds.some(feed => available(feed) && feed.page < targets[feed.source])) await scan(true, true, targets);
+    } finally {
+      if (current === version) { state.restoring = false; onChange(); }
+    }
+  }
+
   async function open(query, { force = false, filters = {}, pages = {}, retrySources = false } = {}) {
     if (!query || !Array.isArray(query.sources) || !query.sources.length) throw new Error('至少选择一个查询来源');
     const next = { ...query, sources: [...new Set(query.sources)] };
     const key = JSON.stringify(next);
-    if (!force && state.key === key && state.items.length) { onChange(); return; }
-    version++; controller?.abort();
     const targets = Object.fromEntries(next.sources.map(source => [source, Number.isInteger(pages?.[source]) && pages[source] > 0 && pages[source] <= 20 ? pages[source] : 0]));
+    if (!force && state.key === key && state.items.length) {
+      if (state.loading) { onChange(); return; }
+      state.stopped = false; state.restoring = state.feeds.some(feed => available(feed) && feed.page < feed.restorePage);
+      await restorePages(version); return;
+    }
+    version++; controller?.abort();
     const restoring = Object.values(targets).some(page => page > 0);
-    Object.assign(state, { items: [], feeds: next.sources.map(source => ({ source, page: 0, pages: 1, failed: false, deferred: false, limited: false })), filters: { year: filters?.year || '', area: filters?.area || '', status: filters?.status || '' }, query: next, key, loading: false, scanning: false, restoring, stopped: false });
+    Object.assign(state, { items: [], feeds: next.sources.map(source => ({ source, page: 0, pages: 1, restorePage: targets[source], failed: false, deferred: false, limited: false })), filters: { year: filters?.year || '', area: filters?.area || '', status: filters?.status || '' }, query: next, key, loading: false, scanning: false, restoring, stopped: false });
     const current = version;
     try {
       await scan(true, true, null, retrySources);
-      while (current === version && state.feeds.some(feed => available(feed) && feed.page < targets[feed.source])) await scan(true, true, targets);
+      await restorePages(current);
     } finally {
       if (current === version) { state.restoring = false; onChange(); }
     }
@@ -87,6 +101,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
 
   function setFilters(filters = {}) {
     const restoring = state.restoring;
+    for (const feed of state.feeds) feed.restorePage = feed.page;
     state.filters = { year: filters.year || '', area: filters.area || '', status: filters.status || '' };
     if (restoring) { stop(); state.stopped = false; onChange(); }
     else if (!hasFilters(state.filters) && state.scanning) stop();

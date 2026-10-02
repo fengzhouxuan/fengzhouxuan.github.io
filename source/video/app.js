@@ -494,7 +494,7 @@ function rememberCatalogPosition() {
   return listNavigation.rememberCatalog(state.lastList, {
     filters: state.catalog.filters, top: window.scrollY, expanded: $('catalog-filters').open,
     anchor: visibleCardAnchor([...$('cards').children]),
-    pages: Object.fromEntries(state.catalog.feeds.map(feed => [feed.source, feed.page])),
+    pages: catalogSummary(state.catalog).pages,
     sources: [...document.querySelectorAll('.source-picks input:checked')].map(input => input.value),
   });
 }
