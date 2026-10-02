@@ -1113,7 +1113,7 @@ function handleRoute() {
   const fromCatalog = ['browse', 'search'].includes(state.route.view);
   if (fromCatalog) rememberCatalogPosition();
   if (state.route.view === 'home') rememberHomePosition();
-  const restore = !fromCatalog ? listNavigation.catalog(location.hash) : null;
+  const restore = listNavigation.catalog(location.hash);
   const homeRestore = route.view === 'home' && state.route.view !== 'home' ? listNavigation.home() : null;
   cancelFallback();
   clearTimeout(filterTimer);

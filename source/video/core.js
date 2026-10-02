@@ -91,10 +91,20 @@ export function createListNavigation(storage = null) {
     };
   };
   const copyCatalog = value => value ? { ...value, filters: { ...value.filters }, pages: { ...value.pages }, sources: [...value.sources], anchor: value.anchor ? { ...value.anchor } : null } : null;
-  let catalog = null;
+  const catalogs = new Map();
+  const retainCatalog = value => {
+    if (!value) return;
+    catalogs.delete(value.hash); catalogs.set(value.hash, value);
+    if (catalogs.size > 8) catalogs.delete(catalogs.keys().next().value);
+  };
   try {
     const saved = storage?.getItem(catalogKey);
-    if (typeof saved === 'string' && saved.length <= 4096) catalog = cleanCatalog(JSON.parse(saved));
+    if (typeof saved === 'string' && saved.length <= 32768) {
+      const parsed = JSON.parse(saved);
+      const entries = parsed?.version === 2 && Array.isArray(parsed.entries) ? parsed.entries.slice(-8)
+        : !Object.hasOwn(parsed ?? {}, 'version') && saved.length <= 4096 ? [parsed] : [];
+      for (const entry of entries) retainCatalog(cleanCatalog(entry));
+    }
   } catch { /* Ignore unavailable or corrupt catalogue state. */ }
   const cleanHome = value => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -119,10 +129,12 @@ export function createListNavigation(storage = null) {
       try { storage?.setItem(key, lastList); } catch { /* Preserve this tab's in-memory return route. */ }
       return lastList;
     },
-    catalog(hash) { return catalog?.hash === normalize(hash) ? copyCatalog(catalog) : null; },
+    catalog(hash) { return copyCatalog(catalogs.get(normalize(hash))); },
     rememberCatalog(hash, context = {}) {
-      catalog = cleanCatalog({ ...context, hash });
-      try { storage?.setItem(catalogKey, JSON.stringify(catalog)); } catch { /* Retain the current tab's state without persistence. */ }
+      const catalog = cleanCatalog({ ...context, hash });
+      if (!catalog) return null;
+      retainCatalog(catalog);
+      try { storage?.setItem(catalogKey, JSON.stringify({ version: 2, entries: [...catalogs.values()] })); } catch { /* Retain the current tab's state without persistence. */ }
       return copyCatalog(catalog);
     },
     home: () => copyHome(home),

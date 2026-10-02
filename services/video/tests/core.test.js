@@ -66,6 +66,48 @@ test('corrupt, external and oversized catalogue state degrades without adopting 
   assert.deepEqual(filterVideos([fixture()], { area: 'toString' }), []);
 });
 
+test('switching between catalogues and searches retains each route context through reloads', () => {
+  const saved = new Map(); const storage = { getItem: key => saved.get(key), setItem: (key, value) => saved.set(key, value) };
+  const navigation = createListNavigation(storage);
+  const browse = '#browse?category=anime'; const search = '#search?q=' + encodeURIComponent('琅琊榜');
+  navigation.rememberCatalog(browse, { filters: { year: '2026', area: 'mainland', status: 'updating' }, pages: { liangzi: 3 }, sources: ['liangzi'], top: 900, expanded: true });
+  navigation.rememberCatalog(search, { filters: { year: '2015', status: 'complete' }, pages: { ruyi: 2 }, sources: ['ruyi'], top: 350 });
+  for (const current of [navigation, createListNavigation(storage)]) {
+    assert.equal(current.catalog(browse).filters.year, '2026'); assert.equal(current.catalog(browse).top, 900);
+    assert.equal(current.catalog(browse).pages.liangzi, 3); assert.equal(current.catalog(browse).expanded, true);
+    assert.equal(current.catalog(search).filters.year, '2015'); assert.equal(current.catalog(search).top, 350);
+    assert.deepEqual(current.catalog(search).sources, ['ruyi']);
+  }
+  navigation.rememberCatalog(browse, { filters: { year: '2025' }, top: 700 });
+  const restored = createListNavigation(storage);
+  assert.equal(restored.catalog(browse).filters.year, '2025'); assert.equal(restored.catalog(search).top, 350);
+  assert.equal(navigation.rememberCatalog('#home'), null); assert.equal(navigation.catalog(search).top, 350);
+});
+
+test('catalogue history migrates legacy state, bounds recent routes and sanitizes persisted entries', () => {
+  const saved = new Map([['video-catalog-context', JSON.stringify({ hash: '#browse?category=anime', filters: { year: '2026' }, top: 123 })]]);
+  const storage = { getItem: key => saved.get(key), setItem: (key, value) => saved.set(key, value) };
+  const navigation = createListNavigation(storage);
+  assert.equal(navigation.catalog('#browse?category=anime').top, 123);
+  navigation.rememberCatalog('#search?q=one', { filters: { year: '2015' }, secret: 'private-token' });
+  assert.equal(createListNavigation(storage).catalog('#browse?category=anime').top, 123);
+  for (let index = 0; index < 7; index++) navigation.rememberCatalog('#search?q=' + index, { top: index });
+  assert.equal(navigation.catalog('#browse?category=anime'), null);
+  navigation.rememberCatalog('#search?q=one', { top: 100 });
+  navigation.rememberCatalog('#search?q=new', { top: 200 });
+  const restored = createListNavigation(storage);
+  assert.equal(restored.catalog('#search?q=0'), null); assert.equal(restored.catalog('#search?q=one').top, 100);
+  assert.equal(restored.catalog('#search?q=new').top, 200);
+  const serialized = saved.get('video-catalog-context');
+  assert.doesNotMatch(serialized, /private-token/); assert.equal(JSON.parse(serialized).entries.length, 8);
+  const mixed = JSON.stringify({ version: 2, entries: [null, { hash: '#watch?source=ruyi&id=12' }, { hash: '#search?q=safe', filters: { area: 'constructor' }, top: Infinity }, { hash: '#search?q=safe', top: 42 }] });
+  const sanitized = createListNavigation({ getItem: key => key === 'video-catalog-context' ? mixed : null });
+  assert.equal(sanitized.catalog('#search?q=safe').top, 42); assert.equal(sanitized.catalog('#browse?category=anime'), null);
+  for (const data of [JSON.stringify({ version: 3, entries: [] }), JSON.stringify({ version: 2, entries: 'invalid' }), 'a'.repeat(32769)]) {
+    assert.equal(createListNavigation({ getItem: key => key === 'video-catalog-context' ? data : null }).catalog('#search?q=safe'), null);
+  }
+});
+
 test('missing or blocked catalogue storage keeps only the current in-memory context', () => {
   const storage = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('quota'); } };
   for (const store of [null, storage]) {
