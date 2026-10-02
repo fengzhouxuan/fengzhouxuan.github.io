@@ -11,6 +11,23 @@
   ];
   const patterns=['山野','柔光','轨道','几何'];
   const cacheKey='rabbit-wallpapers-art-v2';
+  const searchAliases=Object.freeze({
+    猫耳:[/\b(?:catgirls?|cat[ -]ears?|neko(?:[ -]girls?)?)\b/],
+    狐耳:[/\b(?:foxgirls?|fox[ -]ears?)\b/],
+    少女:[/\b(?:girls?|catgirls?|foxgirls?|neko[ -]girls?)\b/],
+    教室:[/\bclassrooms?\b/],
+    海边:[/\b(?:beach|beaches|seaside|coast|coastal)\b/],
+    森林:[/\b(?:forests?|woods|woodland)\b/],
+    山川:[/\bmountains?\b/],
+    夜景:[/\b(?:night|nighttime|nightscape|midnight)\b/],
+    雨夜:[/\b(?:rain|rainy|raining)\b/,/\b(?:night|nighttime|midnight)\b/],
+    夕阳:[/\b(?:sunset|dusk|twilight)\b/],
+    樱花:[/\b(?:sakura|cherry blossoms?)\b/],
+    雪景:[/\b(?:snow|snowy|snowfall)\b/],
+    星空:[/\b(?:starry|stars|stargazing|galaxy|galaxies|milky way)\b/],
+    神社:[/\bshrines?\b/],
+    咖啡馆:[/(?:^|[^a-z])caf[eé]s?(?=$|[^a-z])|\bcoffee shops?\b/]
+  });
 
   function dayKey(now=new Date()){
     return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
@@ -101,7 +118,12 @@
   }
 
   function filterWallpapers(items,{source='all',orientation='all',query='',favorites=null,style='',palette='',category='',provider=''}={}){
-    const keyword=String(query).trim().toLocaleLowerCase();
+    const keyword=String(query).trim().toLocaleLowerCase(),terms=keyword?keyword.split(/\s+/):[];
+    function matchesQuery(item){
+      if(!terms.length)return true;
+      const content=[item.title,...item.tags].join(' ').toLocaleLowerCase(),literal=content+' '+String(item.artist??'').toLocaleLowerCase();
+      return terms.every(term=>literal.includes(term)||Object.hasOwn(searchAliases,term)&&searchAliases[term].every(pattern=>pattern.test(content)));
+    }
     return items.filter(item=>(source==='all'||item.source===source)&&
       (orientation==='all'||(orientation==='landscape'?item.width>=item.height:item.height>item.width))&&
       (!favorites||favorites.has(item.id))&&
@@ -109,7 +131,7 @@
       (!provider||(item.provider||item.source)===provider)&&
       (!style||item.tags.includes(style))&&
       (palette===''||item.source==='original'&&item.palette===Number(palette))&&
-      (!keyword||[item.title,item.artist,...item.tags].join(' ').toLocaleLowerCase().includes(keyword)));
+      matchesQuery(item));
   }
 
   async function loadArtworks({fetcher,storage,now=new Date(),timeout=10000}={}){

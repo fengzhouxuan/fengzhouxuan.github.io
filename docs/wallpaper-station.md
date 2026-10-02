@@ -57,6 +57,7 @@
 - Ayomi 图片响应有 `Cross-Origin-Resource-Policy: same-origin`，原站图片无法直接嵌入博客。构建时将作者提供的预览按原始字节缓存到本站，核对格式、尺寸和 SHA-256 摘要；不裁切、重编码或生成改作。预览优先使用本站缓存，下载入口继续打开作者原始 PNG/JPEG/WebP。标签和图源名称明确标注 AI 插画。该来源只可用于符合许可的非商业展示，未来启用广告或其他商业用途前需重新处理该来源。
 - 画廊保留横竖屏的原始比例，桌面四列、平板三列、手机两列；各来源按当天日期确定性轮换并交错推荐，每次显示 24 张，再按需加载更多。相同文件在画廊只出现一次，分类和标签会合并，使同时属于风景与城市的图片仍可从任一分类找到。新增分类可与图源、设备、搜索组合筛选；首屏推荐从已收录图片中挑选横竖屏作品，加载失败回退到原创图案。
 - 可按设备、主题、配色和关键字组合筛选，按名称或分辨率排序。主题与配色适用于原创；艺术馆隐藏这两项。
+- 搜索支持用猫耳、狐耳、少女、教室、海边、森林、山川、夜景、雨夜、夕阳、樱花、雪景、星空、神社、咖啡馆等中文词匹配来源标题和标签中的对应英文词。按空格输入多个词时取交集，例如“猫耳 教室”；每个词也可直接匹配原始标题、标签或作者。匹配不会翻译或改写原始署名，也不根据作者姓名推断画面主题；只依赖现有来源文字，因此未描述的主题不会凭空补标签。
 - 首屏的山野、柔光、夜色、艺术馆入口直接应用对应筛选；支持随机挑选和一键清除筛选。
 - 收藏无需重新加载画廊，并提供撤销；收藏在浏览器本地保存，旧日期和批次的作品仍可恢复。
 - 预览支持上一张、下一张、左右方向键、F 收藏、Esc 关闭；搜索框支持 `/` 聚焦，输入时不触发预览快捷键。手机支持横向轻扫切图。
@@ -134,6 +135,8 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 
 另外排除的候选：<https://vizardio.com/en/free/license> 的免费 AI 图片集合声明为 CC0，但 <https://vizardio.com/en/terms-of-service> 第 9.1 节禁止未经书面许可的自动访问，未编写自动采集。<https://github.com/1nexoravel/inex-gpt-image-2> 虽然仓库采用 CC BY 4.0，主要提供提示词及示例，部分示例明确依赖外部角色参考图，不能把仓库许可当作底层角色素材的权利证明。<https://unicorncreates.itch.io/shopping-backgrounds> 的作者提供 CC BY 4.0 商店场景素材包与高清版本，但本机 HTTP 和浏览器实际连接失败，尚未下载验证，因此没有计入图库。
 
+继续追溯 <https://huggingface.co/datasets/deepghs/anime-bg> 的 4600 张动漫背景：数据卡虽标为 CC0，但明确引用 <https://huggingface.co/datasets/skytnt/anime-segmentation>；后者引用的 <https://github.com/ShuhongChen/bizarre-pose-estimator> 说明背景来自 Danbooru 与 Pixiv，未提供每张原作作者的再分发授权。因此没有将下游 CC0 标签当作原始图片许可，也没有下载或收录这批图片。另核对 <https://www.summerengine.com/asset-store/vn-background-school-rooftop-day-2561b957>，作品页与结构化数据绑定作者、Grok Imagine、CC0 和未附变换参数的正式 PNG 地址；实际读取原图为 1280×720，未通过本站门槛。平台 <https://www.summerengine.com/llms-asset-store.txt> 与 <https://www.summerengine.com/agent-catalog.json> 提供公开目录入口，并要求优先使用素材包目录、避免批量遍历详情和私有 API；未编写绕过此规则的采集器，也没有将目录总数计入本站。
+
 仓库图源：<https://gitlab.com/librepixels/ia.Wallpapers>；<https://github.com/FoliumCreations/Wallpapers>；<https://github.com/metaory/midjourney>。许可声明分别位于 LibrePixels README/LICENCE、Folium README/CC:BY 4.0 Licence、metaory LICENSE。
 
 ## 目标与剩余缺口
@@ -187,6 +190,10 @@ Wallpapers.com API 与逐图许可要求：<https://wallpapers.com/api/>；个�
 2026-10-02 的 WallColle 增量在提交 `dc3179f089c0c17284b49ff7d99ecc88b0bfd280` 实际收录 23 张：15 张 CC BY-NC 4.0、5 张 CC BY 4.0、2 张 CC BY-SA 4.0、1 张 Public domain。全部实际读取原图头部取得尺寸，另在预览阶段完整下载并核对每张原图的 Git blob SHA-1、真实解码尺寸与方向；超过像素上限的 St. Mary Lake 未收录。既有 12 个来源的记录、更新时间和续传状态逐项确认未变，官方目录合计 13 个来源、1084 张。新增 23 张等比例 WebP 共 2,528,770 字节，复用 1037 张，无失败或待处理项；全部 1060 个本地预览共 72,842,404 字节，格式、尺寸、比例、字节数与发布文件一致性核对通过，六个相关脚本和目录的发布字节一致。
 
 本次全部 162 项测试通过，所加载模块行覆盖率 98.62%，仓库图源模块行与函数覆盖率均为 100%；新增测试覆盖贡献者命名空间、逐图许可、清单摘要、固定提交链接、缺失或超大原图、目录结构变化、许可撤回、临时失败保留、原图尺寸不符、缓存复用与仅清理管理文件。Hexo 构建通过。本机浏览器 AOSC 图源显示 23 张，全部本地预览成功解码；`Mountain Range` 的作者 Zhimin Lin、CC BY-NC 4.0 非商业条件与修改说明可见。从页面实际下载 JPEG 为 4608×3072、4,719,400 字节，Git blob SHA-1 为 `7c952bde1f313f3a5b0cc7c9bda61296a261be9c`，与已验证目录一致，SHA-256 为 `446d982ef6da34f32b15b5b4cd109f77151fbeb1833ae4719df0ebafcef5d584`。收藏刷新后恢复，测试收藏随后清理。截图为项目工作区上层的 `wallpaper-wallcolle-preview.png`。这批照片没有增加动漫内容；大型动漫图库、线上自动更新和手机实机体验仍未完成，没有推送或验证真实 Node 22 Actions/Pages 发布。
+
+2026-10-02 的后续增量继续执行现有 Ayomi 续传，限定 40 次请求、每次间隔 1800 ms、最多读取 12 个目录；新增 14 张，Ayomi 从 368 增至 382 张，实际原图尺寸为 1024×1536 或 1536×1024。三个目录因结构不一致、超时或连接失败而保留已验证记录，预算耗尽后正常保存进度，待处理目录从 90 变为 83；目录数不能当作未收录图片数。其他 12 个图源的记录、更新时间，以及 OpenGameArt/HDWallpapers 续传状态逐项确认未变。官方目录合计 1098 张；新增 14 张作者原始预览共 748,572 字节，复用 1060 张，无失败或待处理预览项。全部 1074 个预览共 73,590,976 字节，已有摘要、格式、尺寸、字节数和全部发布文件一致性核对通过，五个相关脚本、HTML 与目录文件字节一致。
+
+同时修复中文关键词搜索：改动前在 Ayomi 手机图筛选中搜索“猫耳”实际显示 0 张；改动后官方已验证目录中“猫耳”匹配 248 张，“狐耳”44 张，“猫耳 教室”7 张。全部 163 项测试通过，所加载模块行覆盖率 98.64%，测试覆盖中文别名、组合条件、英文及作者查询、单词边界、雨夜两个条件、带重音的 Café、不凭作者名字推断画面、空作者与特殊属性名。Hexo 构建通过。本机浏览器在 390×844 视口下验证双列图库没有横向溢出，中文组合搜索显示七张且全部预览成功解码；弹窗下载栏位于 y=774、宽 390、高 70，完整处于视口内。截图为项目工作区上层的 `wallpaper-chinese-search-mobile.png`，这是桌面浏览器的响应式视口验证，未新增手机实机验收。新增 `Blue Haired Neko Girl in White Robe Sits at Beach Sunset Scene` 的作者、AI 与 CC BY-NC-ND 4.0 条件可见，页面入口实际下载 PNG 为 1024×1536、1,829,368 字节，下载文件 SHA-256 为 `5364cf111aceafcf257d4550231523b74b94b8205165c494553f259136d1f472`。测试未新增收藏，浏览器已恢复默认视口；未推送或验证真实 Actions/Pages 发布。丰富高清动漫种类与线上每日更新仍是完整目标的剩余缺口。
 
 本机浏览器验证 `Episode 38 The Healer landscape` 使用 1280×800 本地完整画面预览，原图为 4200×2625；此前官方目录缩略图为 900×400 的裁切版本。从页面实际下载作者 JPEG 为 2,181,409 字节、4200×2625，SHA-256 为 `3badaea591acb4069e07c6c5d3a6f6791cfb3cad37f038b1d2ac9aea578505db`。Morevna 的 `Inner Light` 使用 1024×846 本地预览，原图入口为 2169×1792；两站署名、CC BY 4.0、原图入口及预览修改说明均正确。截图分别为项目工作区上层的 `wallpaper-pepper-full-frame.png` 与 `wallpaper-morevna-preview.png`。Commons、Met 和克利夫兰仍依赖外站预览，不能把十个来源的缓存描述成全站离线可用。本轮未推送，也未验证真实 Actions/Pages、线上速度或手机实机。
 

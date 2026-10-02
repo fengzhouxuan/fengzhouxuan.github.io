@@ -60,6 +60,23 @@ test('filter combines source, orientation, query and favorites',()=>{
   assert.equal(core.filterWallpapers(items,{category:'minimal'}).length,18);
   assert.equal(core.filterWallpapers(items,{category:'anime'}).length,0);
 });
+test('Chinese scene keywords match English titles and tags, while combined terms retain other filters',()=>{
+  const item=(title,extra={})=>({id:title,title,artist:'Photo Author',tags:[],source:'commons',provider:'ayomi',categories:['anime'],width:1024,height:1536,...extra});
+  const examples={猫耳:'Catgirl with Cat Ears',狐耳:'Foxgirl with Fox Ears',少女:'Girl with a Camera',教室:'Classroom Window',海边:'Coastal Beach Scene',森林:'Forest and Woodland',山川:'Mountain Range',夜景:'Night Cityscape',雨夜:'Rainy City at Night',夕阳:'Sunset on a Lake',樱花:'Cherry Blossoms and Sakura',雪景:'Snowy Landscape',星空:'Starry Sky and Milky Way',神社:'Shrine in Spring',咖啡馆:'Coffee Shop and Café'};
+  for(const [query,title] of Object.entries(examples))assert.deepEqual(core.filterWallpapers([item(title)],{query}),[item(title)]);
+  for(const title of ['Café','Cafe','Cafes','Coffee Shop'])assert.equal(core.filterWallpapers([item(title)],{query:'咖啡馆'}).length,1);
+  for(const [query,title] of [['猫耳','Cathedral Architecture'],['狐耳','Foxtrot'],['森林','Forestier Portrait'],['教室','Classical Music'],['少女','Girlhood Memories'],['雨夜','Rainy Afternoon'],['雨夜','Sunny Night'],['星空','Blue Sky'],['咖啡馆','Cafeteria']])assert.deepEqual(core.filterWallpapers([item(title)],{query}),[]);
+  const combined=item('Catgirl Gazes Out Classroom Window'),unrelated=item('Catgirl on Beach'),landscape=item('Catgirl in Classroom',{id:'landscape',width:1920,height:1080});
+  const records=[combined,unrelated,landscape];
+  assert.deepEqual(core.filterWallpapers(records,{query:' 猫耳   教室 ',orientation:'portrait',provider:'ayomi',category:'anime'}),[combined]);
+  assert.deepEqual(core.filterWallpapers(records,{query:'CATGIRL window'}),[combined]);
+  assert.deepEqual(core.filterWallpapers(records,{query:'教室 Author',favorites:new Set([landscape.id])}),[landscape]);
+  assert.deepEqual(core.filterWallpapers([item('Plain Landscape',{tags:['Cat Ears']})],{query:'猫耳'}).length,1);
+  assert.deepEqual(core.filterWallpapers([item('Plain Landscape',{artist:'Catgirl Artist'})],{query:'猫耳'}),[]);
+  assert.deepEqual(core.filterWallpapers([item('猫耳少女')],{query:'猫耳'}).length,1);
+  assert.equal(core.filterWallpapers([item('Catgirl',{artist:null})],{query:'猫耳'}).length,1);
+  assert.deepEqual(core.filterWallpapers(records,{query:'__proto__'}),[]);
+});
 test('fresh artwork request filters, deduplicates and saves a daily cache',async()=>{
   const storage=memory();let calledURL;
   const result=await core.loadArtworks({now,storage,fetcher:async url=>{calledURL=new URL(url);return {ok:true,json:async()=>({data:[art,art]})};}});
