@@ -17,6 +17,15 @@
 
   function imageURL(item){return previews.imageCandidates(item,state.previews)[0];}
 
+  function renderCredit(target,item){
+    target.replaceChildren();
+    if(item.provider!=='eso'){target.textContent=item.artist;return;}
+    for(const part of item.creditParts){
+      if(!part.href){target.append(document.createTextNode(part.text));continue;}
+      const link=element('a','',part.text);link.href=part.href;link.target='_blank';link.rel='noopener noreferrer';target.append(link);
+    }
+  }
+
   function nextImage(image,item){
     const candidates=previews.imageCandidates(item,state.previews),next=candidates[candidates.indexOf(image.getAttribute('src'))+1];
     if(!next)return false;
@@ -184,7 +193,8 @@
       const hint=element('span','card-open-hint','查看效果 ↗');open.append(image,badge,hint);open.addEventListener('click',()=>showPreview(item));
       const info=element('div','card-info');info.append(element('span','card-title',item.title));
       if(item.source!=='original'){
-        const credit=element('a','card-credit',item.artist);credit.href=item.pageUrl;credit.target='_blank';credit.rel='noopener noreferrer';credit.title=item.artist+' · 查看来源';info.append(credit);
+        const credit=element(item.provider==='eso'?'div':'a','card-credit'+(item.provider==='eso'?' full-credit':''));renderCredit(credit,item);
+        if(item.provider!=='eso'){credit.href=item.pageUrl;credit.target='_blank';credit.rel='noopener noreferrer';credit.title=item.artist+' · 查看来源';}info.append(credit);
       }
       const meta=element('div','card-meta');meta.append(element('span','',item.width+' × '+item.height),element('span','',item.height>item.width?'手机':'桌面'));info.append(meta);
       const actions=element('div','card-actions');
@@ -208,6 +218,10 @@
     $('hero-image').src=state.hero.source==='original'?svgURL(state.hero,1280,720):imageURL(state.hero);
     $('hero-phone-image').src=state.heroPhone.source==='original'?svgURL(state.heroPhone,540,960):imageURL(state.heroPhone);
     $('hero-title').textContent=state.hero.title;
+    for(const [id,item] of [['hero-credit',state.hero],['hero-phone-credit',state.heroPhone]]){
+      const credit=$(id);credit.hidden=item.provider!=='eso';renderCredit(credit,item);
+      if(!credit.hidden)credit.prepend(document.createTextNode(id==='hero-credit'?'今日推荐署名：':'手机推荐署名：'));
+    }
     $('daily-note').textContent=selected.length?'持续收录 · 原图下载 · 保留作者署名':'每日原创 · 高清下载 · 无水印';
     $('hero-date').textContent=state.day.replaceAll('-','.');
     for(const image of document.querySelectorAll('[data-cover]'))image.src=svgURL(state.originals[Number(image.dataset.cover)],240,240);
@@ -233,7 +247,7 @@
     $('lock-clock').hidden=state.view!=='phone';$('desktop-overlay').hidden=state.view!=='desktop';
     $('lock-date').textContent=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'long',day:'numeric',weekday:'long'}).format(new Date());
     for(const button of $('preview-views').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.view===state.view));
-    $('preview-dimensions').textContent=(original?width+' × '+height:item.width+' × '+item.height)+(original?' · PNG · 无水印':' · 原始尺寸');
+    $('preview-dimensions').textContent=(original?width+' × '+height:item.width+' × '+item.height)+(original?' · PNG · 无水印':item.provider==='eso'?' · 官方高清 JPEG':' · 原始尺寸');
     $('preview-note').textContent=state.view==='image'?'画面不裁切，保留完整构图。':original?'下载只包含壁纸，不包含时钟、桌面图标或设备边框。':'桌面与锁屏为裁切示意；打开高清原图可保存完整作品。';
   }
 
@@ -244,7 +258,7 @@
       state.view='image';
     }
     state.current=item;
-    $('preview-title').textContent=item.title;$('preview-artist').textContent=item.artist;$('preview-image').alt=item.title;
+    $('preview-title').textContent=item.title;renderCredit($('preview-artist'),item);$('preview-image').alt=item.title;
     const providerName=feeds.providers[item.provider]?.name||(item.source==='commons'?'Wikimedia Commons':'克利夫兰艺术博物馆');
     $('preview-source').textContent=item.source==='original'?'每日原创 / '+item.day:'开放图库 / '+providerName;
     const original=item.source==='original';
@@ -252,11 +266,13 @@
     $('download-size').value=(state.view==='phone'||state.view==='image'&&item.height>item.width)?'2160x3840':'3840x2160';
     $('download-status').textContent='';$('source-link').hidden=original;
     if(!original){$('source-link').href=item.pageUrl;$('art-download').href=item.download;$('source-link').textContent=providerName+' · 查看作品与作者 ↗';}
+    $('art-download').textContent=item.provider==='eso'?'打开高清 JPEG ↗':'打开高清原图 ↗';
     $('license-link').href=item.licenseUrl;
     $('license-link').textContent=item.license+' · '+feeds.licenseHint(item.license)+' ↗';
     $('credit-block').hidden=original;
     const previewCredit=['pepper','morevna','opengameart'].includes(item.provider)&&previews.previewFor(item,state.previews)?'\n预览等比例缩小并转为 WebP；高清入口保留作者原图。':'';
-    $('credit-text').textContent=original?'':item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl+(item.copyrightNotice?'\n'+item.copyrightNotice:'')+previewCredit;
+    const creditLinks=item.provider==='eso'?[...new Set(item.creditParts.map(part=>part.href).filter(Boolean))].map(url=>'\n'+url).join(''):'';
+    $('credit-text').textContent=original?'':item.title+' — '+item.artist+' · '+item.license+'\n'+item.pageUrl+'\n'+item.licenseUrl+creditLinks+(item.copyrightNotice?'\n'+item.copyrightNotice:'')+previewCredit;
     $('preview-tags').replaceChildren(...item.tags.filter(tag=>!['横屏','竖屏','原创'].includes(tag)).map(tag=>element('span','',tag)));
     const position=state.queue.findIndex(entry=>entry.id===item.id);
     $('preview-position').textContent=(position+1)+' / '+state.queue.length;

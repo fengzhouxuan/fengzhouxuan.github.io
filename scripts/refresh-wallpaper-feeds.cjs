@@ -11,6 +11,7 @@ const {collectTyson}=require('./collect-tyson.cjs');
 const {collectHDWallpapers}=require('./collect-hdwallpapers.cjs');
 const {collectBlender}=require('./collect-blender.cjs');
 const {collectUnicorn}=require('./collect-unicorn.cjs');
+const {collectESO}=require('./collect-eso.cjs');
 const catalogPath=path.resolve(__dirname,'../source/wallpapers/data/official-feeds.json');
 const userAgent='RabbitWallpaperStation/1.0 (static open-license catalog)';
 
@@ -310,19 +311,19 @@ async function collectRevoy({fetcher=fetch,dimensions=readDimensions,old=[],exis
   return checked.filter(Boolean);
 }
 
-async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers),ayomiOptions={},openGameArtOptions={},hdWallpapersOptions={},blenderOptions={},unicornOptions={}}={}){
+async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=readDimensions,logger=console,providerIds=Object.keys(feeds.providers),ayomiOptions={},openGameArtOptions={},hdWallpapersOptions={},blenderOptions={},unicornOptions={},esoOptions={}}={}){
   if(providerIds.some(provider=>!Object.hasOwn(feeds.providers,provider)))throw Error('壁纸来源不存在');
   const catalog={version:1,generatedAt:now.toISOString(),updatedAt:{},continuation:{},records:{}};
   if(previous?.version===1)for(const provider of Object.keys(feeds.providers))if(!providerIds.includes(provider)&&Array.isArray(previous.records?.[provider])){
     catalog.records[provider]=feeds.normalizeFeed(previous.records[provider],provider).map(item=>item.feedRecord);
     catalog.updatedAt[provider]=previous.updatedAt?.[provider]||null;
-    if(['ayomi','opengameart','hdwallpapers','blender','unicorn'].includes(provider))catalog.continuation[provider]=previous.continuation?.[provider]||null;
+    if(['ayomi','opengameart','hdwallpapers','blender','unicorn','eso'].includes(provider))catalog.continuation[provider]=previous.continuation?.[provider]||null;
   }
   let failures=0;
   for(const provider of providerIds){
     const old=feeds.normalizeFeed(previous?.version===1?previous.records?.[provider]:[],provider);
     try{
-      let records,ayomiResult,sceneResult,hdResult,blenderResult,unicornResult;
+      let records,ayomiResult,sceneResult,hdResult,blenderResult,unicornResult,esoResult;
       if(Object.hasOwn(repositories.sources,provider)){
         records=await collectRepository(provider,{fetcher,dimensions,old,logger});
       }else if(provider==='pepper'){
@@ -348,6 +349,9 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
       }else if(provider==='unicorn'){
         unicornResult=await collectUnicorn({...unicornOptions,fetcher,old,logger,now,retryAt:previous?.continuation?.unicorn?.retryAt});
         records=unicornResult.records;catalog.continuation.unicorn=unicornResult.retryAt?{retryAt:unicornResult.retryAt}:null;if(unicornResult.interrupted)failures++;
+      }else if(provider==='eso'){
+        esoResult=await collectESO({...esoOptions,fetcher,dimensions,old,logger,now,continuation:previous?.continuation?.eso});
+        records=esoResult.records;catalog.continuation.eso=esoResult.continuation;if(esoResult.interrupted)failures++;
       }else{
         const response=await request(fetcher,metURL(now)),payload=await response.json();records=[];
         const known=new Map(old.map(item=>[item.feedRecord.objectID,item.feedRecord]));
@@ -361,9 +365,9 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
           }catch(e){logger.warn('跳过无法读取的馆藏作品：'+id);}
         }
       }
-      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi','opengameart','revoy','tyson','hdwallpapers','blender','unicorn'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
+      let items=feeds.normalizeFeed(records,provider);if(!items.length&&!['pepper','morevna','ayomi','opengameart','revoy','tyson','hdwallpapers','blender','unicorn','eso'].includes(provider)&&!Object.hasOwn(repositories.sources,provider))throw Error('没有符合尺寸与许可要求的图片');
       if(provider==='met')items=[...new Map([...old,...items].map(item=>[item.id,item])).values()];
-      catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=(ayomiResult&&!ayomiResult.updated||sceneResult&&!sceneResult.updated||hdResult&&!hdResult.updated||blenderResult&&!blenderResult.updated||unicornResult&&!unicornResult.updated)?previous?.updatedAt?.[provider]||null:now.toISOString();
+      catalog.records[provider]=items.map(item=>item.feedRecord);catalog.updatedAt[provider]=(ayomiResult&&!ayomiResult.updated||sceneResult&&!sceneResult.updated||hdResult&&!hdResult.updated||blenderResult&&!blenderResult.updated||unicornResult&&!unicornResult.updated||esoResult&&!esoResult.updated)?previous?.updatedAt?.[provider]||null:now.toISOString();
       logger.log(feeds.providers[provider].name+'：'+items.length+' 张');
     }catch(e){
       failures++;catalog.records[provider]=old.map(item=>item.feedRecord);catalog.updatedAt[provider]=previous?.updatedAt?.[provider]||null;
@@ -372,6 +376,7 @@ async function refreshCatalog({previous,fetcher=fetch,now=new Date(),dimensions=
       if(provider==='hdwallpapers')catalog.continuation.hdwallpapers=previous?.version===1?previous.continuation?.hdwallpapers||null:null;
       if(provider==='blender')catalog.continuation.blender=previous?.version===1?previous.continuation?.blender||null:null;
       if(provider==='unicorn')catalog.continuation.unicorn=previous?.version===1?previous.continuation?.unicorn||null:null;
+      if(provider==='eso')catalog.continuation.eso=previous?.version===1?previous.continuation?.eso||null:null;
       logger.warn(feeds.providers[provider].name+'更新失败，保留 '+old.length+' 张已有图片：'+e.message);
     }
   }
@@ -394,6 +399,7 @@ function mergeCatalogs(seed,cached){
     if(provider==='hdwallpapers')catalog.continuation.hdwallpapers=(useSeed?seed:cached)?.continuation?.hdwallpapers||null;
     if(provider==='blender')catalog.continuation.blender=(useSeed?seed:cached)?.continuation?.blender||null;
     if(provider==='unicorn')catalog.continuation.unicorn=(useSeed?seed:cached)?.continuation?.unicorn||null;
+    if(provider==='eso')catalog.continuation.eso=(useSeed?seed:cached)?.continuation?.eso||null;
   }
   return catalog;
 }
