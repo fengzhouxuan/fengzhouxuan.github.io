@@ -3,11 +3,13 @@
   'use strict';
   const commons=typeof module!=='undefined'&&module.exports?require('./commons.js'):root.WallpaperCommons;
   const agundurLicenses=Object.freeze({'CC BY 4.0':'https://creativecommons.org/licenses/by/4.0/','CC BY-SA 4.0':'https://creativecommons.org/licenses/by-sa/4.0/'});
+  const wallcolleLicenses=Object.freeze({...agundurLicenses,'CC BY-NC 4.0':'https://creativecommons.org/licenses/by-nc/4.0/','Public domain':'https://creativecommons.org/publicdomain/mark/1.0/'});
   const sources=Object.freeze({
     librepixels:{name:'LibrePixels',artist:'LibrePixels',host:'gitlab',repo:'librepixels/ia.Wallpapers',ref:'main',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/'},
     folium:{name:'Folium Creations',artist:'Folium Creations',host:'github',repo:'FoliumCreations/Wallpapers',ref:'main',license:'CC BY 4.0',licenseUrl:'https://creativecommons.org/licenses/by/4.0/'},
     midjourney:{name:'Metaory · AI 壁纸',artist:'metaory',host:'github',repo:'metaory/midjourney',ref:'master',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/'},
-    agundur:{name:'Agundur · 4K',artist:'Agundur',host:'github',repo:'Agundur-KDE/Wallpapers',ref:'main',licenses:agundurLicenses,categories:['anime','illustration','nature','city','animals','minimal','fantasy','cyberpunk','space']}
+    agundur:{name:'Agundur · 4K',artist:'Agundur',host:'github',repo:'Agundur-KDE/Wallpapers',ref:'main',licenses:agundurLicenses,categories:['anime','illustration','nature','city','animals','minimal','fantasy','cyberpunk','space']},
+    wallcolle:{name:'AOSC 社区壁纸',host:'github',repo:'AOSC-Archive/WallColle',ref:'master',licenses:wallcolleLicenses,categories:['nature','city','space']}
   });
   const labels={anime:'二次元',illustration:'插画',nature:'风景',city:'城市',animals:'动物',minimal:'极简',abstract:'抽象',fantasy:'幻想',cyberpunk:'赛博朋克',pixel:'像素',cars:'汽车',space:'星空'};
   const excluded=/luffy|mariobros|hentai|ecchi|ahegao|futanari|lolicon|shotacon|nude|nudity|erotic|sexual|porn/i;
@@ -17,6 +19,7 @@
     if(provider==='librepixels')return /^wallpapers\/\[[^\]]+\]_librepixels_[^/]+$/i.test(path);
     if(provider==='folium')return /^(Abstract|De-Minted|HardSurface|Mint|Mobile|Mushroom|Nature)\//.test(path);
     if(provider==='agundur')return /^[a-z0-9]+(?:-[a-z0-9]+)*-4k\.png$/.test(path);
+    if(provider==='wallcolle')return /^contributors\/[a-zA-Z0-9_-]{1,80}\/(?:0|[1-9][0-9]{0,5})\.(jpg|png)$/.test(path);
     return provider==='midjourney'&&/^assets\/[^/]+$/.test(path);
   }
 
@@ -61,11 +64,45 @@
     return records;
   }
 
-  function urlsFor(path,provider){
+  function validWallcolleTags(tags){
+    return Array.isArray(tags)&&tags.length>0&&tags.length<=20&&tags.every(tag=>typeof tag==='string'&&tag.length<=50&&/^[a-zA-Z][a-zA-Z ]*$/.test(tag));
+  }
+
+  function wallcolleCategories(tags){
+    const categories=new Set();
+    for(const tag of Array.isArray(tags)?tags:[]){
+      if(['Civil','Metropolis'].includes(tag))categories.add('city');
+      if(['Nature','Water','Mountain','Plant','Garden'].includes(tag))categories.add('nature');
+      if(tag==='Astronomy')categories.add('space');
+    }
+    return [...categories];
+  }
+
+  function parseWallcolleDeclaration(raw,manifestPath){
+    const match=typeof manifestPath==='string'&&manifestPath.match(/^contributors\/([a-zA-Z0-9_-]{1,80})\/me\.json$/);
+    if(!match||!raw||raw.uname!==match[1]||typeof raw.name!=='string'||!raw.name.trim()||raw.name.length>100||!Array.isArray(raw.wallpapers)||raw.wallpapers.length>1000)return null;
+    const artist=commons.plainText(raw.name);if(!artist)return null;
+    const records=[],seen=new Set();
+    for(const work of raw.wallpapers){
+      if(!work||!Number.isSafeInteger(work.i)||work.i<0||work.i>999999||seen.has(work.i)||typeof work.l!=='string')return null;
+      seen.add(work.i);
+      const license=work.l==='Public Domain'?'Public domain':work.l;
+      if(!Object.hasOwn(wallcolleLicenses,license))continue;
+      const path='contributors/'+raw.uname+'/'+work.i+'.'+work.f,title=commons.plainText(work.t);
+      if(!validPath(path,'wallcolle')||typeof work.t!=='string'||work.t.length>100||!title||excluded.test(title)||!validWallcolleTags(work.tags)||!wallcolleCategories(work.tags).length)continue;
+      records.push({path,title,artist,tags:[...work.tags],license,licenseUrl:wallcolleLicenses[license]});
+    }
+    return records;
+  }
+
+  function urlsFor(path,provider,commit){
     const source=sources[provider];if(!source||!validPath(path,provider))return null;
+    if(provider==='wallcolle'&&(typeof commit!=='string'||! /^[a-f0-9]{40}$/.test(commit)))return null;
+    const ref=provider==='wallcolle'?commit:source.ref;
     const encoded=path.split('/').map(encodeURIComponent).join('/');
-    const pageUrl='https://'+source.host+'.com/'+source.repo+(source.host==='gitlab'?'/-/blob/':'/blob/')+source.ref+'/'+encoded;
-    const download=source.host==='gitlab'?'https://gitlab.com/api/v4/projects/68715866/repository/files/'+encodeURIComponent(path)+'/raw?ref='+source.ref:'https://cdn.jsdelivr.net/gh/'+source.repo+'@'+source.ref+'/'+encoded;
+    const pagePath=provider==='wallcolle'?encoded.replace(/\/[^/]+$/,'/me.json'):encoded;
+    const pageUrl='https://'+source.host+'.com/'+source.repo+(source.host==='gitlab'?'/-/blob/':'/blob/')+ref+'/'+pagePath;
+    const download=source.host==='gitlab'?'https://gitlab.com/api/v4/projects/68715866/repository/files/'+encodeURIComponent(path)+'/raw?ref='+source.ref:'https://cdn.jsdelivr.net/gh/'+source.repo+'@'+ref+'/'+encoded;
     return {image:download,download,pageUrl,...(source.host==='github'?{fallbackImage:download.replace('cdn.jsdelivr.net','fastly.jsdelivr.net')}:{})};
   }
 
@@ -73,21 +110,24 @@
     const source=sources[provider];if(!source)return [];
     const items=[],seen=new Set();
     for(const raw of Array.isArray(records)?records:[]){
-      const license=provider==='agundur'&&Object.hasOwn(agundurLicenses,raw?.license)?raw.license:source.license,licenseUrl=provider==='agundur'?agundurLicenses[license]:source.licenseUrl;
+      const perImage=provider==='agundur'?agundurLicenses:provider==='wallcolle'?wallcolleLicenses:null;
+      const license=perImage&&Object.hasOwn(perImage,raw?.license)?raw.license:source.license,licenseUrl=perImage?perImage[license]:source.licenseUrl;
       if(!raw||!license||!validPath(raw.path,provider)||typeof raw.revision!=='string'||! /^[a-f0-9]{40}$/.test(raw.revision)||raw.license!==license||raw.licenseUrl!==licenseUrl||seen.has(raw.path)||seen.has('sha:'+raw.revision))continue;
       const {width,height}=raw;
       if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width>30000||height>30000||Math.max(width,height)<1600||Math.min(width,height)<800)continue;
       if(provider==='agundur'&&(width!==3840||height!==2160||typeof raw.description!=='string'||raw.description.length>3000))continue;
-      const description=provider==='agundur'?commons.plainText(raw.description):'',urls=urlsFor(raw.path,provider),categories=categoriesFor(raw.path,provider,description);
-      const title=provider==='agundur'?commons.plainText(raw.title):raw.path.split('/').pop().replace(/^\[[^\]]+\]_librepixels_/,'').replace(/\.(png|jpe?g|webp)$/i,'').replace(/_[a-f0-9]{6,10}$/,'').replace(/[_-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').slice(0,100);
-      if(!title||title.length>100||description.length>3000)continue;
+      if(provider==='wallcolle'&&(width*height>60000000||typeof raw.declarationRevision!=='string'||! /^[a-f0-9]{40}$/.test(raw.declarationRevision)||typeof raw.artist!=='string'||!raw.artist.trim()||raw.artist.length>100||typeof raw.title!=='string'||raw.title.length>100||!validWallcolleTags(raw.tags)||excluded.test(raw.title)))continue;
+      const description=provider==='agundur'?commons.plainText(raw.description):'',urls=urlsFor(raw.path,provider,raw.commit),categories=provider==='wallcolle'?wallcolleCategories(raw.tags):categoriesFor(raw.path,provider,description);
+      const title=perImage?commons.plainText(raw.title):raw.path.split('/').pop().replace(/^\[[^\]]+\]_librepixels_/,'').replace(/\.(png|jpe?g|webp)$/i,'').replace(/_[a-f0-9]{6,10}$/,'').replace(/[_-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').slice(0,100);
+      const artist=provider==='wallcolle'?commons.plainText(raw.artist):source.artist;
+      if(!urls||!categories.length||!artist||!title||title.length>100||description.length>3000)continue;
       seen.add(raw.path);seen.add('sha:'+raw.revision);
-      const feedRecord={path:raw.path,revision:raw.revision,license,licenseUrl,width,height,...(provider==='agundur'?{title,description}:{})};
-      items.push({id:'repo-'+provider+'-'+encodeURIComponent(raw.path),source:'commons',provider,title,artist:source.artist,...urls,width,height,license,licenseUrl,categories,tags:[...categories.map(category=>labels[category]),...(['librepixels','midjourney'].includes(provider)?['AI 插画']:provider==='agundur'?['创作方式未注明']:[]),source.name,width>=height?'横屏':'竖屏'],...(provider==='agundur'?{copyrightNotice:'本站预览等比例缩小为 WebP，高清入口保留作者原图。'}:{}),feedRecord});
+      const feedRecord={path:raw.path,revision:raw.revision,license,licenseUrl,width,height,...(provider==='agundur'?{title,description}:provider==='wallcolle'?{title,artist,tags:[...raw.tags],commit:raw.commit,declarationRevision:raw.declarationRevision}:{})};
+      items.push({id:'repo-'+provider+'-'+encodeURIComponent(raw.path),source:'commons',provider,title,artist,...urls,width,height,license,licenseUrl,categories,tags:[...categories.map(category=>labels[category]),...(['librepixels','midjourney'].includes(provider)?['AI 插画']:provider==='agundur'?['创作方式未注明']:[]),source.name,width>=height?'横屏':'竖屏'],...(perImage?{copyrightNotice:'本站预览等比例缩小为 WebP，高清入口保留作者原图。'+(provider==='wallcolle'?' 原作编号：'+raw.path.split('/').pop().split('.')[0]+'；逐图许可见来源清单。':'')}:{}),feedRecord});
     }
     return items;
   }
 
-  const api={sources,validPath,categoriesFor,parseAgundurDeclaration,urlsFor,normalizeRepository};
+  const api={sources,validPath,categoriesFor,parseAgundurDeclaration,parseWallcolleDeclaration,wallcolleCategories,urlsFor,normalizeRepository};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperRepositories=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

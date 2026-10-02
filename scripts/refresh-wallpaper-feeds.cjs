@@ -85,6 +85,36 @@ async function repositoryFiles(provider,fetcher){
     throw Error('仓库目录未能完整读取');
   }
   const base='https://api.github.com/repos/'+source.repo;
+  if(provider==='wallcolle'){
+    const commit=await (await request(fetcher,base+'/commits/'+source.ref)).json();
+    if(typeof commit.sha!=='string'||! /^[a-f0-9]{40}$/.test(commit.sha))throw Error('壁纸仓库提交版本无法核对');
+    const tree=await (await request(fetcher,base+'/git/trees/'+commit.sha+'?recursive=1')).json();
+    if(tree.truncated!==false||!Array.isArray(tree.tree)||tree.tree.length>10000)throw Error('仓库目录未能完整读取');
+    const files=new Map(),manifests=[];
+    for(const entry of tree.tree){
+      if(entry.type!=='blob')continue;
+      if(!repositories.validPath(entry.path,provider)&&!/^contributors\/[a-zA-Z0-9_-]{1,80}\/me\.json$/.test(entry.path))continue;
+      if(typeof entry.sha!=='string'||! /^[a-f0-9]{40}$/.test(entry.sha)||files.has(entry.path)||!Number.isSafeInteger(entry.size)||entry.size<1)throw Error('壁纸仓库包含无效文件');
+      files.set(entry.path,entry);
+      if(entry.path.endsWith('/me.json'))manifests.push(entry);
+    }
+    if(!manifests.length)throw Error('壁纸仓库缺少逐图许可清单');
+    const records=[];
+    for(const manifest of manifests){
+      if(manifest.size>131072)throw Error('逐图许可清单超过大小限制');
+      const blob=await (await request(fetcher,base+'/git/blobs/'+manifest.sha)).json();
+      if(blob.encoding!=='base64'||typeof blob.content!=='string'||blob.content.length>180000)throw Error('逐图许可清单无法读取');
+      const bytes=Buffer.from(blob.content,'base64'),revision=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+      if(bytes.length!==manifest.size||revision!==manifest.sha)throw Error('逐图许可清单与提交版本不一致');
+      const declared=repositories.parseWallcolleDeclaration(JSON.parse(bytes.toString('utf8')),manifest.path);
+      if(declared===null)throw Error('逐图许可清单结构已变化');
+      for(const record of declared){
+        const image=files.get(record.path);
+        if(image&&image.size<=32*1024*1024)records.push({...record,revision:image.sha,commit:commit.sha,declarationRevision:manifest.sha});
+      }
+    }
+    return records;
+  }
   const licenseFile=['folium','agundur'].includes(provider)?'README.md':'LICENSE';
   const license=await (await request(fetcher,base+'/contents/'+licenseFile+'?ref='+source.ref)).json();
   if(license.encoding!=='base64'||typeof license.content!=='string')throw Error('无法核对仓库图片许可');
@@ -109,7 +139,7 @@ async function collectRepository(provider,{fetcher,dimensions,old,logger}){
         let size;
         if(saved?.revision===file.revision)size={width:saved.width,height:saved.height};
         else{
-          const urls=repositories.urlsFor(file.path,provider);
+          const urls=repositories.urlsFor(file.path,provider,file.commit);
           try{size=await dimensions(fetcher,urls.download);}
           catch(error){if(!urls.fallbackImage)throw error;size=await dimensions(fetcher,urls.fallbackImage);}
         }

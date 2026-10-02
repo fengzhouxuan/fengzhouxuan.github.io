@@ -13,7 +13,8 @@
     "agundur": "2026-10-01T20:33:39.877Z",
     "revoy": "2026-10-01T20:58:11.089Z",
     "tyson": "2026-10-01T21:37:34.843Z",
-    "hdwallpapers": "2026-10-01T23:58:23.111Z"
+    "hdwallpapers": "2026-10-01T23:58:23.111Z",
+    "wallcolle": "2026-10-02T03:38:04.458Z"
   },
   "records": {
     "pepper": [
@@ -14820,6 +14821,376 @@
         "license": "CC0",
         "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
         "licenseSource": "https://www.hdwallpapers.org/wallpaper/anime/anime-girl-black-kitty-rain-umbrella-ai/3xx/"
+      }
+    ],
+    "wallcolle": [
+      {
+        "path": "contributors/cth451/0.jpg",
+        "revision": "7221be02d50738168a075e32da08cf10137d74df",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 4752,
+        "height": 3158,
+        "title": "Harmony Traffic Light",
+        "artist": "cth451",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "6294d4997094a32eda70debc124a7c5d38d8dff6"
+      },
+      {
+        "path": "contributors/cth451/1.jpg",
+        "revision": "f02af78abcfde2fbd1b106232eec6bd8acdc5cc8",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 6743,
+        "height": 4499,
+        "title": "Lanterns",
+        "artist": "cth451",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "6294d4997094a32eda70debc124a7c5d38d8dff6"
+      },
+      {
+        "path": "contributors/cth451/2.jpg",
+        "revision": "0b8b481a8685878f074cccc409d400412e13da7d",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 9031,
+        "height": 4474,
+        "title": "Mt. Oberlin",
+        "artist": "cth451",
+        "tags": [
+          "Nature",
+          "Mountain"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "6294d4997094a32eda70debc124a7c5d38d8dff6"
+      },
+      {
+        "path": "contributors/cth451/4.jpg",
+        "revision": "8697e0ca67a1ac41bc7ae4bfc811d5981be1f2bd",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 4752,
+        "height": 3158,
+        "title": "The Gardiner",
+        "artist": "cth451",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "6294d4997094a32eda70debc124a7c5d38d8dff6"
+      },
+      {
+        "path": "contributors/cth451/5.jpg",
+        "revision": "292a9fa7a43da8f4ea95f35220050e749f55d230",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 4752,
+        "height": 3158,
+        "title": "Traffic Lights",
+        "artist": "cth451",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "6294d4997094a32eda70debc124a7c5d38d8dff6"
+      },
+      {
+        "path": "contributors/cth451/6.jpg",
+        "revision": "fc32f16a71a35c3e78ba7335da8d453c8c371332",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 4752,
+        "height": 3158,
+        "title": "Union",
+        "artist": "cth451",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "6294d4997094a32eda70debc124a7c5d38d8dff6"
+      },
+      {
+        "path": "contributors/llemonade/0.jpg",
+        "revision": "ff9d1a83a317cf94552fb89ab3f7100a8adc6b86",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 3648,
+        "height": 2736,
+        "title": "As Oceans As Skies",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Water"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/1.jpg",
+        "revision": "bbc285c39f395cae78d2c1b99303007b0b5e7313",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 6016,
+        "height": 4016,
+        "title": "Concrete Forest",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/2.jpg",
+        "revision": "efc6359aa14b16424fb767970264d99ce2793e4c",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 6016,
+        "height": 4016,
+        "title": "Grand Canyon - 1",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Mountain"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/3.jpg",
+        "revision": "e0ee9abb4a05e2c1e8335f3070efe864af1900d8",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 5571,
+        "height": 3719,
+        "title": "Grand Canyon - 2",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Mountain"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/4.jpg",
+        "revision": "3692f2d3316ece5c5dafc9878f529af2fd54619c",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 5862,
+        "height": 3664,
+        "title": "Grand Canyon - 3",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Mountain"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/5.jpg",
+        "revision": "79cf1e7a6cf2796a8449ba72a64b003dbcab6975",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 4522,
+        "height": 3015,
+        "title": "La Jolla Beach",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Water"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/6.jpg",
+        "revision": "7c952bde1f313f3a5b0cc7c9bda61296a261be9c",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 4608,
+        "height": 3072,
+        "title": "Mountain Range",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Mountain"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/7.jpg",
+        "revision": "20d83e68a23a47cfa8c9d1e831ff4ac7731e951e",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 6897,
+        "height": 4311,
+        "title": "Night River",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/llemonade/8.jpg",
+        "revision": "0f4d8f8a9aada1b58efd55f1da1a6055dd362761",
+        "license": "CC BY-NC 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "width": 5548,
+        "height": 3704,
+        "title": "The Plough",
+        "artist": "Zhimin Lin",
+        "tags": [
+          "Nature",
+          "Astronomy"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c6d5910366a327a56d3d1344bf4f80a3e8a44c9c"
+      },
+      {
+        "path": "contributors/megabitsenmzq/0.jpg",
+        "revision": "4da5bc410a665c08d33ee915e206862d2c6ceae4",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 3990,
+        "height": 2992,
+        "title": "Arakawa River",
+        "artist": "Megabits",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "7b04e0e1f898302ca454ceb09ce47ab75a019db4"
+      },
+      {
+        "path": "contributors/megabitsenmzq/1.jpg",
+        "revision": "70c231d6fe75cbe30ef123e6dd721e306dfb0113",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 4032,
+        "height": 3024,
+        "title": "Flowers",
+        "artist": "Megabits",
+        "tags": [
+          "Nature",
+          "Plant"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "7b04e0e1f898302ca454ceb09ce47ab75a019db4"
+      },
+      {
+        "path": "contributors/megabitsenmzq/2.jpg",
+        "revision": "dc5d97038d3af34be38b74301b18549b9dd067d3",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 4032,
+        "height": 3024,
+        "title": "Roof",
+        "artist": "Megabits",
+        "tags": [
+          "Civil",
+          "Metropolis"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "7b04e0e1f898302ca454ceb09ce47ab75a019db4"
+      },
+      {
+        "path": "contributors/megabitsenmzq/3.jpg",
+        "revision": "bee88da317de7db3d92f00c2de4f5575cc67db12",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 4003,
+        "height": 3002,
+        "title": "Okutama Lake",
+        "artist": "Megabits",
+        "tags": [
+          "Nature",
+          "Water"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "7b04e0e1f898302ca454ceb09ce47ab75a019db4"
+      },
+      {
+        "path": "contributors/megabitsenmzq/4.jpg",
+        "revision": "a35dee456680fcffdf9c04ed0afe00e521d61aea",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "width": 4032,
+        "height": 3024,
+        "title": "Leaves",
+        "artist": "Megabits",
+        "tags": [
+          "Nature",
+          "Plant"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "7b04e0e1f898302ca454ceb09ce47ab75a019db4"
+      },
+      {
+        "path": "contributors/osnine/0.jpg",
+        "revision": "c897f8b344f815fbcaee46a92f1f720a2e28ebd6",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "width": 4018,
+        "height": 2679,
+        "title": "Plum Blossom",
+        "artist": "Zixu",
+        "tags": [
+          "Nature",
+          "Plant"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "40eee3d17aff4880d8378a9c5bd4949d2540f6f9"
+      },
+      {
+        "path": "contributors/osnine/1.jpg",
+        "revision": "2830a22015fc7dcf1a912e4dd6b24c7af38a0db8",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "width": 6000,
+        "height": 4000,
+        "title": "Willow Curtain",
+        "artist": "Zixu",
+        "tags": [
+          "Nature",
+          "Plant"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "40eee3d17aff4880d8378a9c5bd4949d2540f6f9"
+      },
+      {
+        "path": "contributors/szc1sya/0.jpg",
+        "revision": "a259d4f9a315ef4c72bbe31f34b54a87f9a47c65",
+        "license": "Public domain",
+        "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "width": 4864,
+        "height": 3648,
+        "title": "Untitled Window Pic",
+        "artist": "Leo Shen",
+        "tags": [
+          "Nature",
+          "Plant"
+        ],
+        "commit": "dc3179f089c0c17284b49ff7d99ecc88b0bfd280",
+        "declarationRevision": "c9b07d9e9a6950f2ae18df5fe6cbe9ec1bcbecb3"
       }
     ]
   },

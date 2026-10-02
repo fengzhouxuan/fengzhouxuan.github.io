@@ -96,6 +96,10 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
             const bytes=await readImage(fetcher,url);
             const revision=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
             if(revision!==item.feedRecord.revision)throw Error('原图与已收录的文件摘要不一致');
+            if(item.provider==='wallcolle'){
+              const metadata=await sharp(bytes,{limitInputPixels:60000000}).metadata();
+              if(metadata.width!==item.width||metadata.height!==item.height||(metadata.pages||1)!==1||metadata.orientation>=5)throw Error('社区原图的尺寸或方向与已验证目录不一致');
+            }
             encoded=await encodePreview(bytes);break;
           }catch(error){lastError=error;}
         }
@@ -121,7 +125,7 @@ async function buildPreviews({items,previous,sourceRetryAt,fetcher=fetch,outputD
     }
   }));
   const keep=new Set(ordered.filter(item=>manifest.images[item.id]).map(previews.filenameFor));
-  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur)-[a-f0-9]{40}|(?:opengameart|hdwallpapers)-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
+  for(const filename of await fs.readdir(outputDir))if(/^(?:(librepixels|folium|midjourney|agundur|wallcolle)-[a-f0-9]{40}|(?:opengameart|hdwallpapers)-[a-f0-9]{64})-v1\.webp$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   for(const filename of await fs.readdir(outputDir))if(/^(?:revoy|tyson)-[a-f0-9]{64}-v1\.(jpg|webp)$/.test(filename)&&!keep.has(filename))await fs.unlink(path.join(outputDir,filename));
   const authorDir=path.join(outputDir,'ayomi');
   let authorFiles;try{authorFiles=await fs.readdir(authorDir,{recursive:true});}catch(error){if(error.code!=='ENOENT')throw error;authorFiles=[];}
