@@ -6,7 +6,7 @@ import {
 import { createCatalogLoader, catalogSummary } from './catalog.js';
 import { createHomeLoader } from './home.js';
 import { sameFavorite, snapshotFavorite, favoriteSummary, acknowledgeFavorite, createWatchlistRefresher } from './watchlist.js';
-import { createPlaybackFallback, createPlaybackMonitor, resumePosition, playbackSummary, screenPresentation, matchingEpisode } from './playback.js';
+import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, resumePosition, playbackSummary, screenPresentation, matchingEpisode } from './playback.js';
 import { createPlaybackExperience } from './experience.js';
 
 const $ = id => document.getElementById(id);
@@ -42,6 +42,7 @@ state.watchlist = watchlistRefresher.state;
 const playbackExperience = createPlaybackExperience({ storage });
 const playbackFallback = createPlaybackFallback({ priority: playbackExperience.priority });
 const playbackMonitor = createPlaybackMonitor();
+const variantDiscovery = createVariantDiscovery({ request, onChange: renderVariantDiscovery });
 let toastTimer; let filterTimer;
 const cardUpdates = new WeakMap();
 const continueUpdates = new WeakMap();
@@ -585,13 +586,17 @@ function currentEpisode() {
 function renderVariants() {
   for (const id of ['detail-variants', 'variant-buttons']) {
     const variants = state.group?.variants || [];
-    $(id).replaceChildren(...variants.map(variant => {
+    const buttons = new Map([...$(id).children].map(value => [value.dataset.uid, value]));
+    const retained = new Set();
+    for (const variant of variants) {
       const active = variant.uid === state.current?.uid;
       const sameSource = variants.filter(item => item.source === variant.source);
       const label = sourceLabel(variant) + (variant.source !== 'zip0' && sameSource.length > 1 ? ' · 版本 ' + (sameSource.indexOf(variant) + 1) : '');
-      const b = button(label, active ? 'active' : '', () => { if (!active) switchVariant(variant); });
-      b.setAttribute('aria-pressed', String(active)); return b;
-    }));
+      let b = buttons.get(variant.uid);
+      if (!b) { b = button('', '', () => { if (b.dataset.uid !== state.current?.uid) switchVariant(state.group.variants.find(item => item.uid === b.dataset.uid)); }); b.dataset.uid = variant.uid; $(id).append(b); }
+      retained.add(b); b.textContent = label; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active));
+    }
+    for (const b of [...$(id).children]) if (!retained.has(b)) { if (document.activeElement === b) [...retained].find(value => value.dataset.uid === state.current?.uid)?.focus({ preventScroll: true }); b.remove(); }
   }
   $('change-source').disabled = !(state.group?.variants.some(item => item.uid !== state.current?.uid));
 }
@@ -787,6 +792,10 @@ function captureFirstFrame(version) {
 }
 
 function renderPlaybackState(status) {
+  const earlySwitch = $('early-switch');
+  const canSwitch = status.waitMs >= 4000 && ['loading', 'buffering'].includes(status.phase) && automaticPlaybackAllowed() && $('auto-source').checked && playbackFallback.available(state.current, state.group?.variants);
+  if (!canSwitch && document.activeElement === earlySwitch) $('screen').focus({ preventScroll: true });
+  earlySwitch.hidden = !canSwitch;
   const offlineMessage = video.readyState < 3 ? '网络可能已断开，观看位置已保留。' : '';
   const blockedFailure = status.phase === 'blocked' && Boolean(status.reason || video.error);
   const phase = blockedFailure ? 'blocked-failed' : status.phase;
@@ -819,6 +828,7 @@ function checkPlayback(playing = false) {
     userPaused: state.userPaused, hidden: document.hidden,
     offline: navigator.onLine === false, blocked: state.autoplayBlocked, error: Boolean(video.error), playing,
     automatic: $('auto-source').checked && !playbackFallback.state.stopped,
+    startupTimeout: playbackExperience.startupTimeout(state.current, state.line, $('auto-source').checked && playbackFallback.available(state.current, state.group?.variants)),
   });
   playbackExperience.observe(status.phase, { position: video.currentTime, rate: video.playbackRate, seeking: video.seeking }); renderPlaybackExperience();
   renderPlaybackState(status);
@@ -866,9 +876,9 @@ function retryCurrentPlayback() {
   const position = playbackPosition(); saveProgress(); startEpisode(state.episode, position);
 }
 
-async function playbackError(reason = '线路播放失败', version = state.playbackVersion) {
+async function playbackError(reason = '线路播放失败', version = state.playbackVersion, manual = false) {
   if (version !== state.playbackVersion || state.route.view !== 'watch' || state.autoBusy) return;
-  playbackExperience.fail(); renderPlaybackExperience(true);
+  if (!manual) playbackExperience.fail(); renderPlaybackExperience(true);
   $('playback-feedback').hidden = false;
   screenMessage('这条线路暂时无法播放。');
   $('play-status').textContent = '试试其他来源，切换时会尽量保留这一集和观看位置。';
@@ -984,24 +994,15 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
   } else { reportPlaybackFailure('当前浏览器不支持这个视频格式', version); }
 }
 
-async function discoverVariants(group, version) {
-  const missing = SOURCES.filter(source => source.search !== false && !group.variants.some(variant => variant.source === source.id));
-  state.discovering = Boolean(missing.length);
-  $('variant-status').textContent = missing.length ? '正在寻找同名同年份的其他来源…' : '';
-  const results = await Promise.allSettled(missing.map(source => request(source.id, { query: group.title })));
-  if (state.group !== group || version !== state.detailVersion) return;
-  state.discovering = false;
-  let failures = 0;
-  results.forEach(result => {
-    if (result.status !== 'fulfilled') { failures++; return; }
-    const matches = result.value.videos.filter(item => videoKey(item) === videoKey(group));
-    group.variants = groupVideos([...group.variants, ...matches])[0].variants;
-    const currentOrigin = group.variants.findIndex(item => item.origin === state.current.origin);
-    if (currentOrigin >= 0 && !group.variants.some(item => item.uid === state.current.uid)) group.variants[currentOrigin] = state.current;
-  });
-  $('variant-status').textContent = failures ? '部分来源查询失败，已保留可用的目录结果。' : '共找到 ' + group.variants.length + ' 个来源；实际可播状态以起播为准。';
+function renderVariantDiscovery() {
+  const { group, loading, completed, total, failed } = variantDiscovery.state;
+  if (!group || state.group !== group || !state.current) return;
+  state.discovering = loading;
+  const currentOrigin = group.variants.findIndex(item => item.origin === state.current.origin);
+  if (currentOrigin >= 0 && !group.variants.some(item => item.uid === state.current.uid)) group.variants[currentOrigin] = state.current;
+  $('variant-status').textContent = loading ? '已找到 ' + group.variants.length + ' 个来源 · 继续查询 ' + completed + ' / ' + total + '，已显示的来源可以先用。' : failed.length ? '部分来源查询失败，已保留可用的目录结果。' : '共找到 ' + group.variants.length + ' 个来源；实际可播状态以起播为准。';
   renderVariants();
-  if (state.autoPending?.epoch === playbackFallback.state.epoch) {
+  if (state.autoPending?.epoch === playbackFallback.state.epoch && automaticPlaybackAllowed() && (playbackFallback.available(state.current, group.variants) || !loading)) {
     const reason = state.autoPending.reason; state.autoPending = null; reportPlaybackFailure(reason);
   }
 }
@@ -1011,7 +1012,7 @@ function allKnownVideos() {
 }
 
 async function prepareVideo(route) {
-  cancelFallback(); state.discovering = false;
+  cancelFallback(); variantDiscovery.stop(); state.discovering = false;
   const version = ++state.detailVersion; destroyPlayback(); state.current = null; state.group = null; state.detailLoading = true;
   state.initialPlayback = route.view === 'watch';
   if (state.initialPlayback) { playbackExperience.open(document.hidden ? 'background' : navigator.onLine === false ? 'offline' : 'loading'); renderPlaybackExperience(true); }
@@ -1039,7 +1040,7 @@ async function prepareVideo(route) {
     if (state.favoritesDirty && !state.watchlist.loading) { save('video-favorites', state.favorites); state.favoritesDirty = false; }
     const variants = groupVideos([current, ...allKnownVideos().filter(item => videoKey(item) === videoKey(current))])[0].variants;
     state.group = { ...current, variants };
-    renderDetail(); discoverVariants(state.group, version);
+    renderDetail(); variantDiscovery.open(state.group);
     if (route.view === 'watch') {
       renderWatch();
       const lines = current.lines;
@@ -1116,6 +1117,7 @@ function handleRoute() {
   const restore = listNavigation.catalog(location.hash);
   const homeRestore = route.view === 'home' && state.route.view !== 'home' ? listNavigation.home() : null;
   cancelFallback();
+  variantDiscovery.stop(); state.discovering = false;
   clearTimeout(filterTimer);
   if (route.view !== 'library' && state.watchlist.loading) watchlistRefresher.stop();
   if (!['browse', 'search'].includes(route.view) && state.catalog.loading) catalogLoader.stop();
@@ -1271,6 +1273,7 @@ $('next-episode').addEventListener('click', playNext);
 $('previous-episode').addEventListener('click', () => { if (state.episode > 0) { saveProgress(); startEpisode(state.episode - 1); } });
 $('skip-forward').addEventListener('click', () => { if (Number.isFinite(video.duration)) video.currentTime = Math.min(video.duration, video.currentTime + 90); });
 $('retry-play').addEventListener('click', retryCurrentPlayback);
+$('early-switch').addEventListener('click', () => { if (automaticPlaybackAllowed()) playbackError('已请求切换备用线路', state.playbackVersion, true); });
 $('reload-play').addEventListener('click', retryCurrentPlayback);
 $('clear-experience').addEventListener('click', () => { playbackExperience.clear(); if (state.current) renderWatch(); toast('近期选线记录已清除，当前播放继续。'); });
 $('change-source').addEventListener('click', () => {

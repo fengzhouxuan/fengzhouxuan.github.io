@@ -1,4 +1,4 @@
-import { episodeNumber, plainText, validVideoId, videoKey } from './core.js';
+import { SOURCES, episodeNumber, plainText, validVideoId, videoKey, groupVideos } from './core.js';
 
 export function screenPresentation(width, height, mode = 'auto') {
   const valid = Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
@@ -33,7 +33,7 @@ export function resumePosition(position, duration, automatic = false) {
 
 export function createPlaybackMonitor({ now = () => performance.now(), startupAfter = 20000, stallAfter = 12000, noticeAfter = 1500, seekAfter = 20000 } = {}) {
   if (typeof now !== 'function' || ![startupAfter, stallAfter, noticeAfter, seekAfter].every(value => Number.isFinite(value) && value > 0) || noticeAfter >= stallAfter) throw new Error('播放监测参数不正确');
-  const state = { active: false, phase: 'idle', started: false, recovered: false, position: 0, reason: '' };
+  const state = { active: false, phase: 'idle', started: false, recovered: false, position: 0, reason: '', waitMs: 0 };
   let lastProgress = 0; let previousPosition = 0; let gate = ''; let seekSince = null;
   let wasOffline = false; let reconnectNeeded = false; let failure = ''; let actioned = false;
   let startupLimit = startupAfter;
@@ -41,7 +41,7 @@ export function createPlaybackMonitor({ now = () => performance.now(), startupAf
   function begin({ position = 0, recovered = false, startupTimeout = startupAfter } = {}) {
     if (!Number.isFinite(startupTimeout) || startupTimeout <= 0) throw new Error('起播等待时间不正确');
     startupLimit = startupTimeout;
-    Object.assign(state, { active: true, phase: 'loading', started: false, recovered: Boolean(recovered), position: Number.isFinite(position) && position >= 0 ? position : 0, reason: '' });
+    Object.assign(state, { active: true, phase: 'loading', started: false, recovered: Boolean(recovered), position: Number.isFinite(position) && position >= 0 ? position : 0, reason: '', waitMs: 0 });
     previousPosition = state.position; lastProgress = now(); gate = ''; seekSince = null;
     wasOffline = false; reconnectNeeded = false; failure = ''; actioned = false;
   }
@@ -60,7 +60,7 @@ export function createPlaybackMonitor({ now = () => performance.now(), startupAf
     if (position > 0 || state.started) state.position = position;
     if (sample.playing || advanced) { state.started = true; lastProgress = time; }
     if (sample.offline) { wasOffline = true; reconnectNeeded ||= Boolean(failure || sample.error || sample.ready < 3); }
-    const suspend = phase => { gate = phase; lastProgress = time; state.phase = phase; return result(); };
+    const suspend = phase => { gate = phase; lastProgress = time; state.waitMs = 0; state.phase = phase; return result(); };
     if (sample.hidden) return suspend('background');
     if (sample.offline) return suspend('offline');
     if (sample.blocked) return suspend('blocked');
@@ -84,7 +84,8 @@ export function createPlaybackMonitor({ now = () => performance.now(), startupAf
     }
     if (failure || sample.error) return act('fail', failure || '视频线路发生错误');
     const elapsed = time - lastProgress;
-    const timeout = state.started ? stallAfter : startupLimit;
+    state.waitMs = Math.max(0, elapsed);
+    const timeout = state.started ? stallAfter : Number.isFinite(sample.startupTimeout) && sample.startupTimeout > 0 ? sample.startupTimeout : startupLimit;
     if (elapsed >= timeout) {
       if (state.started && !state.recovered && sample.automatic !== false) return act('recover', '持续缓冲，正在重载当前线路');
       return act('fail', state.started ? '视频持续缓冲，当前线路未能恢复' : '等待视频起播超时');
@@ -142,25 +143,63 @@ export function createPlaybackFallback({ maximum = 3, priority = () => 0 } = {})
     remember(position); mark(item, line, index);
   }
 
-  function next(current, variants = []) {
-    if (state.stopped || state.attempts >= maximum || videoKey(current) !== state.key) return null;
+  function candidate(current, variants = []) {
+    if (!current || state.stopped || state.attempts >= maximum || videoKey(current) !== state.key) return null;
     for (const { line, value } of orderedLines(current, priority)) {
       const key = current.uid + ':' + line;
       if (tried.has(key)) continue;
       const episode = matchingEpisode(value.episodes, state.episode, state.movie);
       if (episode < 0) continue;
       const url = value.episodes[episode].url;
-      if (url && urls.has(url)) { tried.add(key); continue; }
-      state.attempts++; mark(current, line, episode);
+      if (url && urls.has(url)) continue;
       return { type: 'line', item: current, line, episode };
     }
     const item = [...variants].sort((a, b) => (Number(priority(a)) || 0) - (Number(priority(b)) || 0)).find(variant => variant.year && state.year && videoKey(variant) === state.key && !sources.has(variant.uid) && validVideoId(variant.source, variant.id));
     if (!item) return null;
-    sources.add(item.uid); state.attempts++;
     return { type: 'source', item };
+  }
+
+  function next(current, variants = []) {
+    const value = candidate(current, variants);
+    if (!value) return null;
+    state.attempts++;
+    if (value.type === 'line') mark(value.item, value.line, value.episode);
+    else sources.add(value.item.uid);
+    return value;
   }
 
   function stop() { state.epoch++; state.stopped = true; }
   function lineFor(item) { return videoKey(item) === state.key ? matchingLine(item, state.episode, state.movie, urls, priority) : null; }
-  return { state, begin, remember, mark, next, stop, lineFor };
+  return { state, begin, remember, mark, next, available: (current, variants) => Boolean(candidate(current, variants)), stop, lineFor };
+}
+
+export function createVariantDiscovery({ request, onChange = () => {}, sources = SOURCES } = {}) {
+  if (typeof request !== 'function' || typeof onChange !== 'function' || !Array.isArray(sources) || sources.some(source => !SOURCES.some(value => value.id === source?.id))) throw new Error('来源查询配置不正确');
+  const state = { group: null, loading: false, completed: 0, total: 0, failed: [] };
+  let version = 0; let controller;
+
+  function stop() { version++; controller?.abort(); state.loading = false; }
+
+  async function open(group) {
+    if (!group || !Array.isArray(group.variants) || !plainText(group.title)) throw new Error('影片来源信息不正确');
+    stop(); const current = version; const activeController = new AbortController(); controller = activeController;
+    const missing = sources.filter(source => source.search !== false && !group.variants.some(variant => variant.source === source.id));
+    Object.assign(state, { group, loading: Boolean(missing.length), completed: 0, total: missing.length, failed: [] }); onChange();
+    await Promise.allSettled(missing.map(async source => {
+      try {
+        const result = await request(source.id, { query: group.title, signal: activeController.signal });
+        if (current !== version) return;
+        if (!Array.isArray(result?.videos)) throw new Error('来源查询结果不正确');
+        const matches = result.videos.filter(item => item && videoKey(item) === videoKey(group));
+        if (matches.length) group.variants = groupVideos([...group.variants, ...matches])[0].variants;
+      } catch {
+        if (current !== version) return;
+        state.failed.push(source.id);
+      }
+      state.completed++; state.loading = state.completed < state.total; onChange();
+    }));
+    if (current === version && controller === activeController) controller = null;
+  }
+
+  return { state, open, stop };
 }

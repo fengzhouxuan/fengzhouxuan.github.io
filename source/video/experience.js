@@ -126,9 +126,10 @@ export function createPlaybackExperience({ storage = null, now = () => performan
     return lines.filter(value => value.matched).sort((a, b) => a.score - b.score)[0]?.line ?? 0;
   }
 
-  function startupTimeout(item, line) {
+  function startupTimeout(item, line, hasAlternative = false) {
     const value = profile(item, line);
-    if (!value.samples) return 15000;
+    if (!value.samples) return hasAlternative ? 8000 : 15000;
+    if (hasAlternative && value.failureRate >= 0.5) return 6000;
     return Math.min(20000, Math.max(value.failureRate >= 0.5 ? 10000 : 8000, (value.frameMs ?? 3500) * 2 + 3000));
   }
 
