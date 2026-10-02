@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/wrangler@4.146.0/config-schema.json",
+  "name": "rabbit-hole-video-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "VIDEO_ALLOWED_ORIGINS": "https://fengzhouxuan.github.io,http://127.0.0.1:4010,http://localhost:4010,http://127.0.0.1:4017"
+  }
+}

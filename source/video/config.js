@@ -1,5 +1,5 @@
 window.VIDEO_CONFIG = {
-  apiBase: '',
+  apiBase: 'https://rabbit-hole-video-api.fengzhouxuan.workers.dev',
   blogHome: 'https://fengzhouxuan.github.io',
   // Official schedule verified on 2026-10-01; expire it after the finale.
   releaseSchedules: [{
