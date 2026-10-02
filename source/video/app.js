@@ -6,7 +6,7 @@ import {
 import { createCatalogLoader, catalogSummary } from './catalog.js';
 import { createHomeLoader, requestHomeSources } from './home.js';
 import { sameFavorite, snapshotFavorite, favoriteSummary, acknowledgeFavorite, createWatchlistRefresher } from './watchlist.js';
-import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resumePosition, playbackSummary, screenPresentation, matchingEpisode, matchingLine } from './playback.js';
+import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resumePosition, playbackSummary, screenPresentation, playbackQuality, matchingEpisode, matchingLine } from './playback.js';
 import { createPlaybackExperience, createSourceHealth } from './experience.js';
 
 const $ = id => document.getElementById(id);
@@ -710,7 +710,29 @@ function destroyPlayback() {
   state.resumeSeekTarget = null;
   $('screen').classList.remove('resuming'); $('early-switch').hidden = true;
   if (state.hls) { state.hls.destroy(); state.hls = null; }
+  qualitySelection = -1; qualityReady = false; qualityNative = false;
   video.pause(); video.removeAttribute('src'); video.load();
+  renderQuality();
+}
+
+let qualitySelection = -1; let qualityReady = false; let qualityNative = false;
+function renderQuality() {
+  const hls = state.hls;
+  if (hls?.autoLevelEnabled) qualitySelection = -1;
+  const summary = playbackQuality(hls?.levels, { selected: qualitySelection, current: hls?.currentLevel, width: state.switching ? 0 : video.videoWidth, height: state.switching ? 0 : video.videoHeight, ready: qualityReady, native: qualityNative, paused: video.paused });
+  const select = $('quality-select');
+  const options = summary.selectable ? [{ index: -1, label: '自动' }, ...summary.choices] : [];
+  const key = JSON.stringify(options.map(option => [option.index, option.label]));
+  if (select.dataset.options !== key) {
+    select.replaceChildren(...options.map(choice => { const option = el('option', '', choice.label); option.value = String(choice.index); return option; }));
+    select.dataset.options = key;
+  }
+  select.value = String(summary.selected); select.disabled = !summary.selectable;
+  $('quality-label').hidden = !summary.selectable;
+  $('quality-current').textContent = summary.currentLabel;
+  $('quality-note').textContent = summary.note;
+  $('quality-source').hidden = !qualityReady || summary.selectable;
+  if (!summary.selectable && document.activeElement === select) (qualityReady ? $('quality-source') : $('screen')).focus({ preventScroll: true });
 }
 
 function screenMessage(text) {
@@ -1001,16 +1023,19 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
     } else if (error.name === 'NotSupportedError') reportPlaybackFailure('视频格式或线路不可用', version);
     else $('play-status').textContent = '请点击播放器开始观看。';
   }); };
-  // Pianku's segments may use image MIME types; HLS.js can inspect their media bytes.
-  const preferHls = state.current.source === 'pianku' && window.Hls?.isSupported();
+  // HLS.js exposes real rendition choices; native HLS remains the fallback.
+  const preferHls = window.Hls?.isSupported();
   if (/\.mp4(?:$|\?)/i.test(url) || (!preferHls && video.canPlayType('application/vnd.apple.mpegurl'))) {
+    qualityReady = true; qualityNative = !/\.mp4(?:$|\?)/i.test(url); renderQuality();
     video.src = url; tryPlay();
   } else if (window.Hls?.isSupported()) {
     const hls = new window.Hls({ maxBufferLength: 30, backBufferLength: 30 }); state.hls = hls;
     hls.loadSource(url); hls.attachMedia(video);
-    hls.on(window.Hls.Events.MANIFEST_PARSED, () => { if (version === state.playbackVersion) tryPlay(); });
+    hls.on(window.Hls.Events.MANIFEST_PARSED, () => { if (version === state.playbackVersion) { qualityReady = true; renderQuality(); tryPlay(); } });
+    for (const event of [window.Hls.Events.LEVEL_SWITCHED, window.Hls.Events.LEVELS_UPDATED]) hls.on(event, () => { if (version === state.playbackVersion) renderQuality(); });
     let recovery = 0;
     hls.on(window.Hls.Events.ERROR, (_event, data) => {
+      if (version === state.playbackVersion) renderQuality();
       if (!data.fatal || version !== state.playbackVersion) return;
       if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR && recovery++ < 1) { hls.recoverMediaError(); return; }
       reportPlaybackFailure('视频线路发生错误', version);
@@ -1218,15 +1243,17 @@ video.addEventListener('loadedmetadata', () => {
   if (state.switching) return;
   adaptScreen(); applyPendingResume();
   video.playbackRate = Number($('speed').value);
+  renderQuality();
 });
 video.addEventListener('durationchange', () => { if (!state.switching) { applyPendingResume(); checkPlayback(); } });
-video.addEventListener('resize', adaptScreen);
+video.addEventListener('resize', () => { adaptScreen(); renderQuality(); });
 video.addEventListener('emptied', adaptScreen);
 video.addEventListener('canplay', () => { if (!state.switching) { applyPendingResume(); checkPlayback(); } });
 video.addEventListener('play', () => {
   if (state.switching) return;
   state.requestedPlay = true; state.userPaused = false; state.autoplayBlocked = false;
   playbackIntent.remember(state.current, state.episode, false);
+  renderQuality();
   if (playbackMonitor.state.phase === 'ended') monitorPlayback(video.currentTime, playbackMonitor.state.recovered);
   else checkPlayback();
 });
@@ -1254,6 +1281,7 @@ video.addEventListener('pause', () => {
     state.userPaused = true; playbackIntent.remember(state.current, state.episode, true); checkPlayback();
   }
   saveProgress();
+  renderQuality();
 });
 video.addEventListener('ended', () => { saveProgress(); checkPlayback(); if ($('auto-next').checked) playNext(); });
 window.addEventListener('online', resumePlaybackChecks);
@@ -1307,6 +1335,16 @@ $('auto-source').addEventListener('change', () => {
 });
 for (const filter of ['all', 'new']) $('favorites-' + filter).addEventListener('click', () => { state.favoriteFilter = filter; renderLibrary(); $('favorites-' + filter).focus(); });
 $('speed').addEventListener('change', () => { video.playbackRate = Number($('speed').value); });
+$('quality-select').addEventListener('change', () => {
+  const hls = state.hls; const selected = Number($('quality-select').value);
+  const summary = playbackQuality(hls?.levels, { selected, ready: qualityReady });
+  if (!hls || !summary.selectable || summary.selected !== selected) { renderQuality(); return; }
+  const previous = qualitySelection; qualitySelection = selected;
+  try { hls.nextLevel = selected; }
+  catch { qualitySelection = previous; toast('清晰度暂时无法切换，已保留播放状态。'); }
+  renderQuality();
+});
+$('quality-source').addEventListener('click', () => focusPlayerArea('episode-heading'));
 $('screen-mode').addEventListener('change', adaptScreen);
 $('fullscreen').addEventListener('click', toggleFullscreen);
 $('exit-fullscreen').addEventListener('click', toggleFullscreen);
