@@ -4,6 +4,7 @@
   const commons=typeof module!=='undefined'&&module.exports?require('./commons.js'):root.WallpaperCommons;
   const agundurLicenses=Object.freeze({'CC BY 4.0':'https://creativecommons.org/licenses/by/4.0/','CC BY-SA 4.0':'https://creativecommons.org/licenses/by-sa/4.0/'});
   const wallcolleLicenses=Object.freeze({...agundurLicenses,'CC BY-NC 4.0':'https://creativecommons.org/licenses/by-nc/4.0/','Public domain':'https://creativecommons.org/publicdomain/mark/1.0/'});
+  const popLicenses=Object.freeze({'CC BY-SA 4.0':agundurLicenses['CC BY-SA 4.0']});
   const sources=Object.freeze({
     librepixels:{name:'LibrePixels',artist:'LibrePixels',host:'gitlab',repo:'librepixels/ia.Wallpapers',ref:'main',license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/'},
     folium:{name:'Folium Creations',artist:'Folium Creations',host:'github',repo:'FoliumCreations/Wallpapers',ref:'main',license:'CC BY 4.0',licenseUrl:'https://creativecommons.org/licenses/by/4.0/'},
@@ -11,7 +12,8 @@
     sermor:{name:'Sermor · AI 壁纸',artist:'Sermoris',host:'github',repo:'Sermoris/sermor-ai-wallpapers',ref:'main',commitPinned:true,license:'CC0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',categories:['anime','illustration','nature','city','abstract','fantasy','cyberpunk','space']},
     sermornc:{name:'Sermor · 非商业 AI 壁纸',artist:'Sermoris',host:'github',repo:'Sermoris/sermor-ai-generated-wallpapers',ref:'main',commitPinned:true,license:'CC BY-NC-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-nc-sa/4.0/',categories:['illustration','nature','city','fantasy','cyberpunk','space']},
     agundur:{name:'Agundur · 4K',artist:'Agundur',host:'github',repo:'Agundur-KDE/Wallpapers',ref:'main',licenses:agundurLicenses,categories:['anime','illustration','nature','city','animals','minimal','fantasy','cyberpunk','space']},
-    wallcolle:{name:'AOSC 社区壁纸',host:'github',repo:'AOSC-Archive/WallColle',ref:'master',licenses:wallcolleLicenses,categories:['nature','city','space']}
+    wallcolle:{name:'AOSC 社区壁纸',host:'github',repo:'AOSC-Archive/WallColle',ref:'master',licenses:wallcolleLicenses,categories:['nature','city','space']},
+    pop:{name:'Pop!_OS · 原创插画',host:'github',repo:'pop-os/wallpapers',ref:'master',commitPinned:true,licenses:popLicenses,categories:['illustration','nature','abstract','fantasy','space']}
   });
   const labels={anime:'二次元',illustration:'插画',nature:'风景',city:'城市',animals:'动物',minimal:'极简',abstract:'抽象',fantasy:'幻想',cyberpunk:'赛博朋克',pixel:'像素',cars:'汽车',space:'星空'};
   const excluded=/luffy|mariobros|hentai|ecchi|ahegao|futanari|lolicon|shotacon|nude|nudity|erotic|sexual|porn/i;
@@ -34,6 +36,7 @@
     if(provider==='agundur')return /^[a-z0-9]+(?:-[a-z0-9]+)*-4k\.png$/.test(path);
     if(['sermor','sermornc'].includes(provider))return sermorWorkKey(path)!==null&&!/sensual|drowinspired/i.test(path);
     if(provider==='wallcolle')return /^contributors\/[a-zA-Z0-9_-]{1,80}\/(?:0|[1-9][0-9]{0,5})\.(jpg|png)$/.test(path);
+    if(provider==='pop')return /^original\/(kate-hazen|nick-nazzaro)-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.png$/.test(path);
     return provider==='midjourney'&&/^assets\/[^/]+$/.test(path);
   }
 
@@ -50,6 +53,12 @@
     }else if(['sermor','sermornc'].includes(provider)){
       const content=path.replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase();categories.add('illustration');
       for(const [category,pattern] of Object.entries({anime:/\banime\b/,nature:/forest|landscape|mountain|valley|hills|shoreline|coastal|sky meets the sea|silent bay|summer/,city:/city|metropolis|citadel|pagoda|skyscraper|rome|tower/,abstract:/abstract|minimal|silhouette|binary/,fantasy:/fantasy|elf|elven|elvish|witch|enchantress|knight|valkyrie|ethereal|alien|two moons|dreamscape/,cyberpunk:/cyberpunk|cybernetic|cyberlab|neon|steampunk|brass|electric|steel/,space:/galaxy|nebula|orbital|starry|aurora|celestial/}))if(pattern.test(content))categories.add(category);
+    }else if(provider==='pop'){
+      categories.add('illustration');
+      if(/mountains|desert|ice-cave|jungle|underwater/.test(name))categories.add('nature');
+      if(/fractal|retro|COSMIC/i.test(path))categories.add('abstract');
+      if(/nick-nazzaro-(?!bedroom)|robot|mort1mer|m3lvin/.test(name))categories.add('fantasy');
+      if(/space|cosmic/.test(name))categories.add('space');
     }else{
       categories.add('illustration');
       if(/8bit|pixel|pixle/.test(name))categories.add('pixel');
@@ -77,6 +86,26 @@
       const originalDescription=body.split(/^- File:/m)[0],title=commons.plainText(heading),description=commons.plainText(originalDescription);
       if(!title||title.length>100||originalDescription.length>3000)continue;
       records.push({path,title,description,license,licenseUrl});
+    }
+    return records;
+  }
+
+  function parsePopDeclaration(markdown){
+    if(typeof markdown!=='string'||markdown.length>131072||!/^# pop-wallpapers\s*$/m.test(markdown))return null;
+    const records=[],seen=new Set();
+    const authors=[{artist:'Kate Hazen',prefix:'kate-hazen',grant:/Kate has designed these illustrative wallpapers for System76\./},{artist:'Nick Nazzaro',prefix:'nick-nazzaro',grant:/System76 commissioned \[Nick Nazzaro\]\(https?:\/\/www\.nicknazzaro\.com\/\) to create backgrounds for our/}];
+    for(const author of authors){
+      const heading='## '+author.artist+'\n',sections=markdown.split(heading);if(sections.length!==2)return null;
+      const body=sections[1].split(/^## /m)[0];if(!author.grant.test(body))return null;
+      const grant="They're licensed under [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)]("+popLicenses['CC BY-SA 4.0']+').';
+      if(!body.includes(grant)||/all rights reserved|not allowed|not permitted|no redistribution|except|third.party/i.test(body))continue;
+      for(const match of body.matchAll(/^- ([^\n]+\.png)\s*$/gm)){
+        const filename=match[1],path='original/'+filename;
+        if(!validPath(path,'pop')||!filename.startsWith(author.prefix+'-'))continue;
+        if(seen.has(path))return null;seen.add(path);
+        const title=filename.slice(author.prefix.length+1,-4).replaceAll('-',' ').replace(/\b[a-z]/g,letter=>letter.toUpperCase());
+        records.push({path,title,artist:author.artist,license:'CC BY-SA 4.0',licenseUrl:popLicenses['CC BY-SA 4.0']});
+      }
     }
     return records;
   }
@@ -118,7 +147,7 @@
     if(pinned&&(typeof commit!=='string'||! /^[a-f0-9]{40}$/.test(commit)))return null;
     const ref=pinned?commit:source.ref;
     const encoded=path.split('/').map(encodeURIComponent).join('/');
-    const pagePath=provider==='wallcolle'?encoded.replace(/\/[^/]+$/,'/me.json'):encoded;
+    const pagePath=provider==='wallcolle'?encoded.replace(/\/[^/]+$/,'/me.json'):provider==='pop'?'README.md':encoded;
     const pageUrl='https://'+source.host+'.com/'+source.repo+(source.host==='gitlab'?'/-/blob/':'/blob/')+ref+'/'+pagePath;
     const download=source.host==='gitlab'?'https://gitlab.com/api/v4/projects/68715866/repository/files/'+encodeURIComponent(path)+'/raw?ref='+source.ref:'https://cdn.jsdelivr.net/gh/'+source.repo+'@'+ref+'/'+encoded;
     if(source.commitPinned){
@@ -133,30 +162,34 @@
     const items=[],seen=new Set(),input=Array.isArray(records)?records.slice():[];
     if(source.commitPinned)input.sort((a,b)=>(Number(b?.width)*Number(b?.height)||0)-(Number(a?.width)*Number(a?.height)||0));
     for(const raw of input){
-      const perImage=provider==='agundur'?agundurLicenses:provider==='wallcolle'?wallcolleLicenses:null;
+      const perImage=provider==='agundur'?agundurLicenses:provider==='wallcolle'?wallcolleLicenses:provider==='pop'?popLicenses:null;
       const license=perImage&&Object.hasOwn(perImage,raw?.license)?raw.license:source.license,licenseUrl=perImage?perImage[license]:source.licenseUrl;
       if(!raw||!license||!validPath(raw.path,provider)||typeof raw.revision!=='string'||! /^[a-f0-9]{40}$/.test(raw.revision)||raw.license!==license||raw.licenseUrl!==licenseUrl||seen.has(raw.path)||seen.has('sha:'+raw.revision))continue;
       const {width,height}=raw;
       if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width>30000||height>30000||Math.max(width,height)<1600||Math.min(width,height)<800)continue;
       if(provider==='agundur'&&(width!==3840||height!==2160||typeof raw.description!=='string'||raw.description.length>3000))continue;
       if(provider==='wallcolle'&&(width*height>60000000||typeof raw.declarationRevision!=='string'||! /^[a-f0-9]{40}$/.test(raw.declarationRevision)||typeof raw.artist!=='string'||!raw.artist.trim()||raw.artist.length>100||typeof raw.title!=='string'||raw.title.length>100||!validWallcolleTags(raw.tags)||excluded.test(raw.title)))continue;
-      const workKey=source.commitPinned?sermorWorkKey(raw.path):null;
+      if(provider==='pop'&&(raw.artist!==(raw.path.startsWith('original/kate-hazen-')?'Kate Hazen':'Nick Nazzaro')||typeof raw.title!=='string'||raw.title.length>100||excluded.test(raw.title)))continue;
+      const workKey=source.commitPinned&&provider!=='pop'?sermorWorkKey(raw.path):null;
       if(source.commitPinned){
-        const dimensions=raw.path.match(/[_:](\d+)x(\d+)\.png$/);
-        if(width*height>60000000||width!==Number(dimensions[1])||height!==Number(dimensions[2])||typeof raw.declarationRevision!=='string'||! /^[a-f0-9]{40}$/.test(raw.declarationRevision)||seen.has('work:'+workKey))continue;
+        if(width*height>60000000||typeof raw.declarationRevision!=='string'||! /^[a-f0-9]{40}$/.test(raw.declarationRevision))continue;
+        if(provider!=='pop'){
+          const dimensions=raw.path.match(/[_:](\d+)x(\d+)\.png$/);
+          if(width!==Number(dimensions[1])||height!==Number(dimensions[2])||seen.has('work:'+workKey))continue;
+        }
       }
       const description=provider==='agundur'?commons.plainText(raw.description):'',urls=urlsFor(raw.path,provider,raw.commit),categories=provider==='wallcolle'?wallcolleCategories(raw.tags):categoriesFor(raw.path,provider,description);
       const title=perImage?commons.plainText(raw.title):raw.path.split('/').pop().replace(/^\[[^\]]+\]_librepixels_/,'').replace(source.commitPinned?/[_:]\d+x\d+\.png$/:/\.(png|jpe?g|webp)$/i,'').replace(/_[a-f0-9]{6,10}$/,'').replace(/[_-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').trim().slice(0,100);
-      const artist=provider==='wallcolle'?commons.plainText(raw.artist):source.artist;
+      const artist=['wallcolle','pop'].includes(provider)?commons.plainText(raw.artist):source.artist;
       if(!urls||!categories.length||!artist||!title||title.length>100||description.length>3000)continue;
       seen.add(raw.path);seen.add('sha:'+raw.revision);
       if(workKey)seen.add('work:'+workKey);
-      const feedRecord={path:raw.path,revision:raw.revision,license,licenseUrl,width,height,...(provider==='agundur'?{title,description}:provider==='wallcolle'?{title,artist,tags:[...raw.tags],commit:raw.commit,declarationRevision:raw.declarationRevision}:source.commitPinned?{commit:raw.commit,declarationRevision:raw.declarationRevision}:{})};
-      items.push({id:'repo-'+provider+'-'+encodeURIComponent(raw.path),source:'commons',provider,title,artist,...urls,width,height,license,licenseUrl,categories,tags:[...categories.map(category=>labels[category]),...(['librepixels','midjourney'].includes(provider)||source.commitPinned?['AI 插画']:provider==='agundur'?['创作方式未注明']:[]),source.name,width>=height?'横屏':'竖屏'],...(perImage||source.commitPinned?{copyrightNotice:'本站预览等比例缩小为 WebP，高清入口保留作者原图。'+(provider==='wallcolle'?' 原作编号：'+raw.path.split('/').pop().split('.')[0]+'；逐图许可见来源清单。':'')}:{}),feedRecord});
+      const feedRecord={path:raw.path,revision:raw.revision,license,licenseUrl,width,height,...(provider==='agundur'?{title,description}:provider==='wallcolle'?{title,artist,tags:[...raw.tags],commit:raw.commit,declarationRevision:raw.declarationRevision}:provider==='pop'?{title,artist,commit:raw.commit,declarationRevision:raw.declarationRevision}:source.commitPinned?{commit:raw.commit,declarationRevision:raw.declarationRevision}:{})};
+      items.push({id:'repo-'+provider+'-'+encodeURIComponent(raw.path),source:'commons',provider,title,artist,...urls,width,height,license,licenseUrl,categories,tags:[...categories.map(category=>labels[category]),...(['librepixels','midjourney','sermor','sermornc'].includes(provider)?['AI 插画']:provider==='agundur'?['创作方式未注明']:[]),source.name,width>=height?'横屏':'竖屏'],...(perImage||source.commitPinned?{copyrightNotice:'本站预览等比例缩小为 WebP，高清入口保留作者原图。'+(provider==='wallcolle'?' 原作编号：'+raw.path.split('/').pop().split('.')[0]+'；逐图许可见来源清单。':provider==='pop'?' 原作由 System76 发布；署名和逐文件许可见来源清单。':'')}:{}),feedRecord});
     }
     return items;
   }
 
-  const api={sources,validPath,categoriesFor,sermorWorkKey,sermorDeclarationLicensed,parseAgundurDeclaration,parseWallcolleDeclaration,wallcolleCategories,urlsFor,normalizeRepository};
+  const api={sources,validPath,categoriesFor,sermorWorkKey,sermorDeclarationLicensed,parseAgundurDeclaration,parsePopDeclaration,parseWallcolleDeclaration,wallcolleCategories,urlsFor,normalizeRepository};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.WallpaperRepositories=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

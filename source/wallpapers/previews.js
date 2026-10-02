@@ -22,7 +22,7 @@
     if(item?.provider==='revoy'){
       const normalized=revoy.normalizeRecords([item.feedRecord])[0];return normalized&&normalized.id===item.id?'revoy-'+normalized.revision+'-v'+version+'.webp':null;
     }
-    if(['opengameart','hdwallpapers','blender'].includes(item?.provider)){
+    if(['opengameart','hdwallpapers','blender','unicorn'].includes(item?.provider)){
       const normalized=feeds.normalizeFeed([item.feedRecord],item.provider)[0];return normalized&&normalized.id===item.id?item.provider+'-'+normalized.feedRecord.revision+'-v'+version+'.webp':null;
     }
     if(item?.provider==='ayomi'){
