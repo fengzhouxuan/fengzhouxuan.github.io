@@ -1152,6 +1152,7 @@ function handleRoute() {
   if (state.route.view === 'watch' && (route.view !== 'watch' || changedFilm)) { saveProgress(); destroyPlayback(); }
   state.detailVersion++; // Invalidate details and discovery when leaving their page.
   state.route = route;
+  $('opening-page').hidden = true;
   for (const id of ['home', 'catalog', 'library', 'detail', 'watch']) {
     $(id + '-page').hidden = id === 'catalog' ? !['browse', 'search'].includes(route.view) : route.view !== id;
   }

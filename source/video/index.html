@@ -8,6 +8,13 @@
   <title>视频站 · 打个大柚子的兔子洞</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./theme.css">
+  <link rel="modulepreload" href="./app.js">
+  <link rel="modulepreload" href="./core.js">
+  <link rel="modulepreload" href="./catalog.js">
+  <link rel="modulepreload" href="./home.js">
+  <link rel="modulepreload" href="./watchlist.js">
+  <link rel="modulepreload" href="./playback.js">
+  <link rel="modulepreload" href="./experience.js">
   <script src="./config.js"></script>
   <script defer src="./vendor/hls.min.js"></script>
   <script type="module" src="./app.js"></script>
@@ -26,7 +33,8 @@
       <a href="#home" data-nav="home">放映首页</a><a href="#browse?category=tv" data-nav="tv">电视剧</a><a href="#browse?category=movie" data-nav="movie">电影</a><a href="#browse?category=anime" data-nav="anime">动漫</a><a href="#browse?category=variety" data-nav="variety">综艺</a><a href="#browse?category=short" data-nav="short">短剧</a><a href="#library" data-nav="library">我的片单 <span id="favorite-count">0</span></a>
     </nav>
     <main>
-      <section id="home-page" class="page" aria-label="放映首页">
+      <section id="opening-page" class="page" aria-label="正在打开私人放映室"><p class="eyebrow">PRIVATE CINEMA</p><h1>正在打开私人放映室…</h1><p class="status" role="status">页面准备好后，会回到你正在浏览的位置。</p><noscript><p>请开启 JavaScript 后重新载入页面。</p></noscript></section>
+      <section id="home-page" class="page" aria-label="放映首页" hidden>
         <section class="hero" aria-labelledby="hero-title">
           <div class="hero-copy"><p class="eyebrow">兔子洞 · 私人放映室</p><h1 id="hero-title">好故事，值得留点时间。</h1><p id="hero-meta" class="hero-meta">留一盏灯，选一部片。</p><p id="hero-description" class="hero-description">正在准备今天的放映室…</p><div class="hero-actions"><button id="hero-play" class="button cream" disabled>▶ 开始观看</button><button id="hero-detail" class="button outline" disabled>影片详情</button></div><div id="hero-picks" class="hero-picks" role="group" aria-label="精选影片，可用左右方向键选择、回车确认"></div></div>
           <div id="hero-art" class="hero-art"><span class="film-corner">SIDE B<br>CINEMA</span></div>
