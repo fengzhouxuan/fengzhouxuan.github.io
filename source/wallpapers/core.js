@@ -12,10 +12,14 @@
   const patterns=['山野','柔光','轨道','几何'];
   const cacheKey='rabbit-wallpapers-art-v2';
   const searchAliases=Object.freeze({
-    猫耳:[/\b(?:catgirls?|cat[ -]ears?|neko(?:[ -]girls?)?)\b/],
+    猫耳:[/\b(?:catgirls?|cat[ -]ears?|neko(?:mimi|[ -]girls?)?)\b/],
     狐耳:[/\b(?:foxgirls?|fox[ -]ears?)\b/],
     少女:[/\b(?:girls?|catgirls?|foxgirls?|neko[ -]girls?)\b/],
     教室:[/\bclassrooms?\b/],
+    壁炉:[/\bfireplaces?\b/],
+    读书:[/\b(?:reads?|reading)\b/,/\bbooks?\b/],
+    摩天轮:[/\bferris[ -]wheel\b/],
+    抱猫:[/\b(?:holds?|holding)\b/,/\b(?:cats?|kittens?)\b/],
     海边:[/\b(?:beach|beaches|seaside|coast|coastal)\b/],
     森林:[/\b(?:forests?|woods|woodland)\b/],
     山川:[/\bmountains?\b/],

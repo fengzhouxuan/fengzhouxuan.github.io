@@ -91,6 +91,18 @@ test('license hints expose attribution, noncommercial and no-derivative restrict
   for(const license of [undefined,'Unknown'])assert.equal(feeds.licenseHint(license),'查看使用许可');
 });
 
+test('explicit text overlays stay out of fresh galleries and cached wallpaper records without excluding ordinary scene text',()=>{
+  for(const title of ['Catgirl Sits In Car With Sad Expression and Text Overlay','Catgirl with TEXT-OVERLAY','Catgirl with text_overlay']){
+    const raw=image();raw.name=title;assert.deepEqual(ayomi.parseGallery(page(folder,{images:[raw]}),folder).records,[]);
+    assert.deepEqual(ayomi.normalizeRecords([{...record(),title}]),[]);
+  }
+  const captioned=image();captioned.caption='A large text overlay across the bottom';assert.deepEqual(ayomi.parseGallery(page(folder,{images:[captioned]}),folder).records,[]);
+  assert.deepEqual(ayomi.normalizeRecords([{...record(),context:'x'.repeat(510)+' text overlay'}]),[]);
+  const title='Catgirl reading a textbook beside a bookshelf',raw=image();raw.name=title;raw.description='Letters on a shirt and book cover in a cozy room';
+  assert.equal(ayomi.parseGallery(page(folder,{images:[raw]}),folder).records.length,1);
+  assert.equal(ayomi.normalizeRecords([{...record(),title,context:raw.description}]).length,1);
+});
+
 test('collector reads paginated categories and nested galleries without parallel requests',async()=>{
   const root=ayomi.source.gallery,folders=Array.from({length:21},(_,i)=>root+'/folder-'+i),nested=folders[0]+'/child',pages=new Map();
   pages.set(root+'?page=1',page(root,{children:folders.slice(0,20),total:21}));pages.set(root+'?page=2',page(root,{children:folders.slice(20),total:21,number:2}));

@@ -5,6 +5,7 @@
   const origin='https://oc.nekosia.cat',creator=origin+'/#creator';
   const source=Object.freeze({name:'AyomiArt · AI 插画',artist:'AyomiCat',gallery:origin+'/gallery',categories:['anime','illustration'],license:'CC BY-NC-ND 4.0',licenseUrl:'https://creativecommons.org/licenses/by-nc-nd/4.0/'});
   const blocked=/hentai|ecchi|ahegao|futanari|lolicon|shotacon|nsfw|nudity|nude|erotic|sexual|porn|swimsuit|bikini|lingerie|panties|shower|towel/i;
+  const overlaidText=/text[\s_-]+overlay/i;
   const fanart=/(?:^|[^a-z])(?:pikachu|pokemon|pokémon|kanade|beast[\s_-]?tamer|arona|blue[\s_-]?archive)(?:$|[^a-z])/i;
   const pathPart='[a-z0-9_-]+';
   const imagePath=new RegExp('^/images/gallery/('+pathPart+'(?:/'+pathPart+'){1,5}\\.(?:png|jpe?g|webp))$','i');
@@ -25,7 +26,7 @@
     if(/^(?:various-images-not-just-anime|weapon)\//.test(file))return null;
     const title=commons.plainText(raw.title),context=commons.plainText(raw.context),copyrightNotice=commons.plainText(raw.copyrightNotice);
     const description=file+' '+title+' '+String(raw.context||'');
-    if(!title||blocked.test(description)||fanart.test(description)||!copyrightNotice.includes(source.license)||typeof raw.revision!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(raw.revision)||!Number.isFinite(Date.parse(raw.revision)))return null;
+    if(!title||blocked.test(description)||overlaidText.test(description)||fanart.test(description)||!copyrightNotice.includes(source.license)||typeof raw.revision!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(raw.revision)||!Number.isFinite(Date.parse(raw.revision)))return null;
     const preview=safeURL(raw.image);
     if(!preview||preview.search||preview.href!==original.href&&preview.pathname!=='/images/thumbs/'+file+'.webp')return null;
     return {title,artist:source.artist,context,copyrightNotice,download:original.href,image:preview.href,pageUrl:page,revision:raw.revision,license:source.license,licenseUrl:source.licenseUrl};

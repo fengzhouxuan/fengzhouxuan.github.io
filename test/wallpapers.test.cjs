@@ -62,10 +62,10 @@ test('filter combines source, orientation, query and favorites',()=>{
 });
 test('Chinese scene keywords match English titles and tags, while combined terms retain other filters',()=>{
   const item=(title,extra={})=>({id:title,title,artist:'Photo Author',tags:[],source:'commons',provider:'ayomi',categories:['anime'],width:1024,height:1536,...extra});
-  const examples={猫耳:'Catgirl with Cat Ears',狐耳:'Foxgirl with Fox Ears',少女:'Girl with a Camera',教室:'Classroom Window',海边:'Coastal Beach Scene',森林:'Forest and Woodland',山川:'Mountain Range',夜景:'Night Cityscape',雨夜:'Rainy City at Night',夕阳:'Sunset on a Lake',樱花:'Cherry Blossoms and Sakura',雪景:'Snowy Landscape',星空:'Starry Sky and Milky Way',神社:'Shrine in Spring',咖啡馆:'Coffee Shop and Café'};
+  const examples={猫耳:'Catgirl with Cat Ears',狐耳:'Foxgirl with Fox Ears',少女:'Girl with a Camera',教室:'Classroom Window',壁炉:'Nekomimi Girl Tending to Fireplace',读书:'Neko Girl Reads Book on a Couch',摩天轮:'Neko Girl Under Ferris Wheel Lights',抱猫:'Neko Girl Holds an Orange Kitten',海边:'Coastal Beach Scene',森林:'Forest and Woodland',山川:'Mountain Range',夜景:'Night Cityscape',雨夜:'Rainy City at Night',夕阳:'Sunset on a Lake',樱花:'Cherry Blossoms and Sakura',雪景:'Snowy Landscape',星空:'Starry Sky and Milky Way',神社:'Shrine in Spring',咖啡馆:'Coffee Shop and Café'};
   for(const [query,title] of Object.entries(examples))assert.deepEqual(core.filterWallpapers([item(title)],{query}),[item(title)]);
   for(const title of ['Café','Cafe','Cafes','Coffee Shop'])assert.equal(core.filterWallpapers([item(title)],{query:'咖啡馆'}).length,1);
-  for(const [query,title] of [['猫耳','Cathedral Architecture'],['狐耳','Foxtrot'],['森林','Forestier Portrait'],['教室','Classical Music'],['少女','Girlhood Memories'],['雨夜','Rainy Afternoon'],['雨夜','Sunny Night'],['星空','Blue Sky'],['咖啡馆','Cafeteria']])assert.deepEqual(core.filterWallpapers([item(title)],{query}),[]);
+  for(const [query,title] of [['猫耳','Cathedral Architecture'],['猫耳','Nekomimicry'],['狐耳','Foxtrot'],['森林','Forestier Portrait'],['教室','Classical Music'],['少女','Girlhood Memories'],['壁炉','Fireplacesque Design'],['读书','Girl Reading a Phone'],['读书','Book Covers on a Shelf'],['摩天轮','Ferris the Artist'],['抱猫','Catgirl Holds a Phone'],['抱猫','Cat and Kitten in a Park'],['雨夜','Rainy Afternoon'],['雨夜','Sunny Night'],['星空','Blue Sky'],['咖啡馆','Cafeteria']])assert.deepEqual(core.filterWallpapers([item(title)],{query}),[]);
   const combined=item('Catgirl Gazes Out Classroom Window'),unrelated=item('Catgirl on Beach'),landscape=item('Catgirl in Classroom',{id:'landscape',width:1920,height:1080});
   const records=[combined,unrelated,landscape];
   assert.deepEqual(core.filterWallpapers(records,{query:' 猫耳   教室 ',orientation:'portrait',provider:'ayomi',category:'anime'}),[combined]);
@@ -76,6 +76,8 @@ test('Chinese scene keywords match English titles and tags, while combined terms
   assert.deepEqual(core.filterWallpapers([item('猫耳少女')],{query:'猫耳'}).length,1);
   assert.equal(core.filterWallpapers([item('Catgirl',{artist:null})],{query:'猫耳'}).length,1);
   assert.deepEqual(core.filterWallpapers(records,{query:'__proto__'}),[]);
+  const fireplace=item('Blue Haired Nekomimi Girl Near Cozy Fireplace Interior Scene');
+  assert.deepEqual(core.filterWallpapers([fireplace,item('Catgirl Holding Kitten')],{query:'猫耳 壁炉',orientation:'portrait',provider:'ayomi',category:'anime'}),[fireplace]);
 });
 test('fresh artwork request filters, deduplicates and saves a daily cache',async()=>{
   const storage=memory();let calledURL;
