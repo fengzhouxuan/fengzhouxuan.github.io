@@ -219,11 +219,17 @@ Lornn 的 <https://lornn.itch.io/backgrounds-magic-school>、<https://lornn.itch
 
 继续追溯 <https://huggingface.co/datasets/deepghs/anime-bg> 的 4600 张动漫背景：数据卡虽标为 CC0，但明确引用 <https://huggingface.co/datasets/skytnt/anime-segmentation>；后者引用的 <https://github.com/ShuhongChen/bizarre-pose-estimator> 说明背景来自 Danbooru 与 Pixiv，未提供每张原作作者的再分发授权。因此没有将下游 CC0 标签当作原始图片许可，也没有下载或收录这批图片。另核对 <https://www.summerengine.com/asset-store/vn-background-school-rooftop-day-2561b957>，作品页与结构化数据绑定作者、Grok Imagine、CC0 和未附变换参数的正式 PNG 地址；实际读取原图为 1280×720，未通过本站门槛。平台 <https://www.summerengine.com/llms-asset-store.txt> 与 <https://www.summerengine.com/agent-catalog.json> 提供公开目录入口，并要求优先使用素材包目录、避免批量遍历详情和私有 API；未编写绕过此规则的采集器，也没有将目录总数计入本站。
 
+2026-10-03 继续核对 Commons 的 [Anime illustrations](https://commons.wikimedia.org/wiki/Category:Anime_illustrations) 子分类。现有采集器只读取顶层文件；子分类也包含视频、角色素材、展会及商品照片，不能将分类文件总数当作合格壁纸数。[Liminal Space Girl](https://commons.wikimedia.org/wiki/File:Liminal_Space_Girl.png) 由虫塚虫蔵声明为自制、CC0，作品页提供 2816×2048；[Winter Canal Town 的 Seedream 4.5 版本](https://commons.wikimedia.org/wiki/File:It's_Dark,_It's_Cold,_It's_Winter_Canal_Town_(Seedream_4.5).webp) 由 VulcanSphere 声明为 CC BY 4.0，作品页提供 2560×1440，并注明使用两张起始图片的图生图流程。这两张 Commons 文件尚未下载解码，起始图片权利也未独立核实。本机直接连接 Commons API 超时，浏览器尝试也未取得接口响应；未增加未经实际验证的分类或递归采集逻辑。
+
+同轮从 Commons 作品页追到作者的 [VulcanSphere AI Art 原始作品集](https://archive.org/details/vulcansphere-ai-art)。集合明确署名 VulcanSphere、采用 CC BY 4.0，包含文生图及图生图后编辑作品；这是作者的许可声明，不是对所有输入素材的独立权利核查。实际通过 [官方 Metadata API](https://archive.org/developers/md-read.html) 读取到 13 个原始图片文件，排除平台缩略图和集合封面；逐个读取文件头，12 个满足长边至少 1600、短边至少 800，其中两张 8000×8000 超过本站 6000 万像素上限，最终 10 个同时满足这两项条件。这是尺寸候选数，尚未完成全部内容与重复画面检查。完整下载并解码 `Full_Moon_Lighthouse_(AnimagineXL_3.0).jpg` 和冬日小镇 Seedream 4.0 WebP，分别为 2688×1536、467,738 字节及 2560×1440、247,370 字节，SHA-1 与官方目录一致；实际查看均为完整横屏场景。请求使用可识别的工具/模型 User-Agent 并串行间隔至少 1.1 秒，依据 [官方自动访问规则](https://archive.org/developers/bots.html)。集合规模较小，尚未接入每日同步，不计入本站图库；核查结果与两个文件保存在 `/tmp/wallpaper-vulcansphere-*`，临时文件不是持久发布产物。
+
 仓库图源：<https://gitlab.com/librepixels/ia.Wallpapers>；<https://github.com/FoliumCreations/Wallpapers>；<https://github.com/metaory/midjourney>。许可声明分别位于 LibrePixels README/LICENCE、Folium README/CC:BY 4.0 Licence、metaory LICENSE。
 
 ## 目标与剩余缺口
 
 目标是博客内内容丰富、二次元足够充实、体验好且持续自动更新的壁纸站。新增小型开放仓库只是推进步骤，不能据此宣称目标完成。还需扩大具有明确图片许可的动漫内容、解决大型图库的可靠接入，并验证实际 Pages 环境的预览覆盖率、访问速度与默认分支上的每日更新。原站链接不计入站内图库数量。
+
+2026-10-03 重新用前端规范化逻辑核对构建目录：19 个图源、1665 张，其中二次元 881 张，竖屏 675、横屏 206。这不包含 Commons、克利夫兰实时结果和程序生成图，也不包含本轮候选。数量增加仍主要来自 Ayomi 人物插画，不能据此宣称不同画风与场景已经足够丰富。本轮只补充图源核查记录，没有修改运行代码、图库目录或发布配置，未重跑上一轮通过的测试与构建，也未推送。
 
 2026-10-02 本轮只读核对线上状态：远端默认分支为 `main`，最新读取到的提交为 `153a6075c05f5a7d411e1ff258ebb31eeef75cee`；对应 [Actions 构建](https://github.com/fengzhouxuan/fengzhouxuan.github.io/actions/runs/37020391622) 成功，但该分支的 `pages.yml` 尚无壁纸目录同步、预览生成和发布文件检查命令。公开 `/wallpapers/` 地址返回 HTTP 404，不能把博客其他功能的构建绿灯当作壁纸已上线。线上预览覆盖率、访问速度与每日续读仍没有完成证据。从此前合并的 `dfb87f3` 至该提交的四个新提交仅涉及六个视频文件，未改动壁纸实现；本轮未改动这些视频文件或博客主分支工作区。
 
