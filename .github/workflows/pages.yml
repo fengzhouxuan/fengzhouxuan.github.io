@@ -100,7 +100,15 @@ jobs:
         run: npm run build
 
       - name: Verify wallpaper files before publication
-        run: node scripts/verify-wallpaper-release.cjs
+        run: |
+          wallpaper_exit=0
+          node scripts/verify-wallpaper-release.cjs > "$RUNNER_TEMP/wallpaper-release.log" 2>&1 || wallpaper_exit=$?
+          cat "$RUNNER_TEMP/wallpaper-release.log"
+          cat "$RUNNER_TEMP/wallpaper-release.log" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$wallpaper_exit" -ne 0 ]; then
+            node -e 'const text=require("node:fs").readFileSync(0,"utf8").trim(); console.log("::error::"+text.replace(/%/g,"%25").replace(/\r/g,"%0D").replace(/\n/g,"%0A"));' < "$RUNNER_TEMP/wallpaper-release.log"
+          fi
+          exit "$wallpaper_exit"
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
