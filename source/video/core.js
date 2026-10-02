@@ -279,6 +279,16 @@ export function nextEpisode(index, length) {
   return Number.isInteger(index) && index >= 0 && index + 1 < length ? index + 1 : -1;
 }
 
+async function fetchQuery(url, signal, fetchImpl) {
+  const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000);
+  try { return await fetchImpl(url, { signal: requestSignal }); }
+  catch (error) {
+    if (signal?.aborted) throw error;
+    if (requestSignal.aborted || error?.name === 'TimeoutError') throw new Error('查询服务响应超时，请重试或切换来源');
+    throw new Error('暂时无法连接查询服务，请检查网络后重试');
+  }
+}
+
 export async function requestVideos(source, { query = '', id = '', page = 1, mode = '', category = 'tv', type, base = '', signal, fetchImpl = fetch } = {}) {
   if (!SOURCES.some(item => item.id === source)) throw new Error('未知的影片来源');
   const params = new URLSearchParams({ source, page: String(page) });
@@ -287,9 +297,7 @@ export async function requestVideos(source, { query = '', id = '', page = 1, mod
     params.set('mode', 'browse'); params.set('category', category);
     if (type !== undefined) params.set('type', String(type));
   } else params.set('q', query);
-  const response = await fetchImpl(`${base.replace(/\/$/, '')}/api/vod?${params}`, {
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
-  });
+  const response = await fetchQuery(`${base.replace(/\/$/, '')}/api/vod?${params}`, signal, fetchImpl);
   let data;
   try { data = await response.json(); } catch { throw new Error('查询服务没有返回有效数据'); }
   if (!response.ok) throw new Error(data.error || '暂时无法连接这个来源');
@@ -299,9 +307,7 @@ export async function requestVideos(source, { query = '', id = '', page = 1, mod
 export async function requestEpisode(source, id, line, episode, { base = '', signal, fetchImpl = fetch } = {}) {
   if (!validVideoId(source, id) || !['auete', 'pianku'].includes(source) || ![line, episode].every(index => Number.isInteger(index) && index >= 0 && index < 10000)) throw new Error('剧集参数不正确');
   const params = new URLSearchParams({ source, id, line: String(line), episode: String(episode) });
-  const response = await fetchImpl(`${base.replace(/\/$/, '')}/api/play?${params}`, {
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
-  });
+  const response = await fetchQuery(`${base.replace(/\/$/, '')}/api/play?${params}`, signal, fetchImpl);
   let data;
   try { data = await response.json(); } catch { throw new Error('查询服务没有返回有效数据'); }
   const url = safeURL(data.url);

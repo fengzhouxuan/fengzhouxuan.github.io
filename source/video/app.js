@@ -1,13 +1,13 @@
 import {
   SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, supportsSource, sourceLabel, requestEpisode,
-  safeURL, groupVideos, matchEpisode, nextEpisode, requestVideos, releaseSchedule,
+  safeURL, groupVideos, matchEpisode, nextEpisode, requestVideos, releaseSchedule, episodeNumber,
   loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation,
 } from './core.js';
 import { createCatalogLoader, catalogSummary } from './catalog.js';
-import { createHomeLoader } from './home.js';
+import { createHomeLoader, requestHomeSources } from './home.js';
 import { sameFavorite, snapshotFavorite, favoriteSummary, acknowledgeFavorite, createWatchlistRefresher } from './watchlist.js';
-import { createPlaybackFallback, createPlaybackMonitor, resumePosition, playbackSummary, screenPresentation, matchingEpisode } from './playback.js';
-import { createPlaybackExperience } from './experience.js';
+import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resumePosition, playbackSummary, screenPresentation, matchingEpisode, matchingLine } from './playback.js';
+import { createPlaybackExperience, createSourceHealth } from './experience.js';
 
 const $ = id => document.getElementById(id);
 const config = window.VIDEO_CONFIG || {};
@@ -17,6 +17,7 @@ try { storage = window.localStorage; } catch { storage = null; }
 let navigationStorage;
 try { navigationStorage = window.sessionStorage; } catch { navigationStorage = null; }
 const listNavigation = createListNavigation(navigationStorage);
+const sourceHealth = createSourceHealth({ storage });
 if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
 const state = {
   route: { view: '' }, lastList: listNavigation.get(), hero: '', home: null,
@@ -28,6 +29,7 @@ const state = {
   pendingResume: 0, resumeSeekTarget: null, lastSave: 0, playbackVersion: 0, resumeOverride: null, monitorTimer: null, playbackPhase: '', resolveController: null,
   discovering: false, autoBusy: false, autoPending: null, autoController: null, autoLoading: false, autoResume: false, localRecovery: false, autoplayBlocked: false, userPaused: false, requestedPlay: false,
   initialPlayback: false, frameCallback: null, frameCallbackSupported: false, lastExperienceRender: 0,
+  restorePlaybackIntent: false,
 };
 const video = $('video');
 const catalogLoader = createCatalogLoader({ request, onChange: renderCatalog });
@@ -42,6 +44,8 @@ state.watchlist = watchlistRefresher.state;
 const playbackExperience = createPlaybackExperience({ storage });
 const playbackFallback = createPlaybackFallback({ priority: playbackExperience.priority });
 const playbackMonitor = createPlaybackMonitor();
+const variantDiscovery = createVariantDiscovery({ request, onChange: renderVariantDiscovery });
+const playbackIntent = createPlaybackIntent(navigationStorage);
 let toastTimer; let filterTimer;
 const cardUpdates = new WeakMap();
 const continueUpdates = new WeakMap();
@@ -309,18 +313,32 @@ function renderHome() {
 
 function renderSources() {
   $('source-info').replaceChildren(...SOURCES.map(source => {
-    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · 搜索要求验证' : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '尚未查询'));
+    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · 搜索要求验证' : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '本次尚未查询'));
+    for (const [operation, label] of [['search', '搜索'], ['browse', '分类']]) {
+      const value = sourceHealth.profile(source.id, operation);
+      if (!value.observed) continue;
+      const message = value.cooldownMs ? '暂时避开 · 约 ' + Math.ceil(value.cooldownMs / 60000) + ' 分钟后可再次自动查询，可手动重试'
+        : value.failures ? '最近连接失败，下次查询可再次尝试' : '近期查询约 ' + (value.latencyMs / 1000).toFixed(1) + ' 秒';
+      item.append(el('small', '', label + '：' + message));
+    }
     return item;
   }));
 }
 
-async function request(source, options) {
+async function request(source, options = {}) {
+  const operation = options.id ? 'detail' : options.mode === 'browse' ? 'browse' : 'search';
+  if (operation !== 'detail' && !options.retrySources && sourceHealth.profile(source, operation).cooldownMs) {
+    const error = new Error('这个来源最近连接失败，已暂时避开；可以手动重试'); error.name = 'SourceCooldownError'; throw error;
+  }
+  const ticket = sourceHealth.begin(source, operation);
   const started = performance.now();
   try {
     const response = await requestVideos(source, { ...options, base: config.apiBase || '' });
+    sourceHealth.finish(ticket, { successful: true, elapsedMs: performance.now() - started, ignored: options.signal?.aborted || document.hidden || navigator.onLine === false });
     state.health.set(source, '目录查询成功 · ' + ((performance.now() - started) / 1000).toFixed(1) + ' 秒');
     renderSources(); return response;
   } catch (error) {
+    sourceHealth.finish(ticket, { successful: false, elapsedMs: performance.now() - started, ignored: error.name === 'AbortError' || options.signal?.aborted || document.hidden || navigator.onLine === false });
     if (error.name !== 'AbortError') state.health.set(source, '目录查询失败，可切换其他来源');
     renderSources(); throw error;
   }
@@ -328,10 +346,8 @@ async function request(source, options) {
 
 async function homeRequest(options) {
   const route = options.mode === 'browse' ? { view: 'browse', type: options.type ?? CATEGORIES.find(cat => cat.id === options.category).types[0][0] } : { view: 'search' };
-  for (const source of SOURCES.filter(item => supportsSource(item, route))) {
-    try { return await request(source.id, options); } catch { /* Try the next configured source. */ }
-  }
-  throw new Error('来源暂时无法连接');
+  const sources = sourceHealth.order(SOURCES.filter(item => supportsSource(item, route)).map(source => source.id), route.view, { retry: options.retrySources });
+  return requestHomeSources(sources, options, request);
 }
 
 function resetFilters() {
@@ -421,6 +437,7 @@ function renderCatalog() {
   const messages = {
     loading: progress.count ? (state.catalog.restoring ? '正在恢复目录，已返回的影片可以先看…' : '已显示返回的影片，其他来源仍在查询…') : (state.catalog.restoring ? '正在恢复上次浏览的目录…' : '正在查询目录…'), scanning: '正在补查匹配影片…', paused: '查询已暂停，可继续查询剩余目录。',
     failed: progress.failed.map(sourceName).join('、') + '查询未完成，可继续查询重试。',
+    deferred: progress.deferred.map(sourceName).join('、') + '最近连接失败，已暂时避开；可继续查询立即重试。',
     partial: progress.filtered ? '还有目录未查完，可继续查找匹配影片。' : '还有更多影片可以浏览。',
     limited: '已达到本次查询上限，可换片名搜索更多影片。', complete: '所选来源本次返回的目录已查完。',
   };
@@ -429,6 +446,7 @@ function renderCatalog() {
   const scope = ['查询进度 ' + progress.queried + ' / ' + progress.total + ' 页'];
   if (progress.limited) scope.push('每个来源最多查询 20 页');
   if (progress.missingMetadata) scope.push('部分影片缺少筛选信息，结果可能不完整');
+  if (progress.deferred.length && progress.phase !== 'deferred') scope.push(progress.deferred.map(sourceName).join('、') + '暂时避开，可继续查询重试');
   $('catalog-scope').textContent = scope.join(' · ');
   $('catalog-progress').max = Math.max(1, progress.total); $('catalog-progress').value = progress.queried;
   $('pause-catalog').hidden = !state.catalog.loading;
@@ -436,7 +454,7 @@ function renderCatalog() {
   $('catalog-empty-hint').textContent = progress.hasMore ? '继续查询剩余目录，或调整筛选条件。' : '试试调整筛选或搜索片名；这不代表其他来源也没有资源。';
   $('load-more').hidden = !progress.hasMore;
   $('load-more').disabled = state.catalog.loading;
-  $('load-more').textContent = state.catalog.loading ? '正在查询…' : progress.filtered || progress.failed.length ? '继续查询' : '加载更多影片';
+  $('load-more').textContent = state.catalog.loading ? '正在查询…' : progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
   if (focusedControl && (focusedControl.hidden || focusedControl.disabled)) {
     const target = state.catalog.loading ? $('pause-catalog') : !progress.hasMore ? $('filter-toggle') : $('load-more');
     target.focus({ preventScroll: true });
@@ -476,7 +494,7 @@ function rememberCatalogPosition() {
   return listNavigation.rememberCatalog(state.lastList, {
     filters: state.catalog.filters, top: window.scrollY, expanded: $('catalog-filters').open,
     anchor: visibleCardAnchor([...$('cards').children]),
-    pages: Object.fromEntries(state.catalog.feeds.map(feed => [feed.source, feed.page])),
+    pages: catalogSummary(state.catalog).pages,
     sources: [...document.querySelectorAll('.source-picks input:checked')].map(input => input.value),
   });
 }
@@ -492,7 +510,7 @@ async function loadCatalog(more = false, force = false, restore = null) {
   if (route.view === 'search' && !route.query) { $('query').focus(); return; }
   if (more) return catalogLoader.more();
   const previousKey = state.catalog.key;
-  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages });
+  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages, retrySources: force });
   if (force || previousKey !== state.catalog.key) for (const key of ['year', 'area', 'status']) $(key + '-filter').scrollLeft = 0;
   return pending;
 }
@@ -585,13 +603,17 @@ function currentEpisode() {
 function renderVariants() {
   for (const id of ['detail-variants', 'variant-buttons']) {
     const variants = state.group?.variants || [];
-    $(id).replaceChildren(...variants.map(variant => {
+    const buttons = new Map([...$(id).children].map(value => [value.dataset.uid, value]));
+    const retained = new Set();
+    for (const variant of variants) {
       const active = variant.uid === state.current?.uid;
       const sameSource = variants.filter(item => item.source === variant.source);
       const label = sourceLabel(variant) + (variant.source !== 'zip0' && sameSource.length > 1 ? ' · 版本 ' + (sameSource.indexOf(variant) + 1) : '');
-      const b = button(label, active ? 'active' : '', () => { if (!active) switchVariant(variant); });
-      b.setAttribute('aria-pressed', String(active)); return b;
-    }));
+      let b = buttons.get(variant.uid);
+      if (!b) { b = button('', '', () => { if (b.dataset.uid !== state.current?.uid) switchVariant(state.group.variants.find(item => item.uid === b.dataset.uid)); }); b.dataset.uid = variant.uid; $(id).append(b); }
+      retained.add(b); b.textContent = label; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active));
+    }
+    for (const b of [...$(id).children]) if (!retained.has(b)) { if (document.activeElement === b) [...retained].find(value => value.dataset.uid === state.current?.uid)?.focus({ preventScroll: true }); b.remove(); }
   }
   $('change-source').disabled = !(state.group?.variants.some(item => item.uid !== state.current?.uid));
 }
@@ -660,7 +682,7 @@ function renderEpisodes() {
     b.tabIndex = index === focusIndex ? 0 : -1;
     b.setAttribute('aria-pressed', String(index === state.episode)); return b;
   }));
-  $('next-episode').disabled = nextEpisode(state.episode, episodes.length) < 0;
+  $('next-episode').disabled = state.episode < 0 || nextEpisode(state.episode, episodes.length) < 0;
   $('previous-episode').disabled = state.episode <= 0;
   $('next-episode').hidden = $('previous-episode').hidden = episodes.length < 2;
   $('reverse-episodes').hidden = episodes.length < 2;
@@ -686,6 +708,7 @@ function destroyPlayback() {
   state.resolveController?.abort(); state.resolveController = null;
   clearInterval(state.monitorTimer); state.monitorTimer = null; playbackMonitor.stop(); state.playbackPhase = '';
   state.resumeSeekTarget = null;
+  $('screen').classList.remove('resuming'); $('early-switch').hidden = true;
   if (state.hls) { state.hls.destroy(); state.hls = null; }
   video.pause(); video.removeAttribute('src'); video.load();
 }
@@ -706,7 +729,7 @@ function cancelFallback(message = '') {
 }
 
 function playbackPosition() {
-  return video.currentTime || state.pendingResume || (state.current && playbackFallback.state.key === videoKey(state.current) ? playbackFallback.state.position : 0);
+  return state.pendingResume || state.resumeSeekTarget || video.currentTime || (state.current && playbackFallback.state.key === videoKey(state.current) ? playbackFallback.state.position : 0);
 }
 
 function renderWatch() {
@@ -776,20 +799,26 @@ function captureFirstFrame(version) {
     state.frameCallback = video.requestVideoFrameCallback((_time, metadata) => {
       if (version !== state.playbackVersion || state.switching || state.route.view !== 'watch') return;
       state.frameCallback = null;
-      const visible = automaticPlaybackAllowed() && !video.paused && !video.seeking && !state.pendingResume && metadata.width > 0 && metadata.height > 0;
+      const visible = automaticPlaybackAllowed() && !video.paused && !video.seeking && !state.pendingResume && state.resumeSeekTarget === null && metadata.width > 0 && metadata.height > 0;
       if (visible && playbackExperience.frame('frame')) { renderPlaybackExperience(true); return; }
       if (playbackExperience.state.active) captureFirstFrame(version);
     });
   } catch {
     state.frameCallbackSupported = false;
-    if (!video.paused && !video.seeking && video.readyState >= 3 && automaticPlaybackAllowed()) { playbackExperience.frame('playing'); renderPlaybackExperience(true); }
+    if (!video.paused && !video.seeking && !state.pendingResume && state.resumeSeekTarget === null && video.readyState >= 3 && automaticPlaybackAllowed()) { playbackExperience.frame('playing'); renderPlaybackExperience(true); }
   }
 }
 
 function renderPlaybackState(status) {
+  const restoring = state.pendingResume > 0 || state.resumeSeekTarget !== null;
+  $('screen').classList.toggle('resuming', restoring && !state.autoplayBlocked);
+  const earlySwitch = $('early-switch');
+  const canSwitch = status.waitMs >= 4000 && ['loading', 'buffering'].includes(status.phase) && automaticPlaybackAllowed() && $('auto-source').checked && playbackFallback.available(state.current, state.group?.variants);
+  if (!canSwitch && document.activeElement === earlySwitch) $('screen').focus({ preventScroll: true });
+  earlySwitch.hidden = !canSwitch;
   const offlineMessage = video.readyState < 3 ? '网络可能已断开，观看位置已保留。' : '';
   const blockedFailure = status.phase === 'blocked' && Boolean(status.reason || video.error);
-  const phase = blockedFailure ? 'blocked-failed' : status.phase;
+  const phase = blockedFailure ? 'blocked-failed' : restoring && ['loading', 'paused'].includes(status.phase) ? status.phase + '-resuming' : status.phase;
   if (phase === state.playbackPhase) {
     if (status.phase === 'offline' && $('screen-message').textContent !== offlineMessage) screenMessage(offlineMessage);
     return;
@@ -797,15 +826,16 @@ function renderPlaybackState(status) {
   state.playbackPhase = phase;
   $('playback-feedback').hidden = !blockedFailure && !['offline', 'failed', 'seek-timeout'].includes(status.phase);
   const messages = {
-    loading: '正在加载视频…', buffering: '正在缓冲，稍等一下…', seeking: '正在跳转到所选位置…',
-    'seek-timeout': '跳转暂未完成，可从当前选定位置重试。', paused: '已暂停',
+    loading: restoring ? '正在恢复观看位置…' : '正在加载视频…', buffering: '正在缓冲，稍等一下…', seeking: '正在跳转到所选位置…',
+    'seek-timeout': '跳转暂未完成，可从当前选定位置重试。', paused: restoring ? '已暂停 · 正在恢复观看位置…' : '已暂停',
     offline: '网络可能已断开；已缓冲的画面仍可观看，恢复网络后会尝试继续。',
     recovering: status.reason, failed: status.reason || '当前线路无法播放，可重试或选择其他来源。',
     blocked: blockedFailure ? '这条线路未能加载，可从当前位置重试。' : '请点击播放器开始观看。', playing: '正在观看 · ' + sourceLabel(state.current),
     ended: nextEpisode(state.episode, state.current?.lines?.[state.line]?.episodes?.length || 0) < 0 ? '本集已播完，当前来源暂无下一集。' : '本集已播完，可以继续下一集。',
   };
   if (messages[status.phase]) $('play-status').textContent = messages[status.phase];
-  if (['loading', 'buffering', 'seeking', 'seek-timeout', 'recovering', 'blocked', 'failed'].includes(status.phase)) screenMessage(messages[status.phase]);
+  if (restoring && ['loading', 'paused'].includes(status.phase)) screenMessage('正在恢复观看位置…');
+  else if (['loading', 'buffering', 'seeking', 'seek-timeout', 'recovering', 'blocked', 'failed'].includes(status.phase)) screenMessage(messages[status.phase]);
   else if (status.phase === 'offline') screenMessage(offlineMessage);
   else if (status.phase !== 'background') screenMessage('');
 }
@@ -816,9 +846,11 @@ function checkPlayback(playing = false) {
     position: video.currentTime, ready: video.readyState, paused: video.paused, ended: video.ended,
     seeking: video.seeking && (state.resumeSeekTarget === null || Math.abs(video.currentTime - state.resumeSeekTarget) > 0.5),
     resumeSeeking: video.seeking && state.resumeSeekTarget !== null && Math.abs(video.currentTime - state.resumeSeekTarget) <= 0.5,
+    resumePending: state.pendingResume > 0 || state.resumeSeekTarget !== null,
     userPaused: state.userPaused, hidden: document.hidden,
     offline: navigator.onLine === false, blocked: state.autoplayBlocked, error: Boolean(video.error), playing,
     automatic: $('auto-source').checked && !playbackFallback.state.stopped,
+    startupTimeout: playbackExperience.startupTimeout(state.current, state.line, $('auto-source').checked && playbackFallback.available(state.current, state.group?.variants)),
   });
   playbackExperience.observe(status.phase, { position: video.currentTime, rate: video.playbackRate, seeking: video.seeking }); renderPlaybackExperience();
   renderPlaybackState(status);
@@ -866,9 +898,9 @@ function retryCurrentPlayback() {
   const position = playbackPosition(); saveProgress(); startEpisode(state.episode, position);
 }
 
-async function playbackError(reason = '线路播放失败', version = state.playbackVersion) {
+async function playbackError(reason = '线路播放失败', version = state.playbackVersion, manual = false) {
   if (version !== state.playbackVersion || state.route.view !== 'watch' || state.autoBusy) return;
-  playbackExperience.fail(); renderPlaybackExperience(true);
+  if (!manual) playbackExperience.fail(); renderPlaybackExperience(true);
   $('playback-feedback').hidden = false;
   screenMessage('这条线路暂时无法播放。');
   $('play-status').textContent = '试试其他来源，切换时会尽量保留这一集和观看位置。';
@@ -925,15 +957,17 @@ async function playbackError(reason = '线路播放失败', version = state.play
   }
 }
 
-async function startEpisode(index, resume = 0, automatic = false, recovered = false) {
+async function startEpisode(index, resume = 0, automatic = false, recovered = false, paused = false) {
   const episode = state.current?.lines?.[state.line]?.episodes[index]; if (!episode) return;
   const continued = automatic || state.initialPlayback; state.initialPlayback = false;
+  state.resumeOverride = null;
   if (!automatic) { cancelFallback(); playbackFallback.begin(state.current, state.line, index, resume); }
-  state.autoplayBlocked = false; state.userPaused = false; state.autoLoading = automatic; state.autoResume = automatic;
+  state.autoplayBlocked = false; state.userPaused = paused; state.autoLoading = automatic; state.autoResume = automatic;
   state.localRecovery = recovered;
   state.requestedPlay = false;
   fallbackMessage($('fallback-status').textContent);
   destroyPlayback(); state.episode = index; state.range = Math.floor(index / 30);
+  playbackIntent.remember(state.current, index, paused);
   playbackExperience.begin(state.current, state.line, continued); renderPlaybackExperience(true);
   state.pendingResume = Math.max(0, Number(resume) || 0); state.lastSave = 0;
   $('playback-feedback').hidden = true;
@@ -957,7 +991,7 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
   state.switching = false;
   state.frameCallbackSupported = typeof video.requestVideoFrameCallback === 'function';
   captureFirstFrame(version);
-  const tryPlay = () => { state.requestedPlay = true; return video.play().catch(error => {
+  const tryPlay = () => { if (state.userPaused) return; state.requestedPlay = true; return video.play().catch(error => {
     if (version !== state.playbackVersion || error.name === 'AbortError') return;
     if (error.name === 'NotAllowedError') {
       state.autoplayBlocked = true; state.autoLoading = false; screenMessage('请点击播放器开始观看。');
@@ -984,24 +1018,15 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
   } else { reportPlaybackFailure('当前浏览器不支持这个视频格式', version); }
 }
 
-async function discoverVariants(group, version) {
-  const missing = SOURCES.filter(source => source.search !== false && !group.variants.some(variant => variant.source === source.id));
-  state.discovering = Boolean(missing.length);
-  $('variant-status').textContent = missing.length ? '正在寻找同名同年份的其他来源…' : '';
-  const results = await Promise.allSettled(missing.map(source => request(source.id, { query: group.title })));
-  if (state.group !== group || version !== state.detailVersion) return;
-  state.discovering = false;
-  let failures = 0;
-  results.forEach(result => {
-    if (result.status !== 'fulfilled') { failures++; return; }
-    const matches = result.value.videos.filter(item => videoKey(item) === videoKey(group));
-    group.variants = groupVideos([...group.variants, ...matches])[0].variants;
-    const currentOrigin = group.variants.findIndex(item => item.origin === state.current.origin);
-    if (currentOrigin >= 0 && !group.variants.some(item => item.uid === state.current.uid)) group.variants[currentOrigin] = state.current;
-  });
-  $('variant-status').textContent = failures ? '部分来源查询失败，已保留可用的目录结果。' : '共找到 ' + group.variants.length + ' 个来源；实际可播状态以起播为准。';
+function renderVariantDiscovery() {
+  const { group, loading, completed, total, failed } = variantDiscovery.state;
+  if (!group || state.group !== group || !state.current) return;
+  state.discovering = loading;
+  const currentOrigin = group.variants.findIndex(item => item.origin === state.current.origin);
+  if (currentOrigin >= 0 && !group.variants.some(item => item.uid === state.current.uid)) group.variants[currentOrigin] = state.current;
+  $('variant-status').textContent = loading ? '已找到 ' + group.variants.length + ' 个来源 · 继续查询 ' + completed + ' / ' + total + '，已显示的来源可以先用。' : failed.length ? '部分来源查询失败，已保留可用的目录结果。' : '共找到 ' + group.variants.length + ' 个来源；实际可播状态以起播为准。';
   renderVariants();
-  if (state.autoPending?.epoch === playbackFallback.state.epoch) {
+  if (state.autoPending?.epoch === playbackFallback.state.epoch && automaticPlaybackAllowed() && (playbackFallback.available(state.current, group.variants) || !loading)) {
     const reason = state.autoPending.reason; state.autoPending = null; reportPlaybackFailure(reason);
   }
 }
@@ -1011,7 +1036,7 @@ function allKnownVideos() {
 }
 
 async function prepareVideo(route) {
-  cancelFallback(); state.discovering = false;
+  cancelFallback(); variantDiscovery.stop(); state.discovering = false;
   const version = ++state.detailVersion; destroyPlayback(); state.current = null; state.group = null; state.detailLoading = true;
   state.initialPlayback = route.view === 'watch';
   if (state.initialPlayback) { playbackExperience.open(document.hidden ? 'background' : navigator.onLine === false ? 'offline' : 'loading'); renderPlaybackExperience(true); }
@@ -1039,7 +1064,7 @@ async function prepareVideo(route) {
     if (state.favoritesDirty && !state.watchlist.loading) { save('video-favorites', state.favorites); state.favoritesDirty = false; }
     const variants = groupVideos([current, ...allKnownVideos().filter(item => videoKey(item) === videoKey(current))])[0].variants;
     state.group = { ...current, variants };
-    renderDetail(); discoverVariants(state.group, version);
+    renderDetail(); variantDiscovery.open(state.group);
     if (route.view === 'watch') {
       renderWatch();
       const lines = current.lines;
@@ -1054,14 +1079,27 @@ async function prepareVideo(route) {
         reportPlaybackFailure('来源没有可播放的剧集'); return;
       }
       const resume = override || saved;
-      const baseIndex = override ? matchEpisode(lines[0].episodes, override.episode, override.index) : route.episode !== null ? Math.min(route.episode, lines[0].episodes.length - 1) : matchEpisode(lines[0].episodes, saved?.episode);
-      const name = lines[0].episodes[baseIndex]?.name || '';
-      state.line = $('auto-source').checked ? playbackExperience.chooseLine(current, name) : 0;
+      const requested = override?.episode || (route.episode !== null && route.episode >= lines[0].episodes.length ? episodeNumber(saved?.episode) === route.episode + 1 ? saved.episode : '第' + (route.episode + 1) + '集' : '');
+      const target = requested ? matchingLine(current, requested, /电影|片$/.test(current.category || ''), new Set(), playbackExperience.priority) : null;
+      if (requested && !target) {
+        const missing = override || { uid: current.uid, episode: requested, index: route.episode, position: saved?.episode === requested ? saved.position : 0, paused: state.restorePlaybackIntent && playbackIntent.paused(current, route.episode) };
+        state.resumeOverride = missing; state.pendingResume = missing.position || 0; state.userPaused = Boolean(missing.paused);
+        playbackIntent.remember(current, missing.index, state.userPaused);
+        renderEpisodes(); $('episode-caption').textContent = '原观看集数：' + requested;
+        $('playback-feedback').hidden = false;
+        screenMessage('这个来源暂无 ' + requested + '，请手动选集或切换来源。');
+        $('play-status').textContent = '已保留原来集数与位置，尚未开始播放。';
+        playbackExperience.observe('paused'); renderPlaybackExperience(true); return;
+      }
+      const baseIndex = target?.episode ?? (override ? matchEpisode(lines[0].episodes, '', override.index) : route.episode !== null ? Math.min(route.episode, lines[0].episodes.length - 1) : matchEpisode(lines[0].episodes, saved?.episode));
+      const name = target ? requested : lines[0].episodes[baseIndex]?.name || '';
+      state.line = target?.line ?? ($('auto-source').checked ? playbackExperience.chooseLine(current, name) : 0);
       const episodes = lines[state.line].episodes;
-      const index = state.line === 0 ? baseIndex : matchingEpisode(episodes, name, /电影|片$/.test(current.category || ''));
+      const index = target?.episode ?? (state.line === 0 ? baseIndex : matchingEpisode(episodes, name, /电影|片$/.test(current.category || '')));
       const position = resume && matchEpisode(episodes, resume.episode, resume.index || 0) === index ? resume.position : 0;
       renderWatch();
-      startEpisode(index, position || 0);
+      const paused = Boolean(override?.paused || (state.restorePlaybackIntent && playbackIntent.paused(current, index)));
+      startEpisode(index, position || 0, false, false, paused);
       if (state.line !== 0) fallbackMessage('已按近期观看表现选择 ' + lines[state.line].name + '；仍可手动选择其他线路。');
     }
   } catch (error) {
@@ -1069,22 +1107,24 @@ async function prepareVideo(route) {
     state.detailLoading = false; $('detail-status').textContent = error.message;
     playbackExperience.observe('failed'); playbackExperience.finish(); renderPlaybackExperience(true);
     $('playback-feedback').hidden = false;
-    $('play-status').textContent = error.message; screenMessage('未能获取剧集，请返回影片列表重试。');
+    $('play-status').textContent = error.message; screenMessage('暂时未能取得剧集，可以重试或返回列表。');
   }
 }
 
 function switchVariant(variant) {
+  let index;
   if (state.route.view === 'watch') {
     const episode = currentEpisode();
-    state.resumeOverride = { uid: variant.uid, episode: episode?.name, index: state.episode, position: playbackPosition() };
+    index = state.episode >= 0 ? state.episode : state.resumeOverride?.index ?? 0;
+    state.resumeOverride = { uid: variant.uid, episode: episode?.name || state.resumeOverride?.episode, index, position: playbackPosition(), paused: state.userPaused };
     saveProgress();
   }
-  navigate(filmRoute(state.route.view === 'watch' ? 'watch' : 'detail', variant));
+  navigate(filmRoute(state.route.view === 'watch' ? 'watch' : 'detail', variant, index));
 }
 
 function saveProgress() {
   const episode = currentEpisode();
-  if (state.switching || !state.current || !episode || !Number.isFinite(video.duration) || video.currentTime <= 0) return;
+  if (state.switching || state.pendingResume > 0 || state.resumeSeekTarget !== null || !state.current || !episode || !Number.isFinite(video.duration) || video.currentTime <= 0) return;
   const sample = state.current.uid + '|' + episode.name + '|' + video.currentTime + '|' + video.duration;
   if (sample === lastProgressSample) return;
   lastProgressSample = sample;
@@ -1102,6 +1142,7 @@ function saveProgress() {
 }
 
 function playNext() {
+  if (state.episode < 0) { toast('请先选择要观看的集数'); return; }
   const episodes = state.current?.lines?.[state.line]?.episodes || [];
   const next = nextEpisode(state.episode, episodes.length);
   if (next >= 0) { saveProgress(); startEpisode(next); }
@@ -1110,12 +1151,15 @@ function playNext() {
 function handleRoute() {
   syncSavedRecords();
   const route = parseRoute(location.hash);
+  state.restorePlaybackIntent = !state.route.view && route.view === 'watch';
+  if (!state.restorePlaybackIntent) playbackIntent.clear();
   const fromCatalog = ['browse', 'search'].includes(state.route.view);
   if (fromCatalog) rememberCatalogPosition();
   if (state.route.view === 'home') rememberHomePosition();
   const restore = listNavigation.catalog(location.hash);
   const homeRestore = route.view === 'home' && state.route.view !== 'home' ? listNavigation.home() : null;
   cancelFallback();
+  variantDiscovery.stop(); state.discovering = false;
   clearTimeout(filterTimer);
   if (route.view !== 'library' && state.watchlist.loading) watchlistRefresher.stop();
   if (!['browse', 'search'].includes(route.view) && state.catalog.loading) catalogLoader.stop();
@@ -1123,6 +1167,7 @@ function handleRoute() {
   if (state.route.view === 'watch' && (route.view !== 'watch' || changedFilm)) { saveProgress(); destroyPlayback(); }
   state.detailVersion++; // Invalidate details and discovery when leaving their page.
   state.route = route;
+  $('opening-page').hidden = true;
   for (const id of ['home', 'catalog', 'library', 'detail', 'watch']) {
     $(id + '-page').hidden = id === 'catalog' ? !['browse', 'search'].includes(route.view) : route.view !== id;
   }
@@ -1160,21 +1205,28 @@ function handleRoute() {
   else prepareVideo(route);
 }
 
+function applyPendingResume() {
+  if (state.switching) return;
+  if (state.pendingResume > 0 && Number.isFinite(video.duration) && video.duration > 0 && video.readyState >= 1) {
+    const target = resumePosition(state.pendingResume, video.duration, state.autoResume);
+    state.resumeSeekTarget = target; state.pendingResume = 0;
+    if (Math.abs(video.currentTime - target) > 0.5 || video.seeking) video.currentTime = target;
+    else state.resumeSeekTarget = null;
+  }
+}
 video.addEventListener('loadedmetadata', () => {
   if (state.switching) return;
-  adaptScreen();
-  if (state.pendingResume > 0 && Number.isFinite(video.duration)) {
-    const target = resumePosition(state.pendingResume, video.duration, state.autoResume);
-    state.resumeSeekTarget = target; video.currentTime = target; state.pendingResume = 0;
-  }
+  adaptScreen(); applyPendingResume();
   video.playbackRate = Number($('speed').value);
 });
+video.addEventListener('durationchange', () => { if (!state.switching) { applyPendingResume(); checkPlayback(); } });
 video.addEventListener('resize', adaptScreen);
 video.addEventListener('emptied', adaptScreen);
-video.addEventListener('canplay', () => { if (!state.switching) checkPlayback(); });
+video.addEventListener('canplay', () => { if (!state.switching) { applyPendingResume(); checkPlayback(); } });
 video.addEventListener('play', () => {
   if (state.switching) return;
   state.requestedPlay = true; state.userPaused = false; state.autoplayBlocked = false;
+  playbackIntent.remember(state.current, state.episode, false);
   if (playbackMonitor.state.phase === 'ended') monitorPlayback(video.currentTime, playbackMonitor.state.recovered);
   else checkPlayback();
 });
@@ -1185,7 +1237,7 @@ video.addEventListener('playing', () => {
     state.autoplayBlocked = false; state.userPaused = false; state.autoLoading = false;
     if (playbackMonitor.state.phase === 'failed') monitorPlayback(video.currentTime, true);
     checkPlayback(true);
-    if (!state.frameCallbackSupported && !video.seeking && video.videoWidth > 0 && video.videoHeight > 0 && playbackExperience.frame('playing')) renderPlaybackExperience(true);
+    if (!state.frameCallbackSupported && !video.seeking && !state.pendingResume && state.resumeSeekTarget === null && video.videoWidth > 0 && video.videoHeight > 0 && playbackExperience.frame('playing')) renderPlaybackExperience(true);
     state.health.set(state.current.source, '本次起播成功 · ' + state.current.title + ' ' + currentEpisode()?.name); renderSources();
     if (playbackFallback.state.attempts && !playbackFallback.state.stopped) fallbackMessage('自动换源后已起播 · ' + sourceLabel(state.current) + ' · ' + state.current.lines[state.line].name + ' · 本集已自动尝试 ' + playbackFallback.state.attempts + ' / 3 次。');
     else if (state.localRecovery) fallbackMessage('当前线路已恢复播放，继续上次卡住的位置。');
@@ -1193,11 +1245,16 @@ video.addEventListener('playing', () => {
 });
 video.addEventListener('error', () => { if (!state.switching) reportPlaybackFailure(); });
 video.addEventListener('timeupdate', () => {
-  if (!state.switching && video.readyState >= 2) playbackFallback.remember(video.currentTime);
+  if (!state.switching && !state.pendingResume && state.resumeSeekTarget === null && video.readyState >= 2) playbackFallback.remember(video.currentTime);
   if (!state.switching) checkPlayback();
   if (video.currentTime > 0 && Date.now() - state.lastSave > 5000) { state.lastSave = Date.now(); saveProgress(); }
 });
-video.addEventListener('pause', () => { if (!state.switching && state.requestedPlay && video.paused && !video.error && !video.ended) { state.userPaused = true; checkPlayback(); } saveProgress(); });
+video.addEventListener('pause', () => {
+  if (!state.switching && state.requestedPlay && video.paused && !video.error && !video.ended && !document.hidden) {
+    state.userPaused = true; playbackIntent.remember(state.current, state.episode, true); checkPlayback();
+  }
+  saveProgress();
+});
 video.addEventListener('ended', () => { saveProgress(); checkPlayback(); if ($('auto-next').checked) playNext(); });
 window.addEventListener('online', resumePlaybackChecks);
 window.addEventListener('offline', resumePlaybackChecks);
@@ -1262,17 +1319,26 @@ document.addEventListener('fullscreenchange', () => {
 });
 video.addEventListener('webkitendfullscreen', restoreFullscreenFocus);
 $('line-select').addEventListener('change', () => {
-  const previous = currentEpisode(); const position = playbackPosition();
-  saveProgress(); state.line = Number($('line-select').value);
-  startEpisode(matchEpisode(state.current.lines[state.line].episodes, previous?.name, state.episode), position);
+  const name = currentEpisode()?.name || state.resumeOverride?.episode;
+  const line = Number($('line-select').value);
+  const index = matchingEpisode(state.current.lines[line].episodes, name, /电影|片$/.test(state.current.category || ''));
+  if (index < 0) {
+    $('line-select').value = String(state.line);
+    toast('这条线路暂无 ' + name + '，已保留原线路与位置。'); return;
+  }
+  const position = playbackPosition(); const paused = state.userPaused;
+  saveProgress(); state.line = line;
+  startEpisode(index, position, false, false, paused);
 });
 $('reverse-episodes').addEventListener('click', () => { state.reverse = !state.reverse; renderEpisodes(); });
 $('next-episode').addEventListener('click', playNext);
 $('previous-episode').addEventListener('click', () => { if (state.episode > 0) { saveProgress(); startEpisode(state.episode - 1); } });
 $('skip-forward').addEventListener('click', () => { if (Number.isFinite(video.duration)) video.currentTime = Math.min(video.duration, video.currentTime + 90); });
 $('retry-play').addEventListener('click', retryCurrentPlayback);
+$('early-switch').addEventListener('click', () => { if (automaticPlaybackAllowed()) playbackError('已请求切换备用线路', state.playbackVersion, true); });
 $('reload-play').addEventListener('click', retryCurrentPlayback);
 $('clear-experience').addEventListener('click', () => { playbackExperience.clear(); if (state.current) renderWatch(); toast('近期选线记录已清除，当前播放继续。'); });
+$('clear-source-health').addEventListener('click', () => { sourceHealth.clear(); renderSources(); toast('查询记录已清除，下次查询按默认顺序尝试。'); });
 $('change-source').addEventListener('click', () => {
   const variants = state.group?.variants || []; const index = variants.findIndex(item => item.uid === state.current?.uid);
   if (variants.length > 1) switchVariant(variants[(index + 1) % variants.length]);

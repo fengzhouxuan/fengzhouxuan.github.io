@@ -5,6 +5,23 @@ const sectionQueries = {
   short: { mode: 'browse', category: 'short', type: 52 },
 };
 
+export async function requestHomeSources(sources, options, request) {
+  if (!Array.isArray(sources) || sources.some(source => typeof source !== 'string') || !options || typeof request !== 'function') throw new Error('首页来源查询配置不正确');
+  let empty;
+  for (const source of [...new Set(sources)]) {
+    if (options.signal?.aborted) throw options.signal.reason;
+    try {
+      const result = await request(source, options);
+      if (options.signal?.aborted) throw options.signal.reason;
+      if (!Array.isArray(result?.videos)) throw new Error('首页目录格式不正确');
+      if (result.videos.some(item => item && (!options.query || item.title === options.query))) return result;
+      empty = result;
+    } catch (error) { if (options.signal?.aborted) throw error; }
+  }
+  if (empty) return { ...empty, videos: [] };
+  throw new Error('来源暂时无法连接，可以重试或搜索片名');
+}
+
 export function createHomeLoader({ request, onChange = () => {} } = {}) {
   if (typeof request !== 'function' || typeof onChange !== 'function') throw new Error('需要提供首页查询和更新方法');
   const jobs = [
@@ -30,11 +47,11 @@ export function createHomeLoader({ request, onChange = () => {} } = {}) {
     if (notify) onChange();
   }
 
-  function run(selected) {
+  function run(selected, retrySources = false) {
     const started = selected.filter(job => job.phase !== 'loading' && job.phase !== 'ready');
     for (const job of started) {
       job.phase = 'loading';
-      job.pending = Promise.resolve().then(() => request({ ...job.options })).then(result => {
+      job.pending = Promise.resolve().then(() => request({ ...job.options, retrySources })).then(result => {
         if (!Array.isArray(result?.videos)) throw new Error('首页目录格式不正确');
         job.items = job.options.query ? result.videos.filter(item => item.title === job.options.query) : result.videos;
         job.phase = job.items.length ? 'ready' : 'empty';
@@ -55,7 +72,7 @@ export function createHomeLoader({ request, onChange = () => {} } = {}) {
     },
     retry(section) {
       if (!Object.hasOwn(state.sections, section)) throw new Error('首页栏目不正确');
-      return run(jobs.filter(job => job.section === section && job.phase !== 'ready'));
+      return run(jobs.filter(job => job.section === section && job.phase !== 'ready'), true);
     },
   };
 }
