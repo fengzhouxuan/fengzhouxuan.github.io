@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="兔子洞里的私人放映室：浏览影片，收藏故事，接着上次看到的地方。">
+  <title>视频站 · 打个大柚子的兔子洞</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./theme.css">
+  <script src="./config.js"></script>
+  <script defer src="./vendor/hls.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="site-header">
+      <a class="brand" data-blog-link="/" href="https://fengzhouxuan.github.io/"><span class="brand-mark" aria-hidden="true">柚</span><span>打个大柚子的兔子洞<small>THE RABBIT HOLE</small></span></a>
+      <nav aria-label="博客导航"><a data-blog-link="/rabbit-holes/" href="https://fengzhouxuan.github.io/rabbit-holes/">兔子洞</a><a data-blog-link="/music/" href="https://fengzhouxuan.github.io/music/">音乐站</a><a href="#home" aria-current="page">视频站</a></nav>
+    </header>
+    <div class="station-bar">
+      <a class="station-name" href="#home"><span aria-hidden="true">▶</span> 私人放映室</a>
+      <form id="search-form" class="search-form" role="search"><label class="sr-only" for="query">搜索片名</label><input id="query" type="search" placeholder="搜索电影、剧集、动漫…" maxlength="80" autocomplete="off"><button id="search-button" type="submit" aria-label="搜索影片"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg></button></form>
+    </div>
+    <nav class="station-nav" aria-label="视频栏目">
+      <a href="#home" data-nav="home">放映首页</a><a href="#browse?category=tv" data-nav="tv">电视剧</a><a href="#browse?category=movie" data-nav="movie">电影</a><a href="#browse?category=anime" data-nav="anime">动漫</a><a href="#browse?category=variety" data-nav="variety">综艺</a><a href="#browse?category=short" data-nav="short">短剧</a><a href="#library" data-nav="library">我的片单 <span id="favorite-count">0</span></a>
+    </nav>
+    <main>
+      <section id="home-page" class="page" aria-label="放映首页">
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy"><p class="eyebrow">兔子洞 · 私人放映室</p><h1 id="hero-title">好故事，值得留点时间。</h1><p id="hero-meta" class="hero-meta">留一盏灯，选一部片。</p><p id="hero-description" class="hero-description">正在准备今天的放映室…</p><div class="hero-actions"><button id="hero-play" class="button cream" disabled>▶ 开始观看</button><button id="hero-detail" class="button outline" disabled>影片详情</button></div><div id="hero-picks" class="hero-picks" role="group" aria-label="精选影片，可用左右方向键选择、回车确认"></div></div>
+          <div id="hero-art" class="hero-art"><span class="film-corner">SIDE B<br>CINEMA</span></div>
+        </section>
+        <p id="home-status" class="status" role="status"></p>
+        <section id="continue-section" class="content-section" hidden><div class="section-heading"><div><p class="eyebrow">YOUR NEXT SCENE</p><h2>接着上次的故事</h2></div><a href="#library?tab=history">全部记录 ↗</a></div><div id="continue-cards" class="continue-cards"></div></section>
+        <section class="content-section"><div class="section-heading"><div><p class="eyebrow">A LITTLE REWIND</p><h2>值得重温</h2></div><span class="secondary">几部私心挑选的好故事</span></div><div id="picks-cards" class="cards"></div><div class="home-feedback"><p id="picks-status" class="status" role="status" tabindex="-1"></p><button id="picks-retry" class="text-button" hidden>重试这个栏目</button></div></section>
+        <section class="content-section"><div class="section-heading"><div><p class="eyebrow">NEW IMAGINATIONS</p><h2>AI漫剧</h2></div><a href="#browse?category=short&type=52">浏览 AI 漫剧 ↗</a></div><div id="short-cards" class="cards"></div><div class="home-feedback"><p id="short-status" class="status" role="status" tabindex="-1"></p><button id="short-retry" class="text-button" hidden>重试这个栏目</button></div></section>
+        <section class="content-section"><div class="section-heading"><div><p class="eyebrow">RECENTLY UPDATED</p><h2>最近更新 · 国产剧</h2></div><a href="#browse?category=tv">浏览剧集 ↗</a></div><div id="tv-cards" class="cards"></div><div class="home-feedback"><p id="tv-status" class="status" role="status" tabindex="-1"></p><button id="tv-retry" class="text-button" hidden>重试这个栏目</button></div></section>
+        <section class="content-section"><div class="section-heading"><div><p class="eyebrow">ON THE SHELF</p><h2>新上架 · 剧情电影</h2></div><a href="#browse?category=movie">浏览电影 ↗</a></div><div id="movie-cards" class="cards"></div><div class="home-feedback"><p id="movie-status" class="status" role="status" tabindex="-1"></p><button id="movie-retry" class="text-button" hidden>重试这个栏目</button></div></section>
+        <div class="home-note"><span aria-hidden="true">✦</span><div><strong>把想看的故事，留在自己的片单。</strong><p>无需登录，收藏和观看进度会保存在这个浏览器里。</p></div><a href="#library" class="button ghost">打开我的片单</a></div>
+      </section>
+      <section id="catalog-page" class="page" aria-labelledby="library-title" hidden>
+        <div class="page-heading"><div><p id="catalog-eyebrow" class="eyebrow">EXPLORE THE SHELF</p><h1 id="library-title">浏览影片</h1></div><span id="result-count" class="secondary" aria-live="polite"></span></div>
+        <p id="category-note" class="secondary" hidden></p>
+        <div class="filter-panel">
+          <div id="type-picks" class="type-picks" aria-label="细分类别"></div>
+          <details id="catalog-filters" class="catalog-filters"><summary id="filter-toggle">筛选</summary>
+          <div class="filters">
+            <div class="filter-row"><span id="year-label" class="filter-label">年份</span><div id="year-filter" class="filter-options" role="group" aria-labelledby="year-label"></div></div>
+            <div class="filter-row"><span id="area-label" class="filter-label">地区</span><div id="area-filter" class="filter-options" role="group" aria-labelledby="area-label"></div></div>
+            <div class="filter-row"><span id="status-label" class="filter-label">状态</span><div id="status-filter" class="filter-options" role="group" aria-labelledby="status-label"></div></div>
+          </div>
+          <p class="filter-keyboard-hint">键盘：← → 选择选项，回车确认；Tab 切换筛选组。</p>
+          <details class="search-sources"><summary>查询来源与筛选范围</summary><div class="source-picks"><button id="reload-catalog" class="text-button">重新查询</button></div><p>筛选结果不足 24 部时自动补查后续目录，每轮最多补查各来源 3 页；可以暂停或继续。每个来源本次最多查询 20 页，不等于全库筛选。缺少年份、地区或状态的影片无法确认是否匹配。不支持本页查询的来源会变灰；ZIP0 仅参与搜索，Auete 从分类浏览进入。</p></details>
+          </details>
+          <div id="filter-summary" class="filter-summary" hidden><div id="selected-filters" class="selected-filters"></div><button id="reset-filters" class="text-button" disabled>清空筛选</button></div>
+        </div>
+        <div class="catalog-feedback"><div><p id="search-status" class="status" role="status"></p><p id="catalog-scope" class="secondary"></p></div><button id="pause-catalog" class="text-button" hidden>暂停查询</button><progress id="catalog-progress" value="0" max="1" aria-label="目录查询进度"></progress></div><div id="cards" class="cards"></div>
+        <div id="catalog-empty" class="empty" hidden><span aria-hidden="true">◇</span><h2 id="catalog-empty-title">还没有匹配，目录尚未查完</h2><p id="catalog-empty-hint">继续查询剩余目录，或调整筛选条件。</p></div>
+        <button id="load-more" class="button ghost load-more" hidden>加载更多影片</button>
+      </section>
+      <section id="library-page" class="page" aria-labelledby="saved-title" hidden>
+        <div class="page-heading"><div><p class="eyebrow">YOUR OWN COLLECTION</p><h1 id="saved-title">我的片单</h1><p class="secondary">想看的先收藏，看过的接着看。</p></div><span class="local-label">仅保存在当前浏览器</span></div>
+        <div class="library-toolbar"><div class="view-tabs"><a href="#library?tab=favorites" id="favorites-tab">我的收藏</a><a href="#library?tab=history" id="history-tab">观看记录 <span id="history-count">0</span></a></div><span id="saved-count" class="secondary"></span></div>
+        <div id="favorite-tools" class="favorite-tools"><div class="type-picks" aria-label="收藏筛选"><button id="favorites-all" class="active" aria-pressed="true">全部收藏</button><button id="favorites-new" aria-pressed="false">有新集 0</button></div><div class="favorite-refresh"><button id="refresh-favorites" class="button ghost small">刷新更新</button><button id="stop-favorites" class="text-button" hidden>暂停刷新</button></div><p id="favorites-status" class="status" role="status"></p></div>
+        <div id="saved-cards" class="cards"></div><div id="saved-empty" class="empty" hidden><span aria-hidden="true">♡</span><h2 id="saved-empty-title">片单还是空的</h2><p id="saved-empty-hint">去挑一部想看的故事，点一下收藏。</p><a href="#home" class="button ghost">去放映室看看</a></div>
+      </section>
+      <section id="detail-page" class="page" aria-labelledby="detail-title" hidden>
+        <a id="detail-back" class="back-link" href="#home">← 返回影片列表</a>
+        <div class="detail-layout">
+          <div id="detail-poster" class="detail-poster"></div>
+          <div class="detail-copy">
+            <div class="detail-heading"><p class="eyebrow">THE STORY</p><h1 id="detail-title"></h1><p id="detail-meta" class="detail-meta"></p><p id="detail-remarks" class="detail-remarks"></p></div>
+            <div class="detail-body">
+              <dl id="detail-updates" class="detail-updates" hidden><div><dt>更新安排</dt><dd id="detail-schedule"></dd></div><div id="detail-updated-row" hidden><dt>来源更新时间</dt><dd id="detail-updated-at"></dd></div></dl><p id="detail-schedule-note" class="schedule-note" hidden></p>
+              <div class="detail-actions"><button id="detail-play" class="button" disabled>▶ 开始观看</button><button id="detail-favorite" class="button ghost">＋ 收藏影片</button></div><p id="detail-progress" class="secondary"></p>
+              <dl class="detail-facts"><div><dt>主演</dt><dd id="detail-actors"></dd></div><div><dt>导演</dt><dd id="detail-director"></dd></div></dl><p id="detail-status" class="status" role="status"></p><p id="detail-entry-note" class="secondary" hidden></p>
+            </div>
+          </div>
+        </div>
+        <section class="description-section"><h2>故事简介</h2><p id="detail-description"></p></section>
+        <section class="content-section"><div class="section-heading"><h2>选一条线路，开始放映</h2><span class="secondary">不同来源可能采用不同剪辑版本</span></div><div id="detail-variants" class="variant-buttons"></div><p id="variant-status" class="status"></p><div id="detail-episodes" class="episodes detail-episodes"></div></section>
+      </section>
+      <section id="watch-page" class="page watch-page" aria-labelledby="playing-title" hidden>
+        <div class="player-heading"><div><div class="watch-breadcrumbs"><a id="watch-back" class="back-link" href="#home">← 影片详情</a><a id="watch-list-back" class="back-link" href="#home">返回影片列表</a></div><h1 id="playing-title"></h1></div><button id="favorite-current" class="button ghost small">收藏</button></div>
+        <div id="watch-layout" class="watch-layout"><div class="screen-column"><div id="screen" class="screen" tabindex="-1"><video id="video" controls playsinline preload="metadata"></video><button id="exit-fullscreen" class="fullscreen-exit" aria-label="退出全屏">退出全屏 ↙</button><div id="screen-message" class="screen-message" role="status"></div></div>
+          <div class="playback-tools"><strong id="episode-caption"></strong><button id="previous-episode" class="button small ghost" disabled>上一集</button><button id="next-episode" class="button small" disabled>下一集</button><label>倍速 <select id="speed" aria-label="播放倍速"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><button id="fullscreen" class="button small ghost">全屏</button><button id="open-episodes" class="button small ghost mobile-player-action">选集 / 来源 ↓</button></div>
+          <details class="playback-settings"><summary>播放设置</summary><div class="watch-settings"><label><input id="auto-next" type="checkbox" checked>自动下一集</label><label><input id="auto-source" type="checkbox" checked>自动选线与换源</label><label>画面 <select id="screen-mode" aria-label="画面比例"><option value="auto">自动适配</option><option value="portrait">竖屏</option><option value="wide">横屏</option></select></label><button id="skip-forward" class="text-button">跳过 90 秒</button><button id="reload-play" class="text-button">重新加载</button><button id="change-source" class="text-button">试试其他来源</button></div></details><button id="stop-auto-source" class="text-button" hidden>暂停自动换源</button><p id="fallback-status" class="fallback-status" role="status" hidden></p><p id="play-status" class="play-status" role="status"></p><div id="playback-feedback" class="playback-feedback" hidden><button id="retry-play" class="button ghost small">从当前位置重试</button><a id="failed-watch-back" class="text-button" href="#home">返回影片列表</a></div><p class="keyboard-hint">快捷键：空格 暂停 / 播放 · ← → 快进退 10 秒 · N 下一集 · F 全屏</p>
+          <details class="playback-experience"><summary>本次播放体验</summary><dl class="experience-stats"><div><dt id="experience-first-label">首幅画面</dt><dd id="experience-first">尚未起播</dd></div><div><dt>持续缓冲</dt><dd id="experience-buffer">0 次 · 0.0 秒</dd></div><div><dt>有效观看</dt><dd id="experience-watch">0 秒</dd></div><div><dt>重试恢复</dt><dd id="experience-recovery">暂无恢复记录</dd></div><div><dt>播放尝试</dt><dd id="experience-attempts">0 次</dd></div></dl><p class="experience-note">已排除暂停、拖动、离线和后台等待；缓冲从持续等待超过 1.5 秒后计时。近期选线记录仅保存在本机，24 小时后过期。</p><button id="clear-experience" class="text-button">清除近期选线记录</button></details>
+        </div><aside id="episode-panel" class="episode-panel"><div class="episode-heading"><h2 id="episode-heading" tabindex="-1">来源与剧集</h2><button id="reverse-episodes" class="text-button" aria-pressed="false">倒序</button></div><div id="variant-buttons" class="variant-buttons" aria-label="播放来源"></div><label id="line-label" class="line-label" hidden>同源线路 <select id="line-select" aria-label="播放线路"></select></label><p id="episode-status" class="secondary" role="status"></p><p id="episode-note" class="secondary" hidden></p><div id="episode-ranges" class="episode-ranges" aria-label="剧集分组"></div><div id="episodes" class="episodes" aria-label="选择剧集"></div>
+          <p id="episode-keyboard-hint" class="keyboard-hint" hidden>选集：← → 移动，回车播放；Tab 切换分组。</p><button id="return-screen" class="text-button mobile-player-action">回到播放器 ↑</button></aside></div>
+        <details class="video-details"><summary>影片简介</summary><p id="video-description"></p></details>
+      </section>
+    </main>
+    <footer><div><strong>一部好片，一点自己的时间。</strong><p>本站不存储视频。影片由所选来源提供；收藏与进度保存在当前浏览器。</p></div><details class="source-settings"><summary>来源状态</summary><div id="source-info" class="source-info"></div></details></footer>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

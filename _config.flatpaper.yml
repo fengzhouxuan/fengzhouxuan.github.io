@@ -15,6 +15,9 @@ menu:
   壁纸站:
     link: /wallpapers/
     icon: image
+  视频站:
+    link: /video/
+    icon: clapperboard
   归档:
     link: /archives/
     icon: archive
