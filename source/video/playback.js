@@ -31,6 +31,24 @@ export function resumePosition(position, duration, automatic = false) {
   return Math.min(target, Math.max(0, duration - 1));
 }
 
+export function createPlaybackIntent(storage = null) {
+  const key = 'video-playback-intent';
+  const valid = value => value && validVideoId(value.source, value.id) && Number.isInteger(value.episode) && value.episode >= 0 && value.episode < 10000 && typeof value.paused === 'boolean';
+  let saved = null;
+  try { const text = storage?.getItem(key); const value = typeof text === 'string' && text.length <= 1024 ? JSON.parse(text) : null; if (valid(value)) saved = { source: value.source, id: String(value.id), episode: value.episode, paused: value.paused }; } catch { /* A fresh tab can watch without remembered intent. */ }
+
+  function remember(item, episode, paused) {
+    const value = { source: item?.source, id: String(item?.id || ''), episode, paused };
+    if (!valid(value)) return false;
+    saved = value;
+    try { storage?.setItem(key, JSON.stringify(value)); } catch { /* The in-tab state still works without storage. */ }
+    return true;
+  }
+
+  function clear() { saved = null; try { storage?.removeItem(key); } catch {} }
+  return { remember, paused: (item, episode) => Boolean(saved?.paused && item?.source === saved.source && String(item.id) === saved.id && episode === saved.episode), clear };
+}
+
 export function createPlaybackMonitor({ now = () => performance.now(), startupAfter = 20000, stallAfter = 12000, noticeAfter = 1500, seekAfter = 20000 } = {}) {
   if (typeof now !== 'function' || ![startupAfter, stallAfter, noticeAfter, seekAfter].every(value => Number.isFinite(value) && value > 0) || noticeAfter >= stallAfter) throw new Error('播放监测参数不正确');
   const state = { active: false, phase: 'idle', started: false, recovered: false, position: 0, reason: '', waitMs: 0 };
@@ -54,11 +72,11 @@ export function createPlaybackMonitor({ now = () => performance.now(), startupAf
     if (!state.active || actioned) return result();
     const time = now();
     const position = Number.isFinite(sample.position) && sample.position >= 0 ? sample.position : state.position;
-    const advanced = !sample.seeking && !sample.resumeSeeking && !sample.paused && position > previousPosition + 0.05;
+    const advanced = !sample.resumePending && !sample.seeking && !sample.resumeSeeking && !sample.paused && position > previousPosition + 0.05;
     previousPosition = position;
     // A reload reports zero before metadata; retain the intended resume position until then.
-    if (position > 0 || state.started) state.position = position;
-    if (sample.playing || advanced) { state.started = true; lastProgress = time; }
+    if (!sample.resumePending && (position > 0 || state.started)) state.position = position;
+    if (!sample.resumePending && (sample.playing || advanced)) { state.started = true; lastProgress = time; }
     if (sample.offline) { wasOffline = true; reconnectNeeded ||= Boolean(failure || sample.error || sample.ready < 3); }
     const suspend = phase => { gate = phase; lastProgress = time; state.waitMs = 0; state.phase = phase; return result(); };
     if (sample.hidden) return suspend('background');
