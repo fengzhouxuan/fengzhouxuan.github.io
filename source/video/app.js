@@ -54,6 +54,7 @@ const savedBaselines = { 'video-history': JSON.parse(JSON.stringify(state.histor
 let lastProgressSample = '';
 let heroPoster;
 let fullscreenFocus;
+let submittedSearchHash = '';
 
 function el(tag, className, text) {
   const item = document.createElement(tag);
@@ -338,8 +339,8 @@ async function request(source, options = {}) {
     state.health.set(source, '目录查询成功 · ' + ((performance.now() - started) / 1000).toFixed(1) + ' 秒');
     renderSources(); return response;
   } catch (error) {
-    sourceHealth.finish(ticket, { successful: false, elapsedMs: performance.now() - started, ignored: error.name === 'AbortError' || options.signal?.aborted || document.hidden || navigator.onLine === false });
-    if (error.name !== 'AbortError') state.health.set(source, '目录查询失败，可切换其他来源');
+    sourceHealth.finish(ticket, { successful: false, elapsedMs: performance.now() - started, ignored: error.name === 'QueryServiceError' || error.name === 'AbortError' || options.signal?.aborted || document.hidden || navigator.onLine === false });
+    if (error.name !== 'AbortError') state.health.set(source, error.name === 'QueryServiceError' ? '查询服务暂时无法连接，可重试' : '目录查询失败，可切换其他来源');
     renderSources(); throw error;
   }
 }
@@ -436,7 +437,7 @@ function renderCatalog() {
   $('catalog-empty').hidden = Boolean(progress.count) || state.catalog.loading;
   const messages = {
     loading: progress.count ? (state.catalog.restoring ? '正在恢复目录，已返回的影片可以先看…' : '已显示返回的影片，其他来源仍在查询…') : (state.catalog.restoring ? '正在恢复上次浏览的目录…' : '正在查询目录…'), scanning: '正在补查匹配影片…', paused: '查询已暂停，可继续查询剩余目录。',
-    failed: progress.failed.map(sourceName).join('、') + '查询未完成，可继续查询重试。',
+    failed: progress.serviceFailed.length === state.catalog.feeds.length ? '查询服务暂时无法连接，请重试查询。' : progress.failed.map(sourceName).join('、') + '查询未完成，可继续查询重试。',
     deferred: progress.deferred.map(sourceName).join('、') + '最近连接失败，已暂时避开；可继续查询立即重试。',
     partial: progress.filtered ? '还有目录未查完，可继续查找匹配影片。' : '还有更多影片可以浏览。',
     limited: '已达到本次查询上限，可换片名搜索更多影片。', complete: '所选来源本次返回的目录已查完。',
@@ -450,11 +451,12 @@ function renderCatalog() {
   $('catalog-scope').textContent = scope.join(' · ');
   $('catalog-progress').max = Math.max(1, progress.total); $('catalog-progress').value = progress.queried;
   $('pause-catalog').hidden = !state.catalog.loading;
-  $('catalog-empty-title').textContent = progress.hasMore ? '还没有匹配，目录尚未查完' : '本次已查目录中暂无匹配影片';
-  $('catalog-empty-hint').textContent = progress.hasMore ? '继续查询剩余目录，或调整筛选条件。' : '试试调整筛选或搜索片名；这不代表其他来源也没有资源。';
+  const unavailable = !progress.queried && Boolean(progress.failed.length || progress.deferred.length);
+  $('catalog-empty-title').textContent = unavailable ? '这次查询未成功' : progress.hasMore ? '还没有匹配，目录尚未查完' : '本次已查目录中暂无匹配影片';
+  $('catalog-empty-hint').textContent = unavailable ? '暂时无法判断有没有资源，请重试查询。' : progress.hasMore ? '继续查询剩余目录，或调整筛选条件。' : '试试调整筛选或搜索片名；这不代表其他来源也没有资源。';
   $('load-more').hidden = !progress.hasMore;
   $('load-more').disabled = state.catalog.loading;
-  $('load-more').textContent = state.catalog.loading ? '正在查询…' : progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
+  $('load-more').textContent = state.catalog.loading ? '正在查询…' : unavailable ? '重试查询' : progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
   if (focusedControl && (focusedControl.hidden || focusedControl.disabled)) {
     const target = state.catalog.loading ? $('pause-catalog') : !progress.hasMore ? $('filter-toggle') : $('load-more');
     target.focus({ preventScroll: true });
@@ -499,7 +501,7 @@ function rememberCatalogPosition() {
   });
 }
 
-async function loadCatalog(more = false, force = false, restore = null) {
+async function loadCatalog({ more = false, force = false, restore = null, retrySources = false } = {}) {
   const route = state.route;
   if (restore && !force) {
     $('catalog-filters').open = restore.expanded;
@@ -510,7 +512,7 @@ async function loadCatalog(more = false, force = false, restore = null) {
   if (route.view === 'search' && !route.query) { $('query').focus(); return; }
   if (more) return catalogLoader.more();
   const previousKey = state.catalog.key;
-  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages, retrySources: force });
+  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages, retrySources: force || retrySources });
   if (force || previousKey !== state.catalog.key) for (const key of ['year', 'area', 'status']) $(key + '-filter').scrollLeft = 0;
   return pending;
 }
@@ -1176,6 +1178,8 @@ function playNext() {
 function handleRoute() {
   syncSavedRecords();
   const route = parseRoute(location.hash);
+  const searchSubmitted = route.view === 'search' && submittedSearchHash === location.hash;
+  submittedSearchHash = '';
   state.restorePlaybackIntent = !state.route.view && route.view === 'watch';
   if (!state.restorePlaybackIntent) playbackIntent.clear();
   const fromCatalog = ['browse', 'search'].includes(state.route.view);
@@ -1221,7 +1225,7 @@ function handleRoute() {
     if (route.view === 'search') $('query').value = route.query;
     renderCatalog();
     const version = state.detailVersion;
-    const pending = loadCatalog(false, false, restore); const filters = state.catalog.filters; const key = state.catalog.key; const focused = document.activeElement;
+    const pending = loadCatalog({ restore, retrySources: searchSubmitted }); const filters = state.catalog.filters; const key = state.catalog.key; const focused = document.activeElement;
     Promise.resolve(pending).then(() => {
       if (!restore || version !== state.detailVersion || filters !== state.catalog.filters || key !== state.catalog.key || window.scrollY !== 0 || document.activeElement !== focused) return;
       restoreListPosition(restore, $('cards'));
@@ -1300,7 +1304,7 @@ window.addEventListener('hashchange', handleRoute);
 
 $('search-form').addEventListener('submit', event => {
   event.preventDefault(); const query = $('query').value.trim();
-  if (query) navigate('#search?q=' + encodeURIComponent(query)); else $('query').focus();
+  if (query) { submittedSearchHash = '#search?q=' + encodeURIComponent(query); navigate(submittedSearchHash); } else $('query').focus();
 });
 $('hero-play').addEventListener('click', () => {
   const item = heroVideo(); if (item) navigate(filmRoute('watch', progressFor(item) || item));
@@ -1313,8 +1317,8 @@ $('detail-play').addEventListener('click', () => {
 });
 $('detail-favorite').addEventListener('click', () => toggleFavorite(state.current));
 $('favorite-current').addEventListener('click', () => toggleFavorite(state.current));
-$('load-more').addEventListener('click', () => loadCatalog(true));
-$('reload-catalog').addEventListener('click', () => loadCatalog(false, true));
+$('load-more').addEventListener('click', () => loadCatalog({ more: true }));
+$('reload-catalog').addEventListener('click', () => loadCatalog({ force: true }));
 $('pause-catalog').addEventListener('click', () => { clearTimeout(filterTimer); catalogLoader.stop(); });
 $('reset-filters').addEventListener('click', () => { resetFilters(); $('filter-toggle').focus({ preventScroll: true }); });
 document.querySelectorAll('.filter-options, #episode-ranges, #episodes, #hero-picks').forEach(group => group.addEventListener('keydown', event => {

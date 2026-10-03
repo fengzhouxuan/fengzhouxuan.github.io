@@ -267,7 +267,34 @@ test('catalog requests encode queries, parse pages, forward cancellation and han
   await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response('html') }), /有效数据/);
   await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response('{"error":"来源失败"}', { status: 502 }) }), /来源失败/);
   await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response('{}', { status: 502 }) }), /暂时/);
-  await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => { throw new Error('offline'); } }), /offline/);
+  await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => { throw new Error('offline'); } }), /暂时无法连接查询服务/);
+});
+
+test('query transport reports safe Chinese failures and preserves explicit cancellation', async () => {
+  const calls = [options => requestVideos('liangzi', options), options => requestEpisode('pianku', '12', 0, 0, options)];
+  for (const call of calls) {
+    for (const error of [new TypeError('Load failed at private endpoint'), null]) {
+      await assert.rejects(call({ fetchImpl: async () => { throw error; } }), error => error.name === 'QueryServiceError' && error.message === '暂时无法连接查询服务，请检查网络后重试');
+    }
+    await assert.rejects(call({ fetchImpl: async () => { throw new DOMException('private timeout', 'TimeoutError'); } }), error => error.name === 'QueryServiceError' && /查询服务响应超时/.test(error.message));
+    const controller = new AbortController(); const canceled = new DOMException('canceled', 'AbortError'); controller.abort();
+    await assert.rejects(call({ signal: controller.signal, fetchImpl: async () => { throw canceled; } }), error => error === canceled);
+    await assert.rejects(call({ fetchImpl: async (_url, { signal }) => { Object.defineProperty(signal, 'aborted', { value: true }); throw new Error('network'); } }), /查询服务响应超时/);
+  }
+});
+
+test('query service failures are distinct from source failures and never become successful empty searches', async () => {
+  for (const status of [400, 403, 404, 429, 500, 503, 504]) {
+    await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response('{"error":"private service diagnostics"}', { status }) }), error => {
+      assert.equal(error.name, 'QueryServiceError'); assert.doesNotMatch(error.message, /private/); return true;
+    });
+  }
+  for (const body of ['<html>gateway unavailable</html>', 'null', '{}', '{"error":"temporarily unavailable"}', '{"list":null}']) {
+    await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response(body) }), error => error.name === 'QueryServiceError');
+  }
+  await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response('<html>bad gateway</html>', { status: 502 }) }), error => error.name === 'QueryServiceError');
+  await assert.rejects(requestVideos('liangzi', { fetchImpl: async () => new Response('{"error":"这个来源暂时无法连接"}', { status: 502 }) }), error => error.name === 'Error' && error.message === '这个来源暂时无法连接');
+  assert.deepEqual((await requestVideos('liangzi', { fetchImpl: async () => new Response('{"list":[],"pagecount":1}') })).videos, []);
 });
 
 test('browser storage tolerates corruption, blocked storage, invalid records and quotas', () => {

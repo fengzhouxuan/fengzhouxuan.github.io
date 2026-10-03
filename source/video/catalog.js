@@ -10,13 +10,14 @@ export function catalogSummary(state) {
   const pending = state.feeds.some(feed => feed.page < feed.pages);
   const failed = state.feeds.filter(feed => feed.failed).map(feed => feed.source);
   const deferred = state.feeds.filter(feed => feed.deferred).map(feed => feed.source);
+  const serviceFailed = state.feeds.filter(feed => feed.serviceFailed).map(feed => feed.source);
   const limited = state.feeds.some(feed => feed.limited);
   const missingMetadata = state.items.some(item => (filters.year && !item.year) || (filters.area && !item.area) || (filters.status && !filterVideos([item], { status: 'complete' }).length && !filterVideos([item], { status: 'updating' }).length));
   return {
     count, queried: state.feeds.reduce((sum, feed) => sum + feed.page, 0),
     pages: Object.fromEntries(state.feeds.map(feed => [feed.source, Math.max(feed.page, feed.restorePage || 0)])),
     total: state.feeds.reduce((sum, feed) => sum + feed.pages, 0),
-    filtered: hasFilters(filters), failed, deferred, limited, missingMetadata,
+    filtered: hasFilters(filters), failed, deferred, serviceFailed, limited, missingMetadata,
     hasMore: pending || Boolean(failed.length),
     phase: state.loading ? (state.scanning ? 'scanning' : 'loading') : state.stopped && pending ? 'paused' : failed.length ? 'failed' : deferred.length ? 'deferred' : pending ? 'partial' : limited ? 'limited' : 'complete',
   };
@@ -53,10 +54,11 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
             const items = new Map(state.items.map(item => [item.uid, item]));
             for (const item of result.videos) items.set(item.uid, item);
             state.items = [...items.values()];
-            feed.page = page; feed.pages = result.pages; feed.restorePage = Math.min(feed.restorePage, result.pages); feed.limited = Boolean(result.limited); feed.failed = false; feed.deferred = false;
+            feed.page = page; feed.pages = result.pages; feed.restorePage = Math.min(feed.restorePage, result.pages); feed.limited = Boolean(result.limited); feed.failed = false; feed.deferred = false; feed.serviceFailed = false;
           } catch (error) {
             if (current !== version) return;
             feed.deferred = error?.name === 'SourceCooldownError'; feed.failed = !feed.deferred;
+            feed.serviceFailed = error?.name === 'QueryServiceError';
           }
           onChange();
         }));
@@ -83,12 +85,13 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
     const targets = Object.fromEntries(next.sources.map(source => [source, Number.isInteger(pages?.[source]) && pages[source] > 0 && pages[source] <= 20 ? pages[source] : 0]));
     if (!force && state.key === key && state.items.length) {
       if (state.loading) { onChange(); return; }
+      if (retrySources) return more();
       state.stopped = false; state.restoring = state.feeds.some(feed => available(feed) && feed.page < feed.restorePage);
       await restorePages(version); return;
     }
     version++; controller?.abort();
     const restoring = Object.values(targets).some(page => page > 0);
-    Object.assign(state, { items: [], feeds: next.sources.map(source => ({ source, page: 0, pages: 1, restorePage: targets[source], failed: false, deferred: false, limited: false })), filters: { year: filters?.year || '', area: filters?.area || '', status: filters?.status || '' }, query: next, key, loading: false, scanning: false, restoring, stopped: false });
+    Object.assign(state, { items: [], feeds: next.sources.map(source => ({ source, page: 0, pages: 1, restorePage: targets[source], failed: false, deferred: false, serviceFailed: false, limited: false })), filters: { year: filters?.year || '', area: filters?.area || '', status: filters?.status || '' }, query: next, key, loading: false, scanning: false, restoring, stopped: false });
     const current = version;
     try {
       await scan(true, true, null, retrySources);
@@ -110,7 +113,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
 
   async function more() {
     if (state.loading) return;
-    for (const feed of state.feeds) { feed.failed = false; feed.deferred = false; }
+    for (const feed of state.feeds) { feed.failed = false; feed.deferred = false; feed.serviceFailed = false; }
     state.stopped = false;
     await scan(true, false, null, true);
   }
