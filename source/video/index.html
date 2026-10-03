@@ -15,6 +15,9 @@
   <link rel="modulepreload" href="./watchlist.js">
   <link rel="modulepreload" href="./playback.js">
   <link rel="modulepreload" href="./experience.js">
+  <link rel="modulepreload" href="./account.js">
+  <link rel="modulepreload" href="./resilience.js">
+  <link rel="modulepreload" href="./favorites.js">
   <script src="./config.js"></script>
   <script defer src="./vendor/hls.min.js"></script>
   <script type="module" src="./app.js"></script>
@@ -23,7 +26,8 @@
   <div class="app">
     <header class="site-header">
       <a class="brand" data-blog-link="/" href="https://fengzhouxuan.github.io/"><span class="brand-mark" aria-hidden="true">柚</span><span>打个大柚子的兔子洞<small>THE RABBIT HOLE</small></span></a>
-      <nav aria-label="博客导航"><a data-blog-link="/rabbit-holes/" href="https://fengzhouxuan.github.io/rabbit-holes/">兔子洞</a><a data-blog-link="/music/" href="https://fengzhouxuan.github.io/music/">音乐站</a><a href="#home" aria-current="page">视频站</a></nav>
+      <div class="header-actions"><nav aria-label="博客导航"><a data-blog-link="/rabbit-holes/" href="https://fengzhouxuan.github.io/rabbit-holes/">兔子洞</a><a data-blog-link="/music/" href="https://fengzhouxuan.github.io/music/">音乐站</a><a href="#home" aria-current="page">视频站</a></nav>
+      <details id="account-panel" class="account-panel"><summary id="account-summary"><span aria-hidden="true">◉</span> <span id="account-label">登录同步</span></summary><div class="account-menu"><h2 id="account-heading">让收藏跟着你走</h2><p id="account-status" class="status" role="status">使用受邀的 GitHub 账号登录后，可在不同电脑同步收藏。</p><div class="account-actions"><button id="account-login" class="button small">GitHub 登录</button><button id="account-sync" class="button small" hidden>立即同步</button><button id="account-logout" class="text-button" hidden>退出登录</button></div><button id="account-import" class="text-button account-import" hidden>导入本机收藏</button><p class="account-note">仅同步收藏，观看记录留在本机。登录只读取 GitHub 公开身份。</p></div></details></div>
     </header>
     <div class="station-bar">
       <a class="station-name" href="#home"><span aria-hidden="true">▶</span> 私人放映室</a>
@@ -32,6 +36,7 @@
     <nav class="station-nav" aria-label="视频栏目">
       <a href="#home" data-nav="home">放映首页</a><a href="#browse?category=tv" data-nav="tv">电视剧</a><a href="#browse?category=movie" data-nav="movie">电影</a><a href="#browse?category=anime" data-nav="anime">动漫</a><a href="#browse?category=variety" data-nav="variety">综艺</a><a href="#browse?category=short" data-nav="short">短剧</a><a href="#library" data-nav="library">我的片单 <span id="favorite-count">0</span></a>
     </nav>
+    <aside id="service-notice" class="service-notice" hidden><p id="service-message" role="status"></p><button id="service-retry" class="text-button">重试服务</button></aside>
     <main>
       <section id="opening-page" class="page" aria-label="正在打开私人放映室"><p class="eyebrow">PRIVATE CINEMA</p><h1>正在打开私人放映室…</h1><p class="status" role="status">页面准备好后，会回到你正在浏览的位置。</p><noscript><p>请开启 JavaScript 后重新载入页面。</p></noscript></section>
       <section id="home-page" class="page" aria-label="放映首页" hidden>
@@ -68,8 +73,9 @@
         <button id="load-more" class="button ghost load-more" hidden>加载更多影片</button>
       </section>
       <section id="library-page" class="page" aria-labelledby="saved-title" hidden>
-        <div class="page-heading"><div><p class="eyebrow">YOUR OWN COLLECTION</p><h1 id="saved-title">我的片单</h1><p class="secondary">想看的先收藏，看过的接着看。</p></div><span class="local-label">仅保存在当前浏览器</span></div>
+        <div class="page-heading"><div><p class="eyebrow">YOUR OWN COLLECTION</p><h1 id="saved-title">我的片单</h1><p class="secondary">想看的先收藏，看过的接着看。</p></div><span class="local-label">收藏可登录同步</span></div>
         <div class="library-toolbar"><div class="view-tabs"><a href="#library?tab=favorites" id="favorites-tab">我的收藏</a><a href="#library?tab=history" id="history-tab">观看记录 <span id="history-count">0</span></a></div><span id="saved-count" class="secondary"></span></div>
+        <p id="library-sync-note" class="status library-sync-note" role="status"></p>
         <div id="favorite-tools" class="favorite-tools"><div class="type-picks" aria-label="收藏筛选"><button id="favorites-all" class="active" aria-pressed="true">全部收藏</button><button id="favorites-new" aria-pressed="false">有新集 0</button></div><div class="favorite-refresh"><button id="refresh-favorites" class="button ghost small">刷新更新</button><button id="stop-favorites" class="text-button" hidden>暂停刷新</button></div><p id="favorites-status" class="status" role="status"></p></div>
         <div id="saved-cards" class="cards"></div><div id="saved-empty" class="empty" hidden><span aria-hidden="true">♡</span><h2 id="saved-empty-title">片单还是空的</h2><p id="saved-empty-hint">去挑一部想看的故事，点一下收藏。</p><a href="#home" class="button ghost">去放映室看看</a></div>
       </section>
@@ -101,7 +107,7 @@
         <details class="video-details"><summary>影片简介</summary><p id="video-description"></p></details>
       </section>
     </main>
-    <footer><div><strong>一部好片，一点自己的时间。</strong><p>本站不存储视频。影片由所选来源提供；收藏与进度保存在当前浏览器。</p></div><details class="source-settings"><summary>来源状态</summary><div id="source-info" class="source-info"></div><p class="source-note">查询表现仅保存在当前浏览器，24 小时后过期。点击“重新查询”可立即重试。</p><button id="clear-source-health" class="text-button">清除来源查询记录</button></details></footer>
+    <footer><div><strong>一部好片，一点自己的时间。</strong><p>本站不存储视频。影片由所选来源提供；收藏可登录同步，观看进度保存在当前浏览器。</p></div><details class="source-settings"><summary>来源状态</summary><div id="source-info" class="source-info"></div><p class="source-note">查询表现仅保存在当前浏览器，24 小时后过期。点击“重新查询”可立即重试。</p><button id="clear-source-health" class="text-button">清除来源查询记录</button></details></footer>
   </div>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>

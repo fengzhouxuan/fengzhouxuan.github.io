@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check core.js && node --check adapters.js && node --check query.js && node --check worker.js && npm test",
-    "test": "node --test --experimental-test-coverage --test-coverage-include=core.js --test-coverage-include=adapters.js --test-coverage-include=query.js --test-coverage-include=worker.js tests/*.test.js",
+    "check": "node --check core.js && node --check adapters.js && node --check query.js && node --check worker.js && node --check auth.js && node --check favorites.js && npm test",
+    "test": "node --test --experimental-test-coverage --test-coverage-include=core.js --test-coverage-include=adapters.js --test-coverage-include=query.js --test-coverage-include=worker.js --test-coverage-include=auth.js --test-coverage-include=favorites.js tests/*.test.js",
     "dev": "npx --yes wrangler@4.146.0 dev",
     "deploy": "npx --yes wrangler@4.146.0 deploy"
   }

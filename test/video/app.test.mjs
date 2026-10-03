@@ -57,7 +57,7 @@ test('page episode start writes the actual name into its route and sends the sta
   const current = { ...film, source: 'pianku', uid: 'pianku:12', lines: [{ name: '备用线', episodes: [{ name: '第1集', ref: '2-1' }, { name: '第3集', ref: '2-3' }] }] };
   const state = { current, line: 0, route: { view: 'watch' }, playbackVersion: 0, initialPlayback: false }; const nodes = new Map(); const calls = []; const routes = []; let finish;
   const harness = appHarness(source, {
-    ...core, state, config: {}, AbortController, window: { history: { replaceState: (_state, _title, url) => routes.push(url) } },
+    ...core, state, config: {}, backendTransport: { fetch }, AbortController, window: { history: { replaceState: (_state, _title, url) => routes.push(url) } },
     $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); },
     cancelFallback() {}, playbackFallback: { begin() {} }, fallbackMessage() {}, destroyPlayback: () => { state.playbackVersion++; },
     playbackIntent: playback.createPlaybackIntent(), playbackExperience: { begin() {} }, renderPlaybackExperience() {}, renderEpisodes() {}, screenMessage() {}, monitorPlayback() {},
@@ -70,14 +70,23 @@ test('page episode start writes the actual name into its route and sends the sta
   state.playbackVersion++; finish('https://example.com/3.mp4'); await pending;
 });
 
-function saving(storage, initial = []) {
-  const state = { favorites: clone(initial), history: [] }; const messages = [];
+function saving(storage, initial = [], account = null) {
+  const state = { favorites: clone(initial), history: [], account }; const messages = []; const synced = [];
   const baseline = { 'video-favorites': clone(initial), 'video-history': [] };
-  const harness = appHarness(source, { ...core, state, storage, savedBaselines: baseline, toast: message => messages.push(message) });
+  const harness = appHarness(source, { ...core, state, storage, favoriteStorageKey: user => user ? 'video-favorites:' + user.id : 'video-favorites', accountClient: { changed: items => synced.push(clone(items)) }, savedBaselines: baseline, toast: message => messages.push(message) });
   harness.include('save', 'syncSavedRecords'); harness.include('syncSavedRecords', 'renderSavedRecords');
-  return { state, baseline, messages, save: () => harness.run('save("video-favorites",state.favorites)'), sync: () => harness.run('syncSavedRecords()') };
+  return { state, baseline, messages, synced, save: () => harness.run('save("video-favorites",state.favorites)'), sync: () => harness.run('syncSavedRecords()') };
 }
 const savedFilm = () => { const { lines, ...item } = film; return item; };
+
+test('page saves and cross-tab merges use the active account without changing guest or another account collection', () => {
+  const item = savedFilm(); const guest = { ...item, uid: 'ruyi:13', source: 'ruyi', id: '13', title: '本机影片' };
+  const values = new Map([['video-favorites', JSON.stringify([guest])], ['video-favorites:13', JSON.stringify([guest])]]);
+  const view = saving({ getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) }, [], { id: '12' });
+  view.state.favorites.push(item); view.save(); assert.deepEqual(JSON.parse(values.get('video-favorites:12')), [item]);
+  assert.deepEqual(JSON.parse(values.get('video-favorites')), [guest]); assert.deepEqual(JSON.parse(values.get('video-favorites:13')), [guest]);
+  values.set('video-favorites:12', '[]'); view.sync(); assert.deepEqual(view.state.favorites, []); assert.deepEqual(view.synced.at(-1), []);
+});
 
 test('failed page saves preserve additions, changes and removals across navigation and recover when storage becomes writable', () => {
   const values = new Map(); let writable = false;

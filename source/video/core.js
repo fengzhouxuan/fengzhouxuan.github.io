@@ -317,7 +317,7 @@ export async function requestVideos(source, { query = '', id = '', page = 1, mod
     throw new Error(typeof data?.error === 'string' ? data.error : '暂时无法连接这个来源');
   }
   if (!Array.isArray(data?.list)) throw queryServiceError('查询服务没有返回有效目录，请重试');
-  return { videos: normalizeResponse(data, source), pages: Math.min(20, Math.max(1, Number(data.pagecount) || 1)), limited: Number(data.pagecount) > 20 };
+  return { videos: normalizeResponse(data, source), pages: Math.min(20, Math.max(1, Number(data.pagecount) || 1)), limited: Number(data.pagecount) > 20, ...(response.headers.get('X-Video-Fallback') ? { degraded: response.headers.get('X-Video-Fallback'), cachedAt: Number(response.headers.get('X-Video-Cached-At')) || 0 } : {}) };
 }
 
 export async function requestEpisode(source, id, ref, name, { base = '', signal, fetchImpl = fetch } = {}) {

@@ -8,6 +8,9 @@ import { createHomeLoader, requestHomeSources } from './home.js';
 import { sameFavorite, snapshotFavorite, favoriteSummary, acknowledgeFavorite, createWatchlistRefresher } from './watchlist.js';
 import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resolvePlaybackSelection, resumePosition, playbackSummary, screenPresentation, playbackQuality, matchingEpisode, matchingLine } from './playback.js';
 import { createPlaybackExperience, createSourceHealth } from './experience.js';
+import { createBackendTransport } from './resilience.js';
+import { createAccountClient } from './account.js';
+import { favoriteStorageKey } from './favorites.js';
 
 const $ = id => document.getElementById(id);
 const config = window.VIDEO_CONFIG || {};
@@ -22,7 +25,7 @@ if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'm
 const state = {
   route: { view: '' }, lastList: listNavigation.get(), hero: '', home: null,
   catalog: null,
-  history: loadSaved(storage, 'video-history'), favorites: loadSaved(storage, 'video-favorites'),
+  history: loadSaved(storage, 'video-history'), favorites: loadSaved(storage, 'video-favorites'), account: null,
   watchlist: null, favoritesDirty: false, favoriteFilter: 'all',
   health: new Map(), current: null, group: null, detailVersion: 0, detailLoading: false,
   line: 0, episode: -1, range: 0, reverse: false, hls: null, switching: true,
@@ -55,6 +58,24 @@ let lastProgressSample = '';
 let heroPoster;
 let fullscreenFocus;
 let submittedSearchHash = '';
+let accountClient;
+const backendTransport = createBackendTransport({ base: config.apiBase || '', storage, onChange: renderServiceStatus });
+const accountTransport = config.accountApiBase && config.accountApiBase !== config.apiBase ? createBackendTransport({ base: config.accountApiBase, storage }) : backendTransport;
+accountClient = createAccountClient({
+  base: config.accountApiBase || config.apiBase || '', storage, tabStorage: navigationStorage, fetchImpl: accountTransport.fetch,
+  onChange: renderAccount,
+  onScope(value) {
+    state.favoritesDirty = false;
+    if (state.watchlist.loading) watchlistRefresher.stop();
+    Object.assign(state.watchlist, { loading: false, completed: 0, total: 0, failed: [], stopped: false });
+    state.account = value.user; state.favorites = value.items;
+    savedBaselines['video-favorites'] = JSON.parse(JSON.stringify(state.favorites)); renderSavedRecords();
+  },
+  onFavorites(items) {
+    state.favorites = items; savedBaselines['video-favorites'] = JSON.parse(JSON.stringify(items)); renderSavedRecords();
+  },
+  onCallback(hash) { window.history.replaceState(null, '', location.pathname + location.search + hash); $('account-panel').open = true; },
+});
 
 function el(tag, className, text) {
   const item = document.createElement(tag);
@@ -77,12 +98,14 @@ function toast(message, undo) {
 
 function save(key, items) {
   const property = key === 'video-history' ? 'history' : 'favorites';
+  const storageKey = key === 'video-favorites' ? favoriteStorageKey(state.account) : key;
   try {
-    const latest = loadSaved(storage, key, savedBaselines[key]);
+    const latest = loadSaved(storage, storageKey, savedBaselines[key]);
     const merged = mergeSavedItems(savedBaselines[key], items, latest);
     state[property] = merged;
-    const successful = saveItems(storage, key, merged);
+    const successful = saveItems(storage, storageKey, merged);
     savedBaselines[key] = JSON.parse(JSON.stringify(successful ? merged : latest));
+    if (key === 'video-favorites') accountClient?.changed(merged);
     if (!successful) toast('浏览器无法保存记录；收藏与进度会保留在本次打开的页面中。');
   } catch { toast('记录暂时无法保存，本次打开仍可正常观看。'); }
 }
@@ -90,10 +113,11 @@ function save(key, items) {
 function syncSavedRecords() {
   let changed = false;
   for (const [key, property] of [['video-history', 'history'], ['video-favorites', 'favorites']]) {
-    const latest = loadSaved(storage, key, savedBaselines[key]);
+    const latest = loadSaved(storage, key === 'video-favorites' ? favoriteStorageKey(state.account) : key, savedBaselines[key]);
     const merged = mergeSavedItems(savedBaselines[key], state[property], latest);
-    changed ||= JSON.stringify(state[property]) !== JSON.stringify(merged);
+    const different = JSON.stringify(state[property]) !== JSON.stringify(merged); changed ||= different;
     state[property] = merged; savedBaselines[key] = JSON.parse(JSON.stringify(latest));
+    if (different && key === 'video-favorites') accountClient?.changed(merged);
   }
   return changed;
 }
@@ -112,6 +136,31 @@ function renderSavedRecords() {
 
 function favoriteFor(item) {
   return Boolean(item && state.favorites.some(saved => videoKey(saved) === videoKey(item)));
+}
+
+function renderAccount(value = accountClient?.state) {
+  if (!value) return;
+  const loggedIn = Boolean(value.user);
+  $('account-label').textContent = loggedIn ? value.user.login : '登录同步';
+  $('account-heading').textContent = loggedIn ? value.user.login + ' 的收藏' : '让收藏跟着你走';
+  const status = value.message || (!loggedIn ? value.enabled === false ? '账号同步正在准备中；本地收藏可以正常使用。' : '使用受邀的 GitHub 账号登录后，可在不同电脑同步收藏。'
+    : value.phase === 'syncing' ? '正在同步收藏…' : value.pending ? '有收藏等待同步，已保留在本机。' : value.lastSync ? '收藏已同步 · ' + new Date(value.lastSync).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '收藏保留在本机，点击同步获取云端片单。');
+  $('account-status').textContent = status;
+  $('account-status').classList.toggle('error', ['offline', 'expired'].includes(value.phase));
+  $('account-login').hidden = loggedIn && value.phase !== 'expired'; $('account-login').disabled = value.enabled === false;
+  $('account-login').textContent = value.phase === 'expired' ? '重新用 GitHub 登录' : 'GitHub 登录';
+  $('account-sync').hidden = !loggedIn; $('account-sync').disabled = value.phase === 'syncing' || value.phase === 'expired';
+  $('account-sync').textContent = value.phase === 'syncing' ? '正在同步…' : '立即同步';
+  $('account-logout').hidden = !loggedIn;
+  const local = accountClient?.localCount() || 0;
+  $('account-import').hidden = !loggedIn || !local; $('account-import').textContent = '导入本机收藏（' + local + ' 部）';
+  $('library-sync-note').textContent = loggedIn ? status + ' 观看记录仅保存在本机。' : '收藏目前保存在本机；登录后可以同步，观看记录仍留在本机。';
+}
+
+function renderServiceStatus(value) {
+  $('service-notice').hidden = value.phase === 'ready';
+  $('service-message').textContent = value.phase === 'limited' ? '查询服务今日额度已用完。正在尝试直连部分来源，并保留缓存目录与本地收藏；云端收藏同步恢复后再继续。'
+    : '查询服务暂时不可用，可能是网络或服务额度限制。部分来源可直连，缓存目录与本地收藏仍可使用；云端同步稍后再继续。';
 }
 
 function progressFor(item) {
@@ -339,9 +388,9 @@ async function request(source, options = {}) {
   const ticket = sourceHealth.begin(source, operation);
   const started = performance.now();
   try {
-    const response = await requestVideos(source, { ...options, base: config.apiBase || '' });
-    sourceHealth.finish(ticket, { successful: true, elapsedMs: performance.now() - started, ignored: options.signal?.aborted || document.hidden || navigator.onLine === false });
-    state.health.set(source, '目录查询成功 · ' + ((performance.now() - started) / 1000).toFixed(1) + ' 秒');
+    const response = await requestVideos(source, { ...options, base: config.apiBase || '', fetchImpl: backendTransport.fetch });
+    sourceHealth.finish(ticket, { successful: true, elapsedMs: performance.now() - started, ignored: response.degraded === 'cache' || options.signal?.aborted || document.hidden || navigator.onLine === false });
+    state.health.set(source, response.degraded === 'cache' ? '正在使用已缓存目录，更新时间可能延迟' : response.degraded === 'direct' ? '浏览器直连目录成功' : '目录查询成功 · ' + ((performance.now() - started) / 1000).toFixed(1) + ' 秒');
     renderSources(); return response;
   } catch (error) {
     sourceHealth.finish(ticket, { successful: false, elapsedMs: performance.now() - started, ignored: error.name === 'QueryServiceError' || error.name === 'AbortError' || options.signal?.aborted || document.hidden || navigator.onLine === false });
@@ -1010,7 +1059,7 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
     state.resolveController = new AbortController();
     screenMessage('正在解析这一集的播放地址…');
     try {
-      url = await requestEpisode(state.current.source, state.current.id, episode.ref, episode.name, { base: config.apiBase || '', signal: state.resolveController.signal });
+      url = await requestEpisode(state.current.source, state.current.id, episode.ref, episode.name, { base: config.apiBase || '', signal: state.resolveController.signal, fetchImpl: backendTransport.fetch });
     } catch {
       reportPlaybackFailure('播放地址暂时无法读取', version);
       return;
@@ -1291,8 +1340,12 @@ window.addEventListener('offline', resumePlaybackChecks);
 document.addEventListener('visibilitychange', resumePlaybackChecks);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && syncSavedRecords()) renderSavedRecords(); });
 window.addEventListener('storage', event => {
+  if (event.storageArea === storage && (event.key === 'video-account-session-v1' || event.key === null)) accountClient.refreshSession();
+  if (event.storageArea === storage && event.key === favoriteStorageKey(state.account) && syncSavedRecords()) renderSavedRecords();
   if (event.storageArea === storage && (event.key === null || Object.hasOwn(savedBaselines, event.key)) && syncSavedRecords()) renderSavedRecords();
 });
+window.addEventListener('online', () => { if (backendTransport.state.phase !== 'limited') backendTransport.retry().then(ready => { if (ready) accountClient.sync(); }); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && accountClient.state.user && Date.now() - accountClient.state.lastSync > 60000) accountClient.sync(); });
 window.addEventListener('pagehide', () => {
   if (['browse', 'search'].includes(state.route.view)) rememberCatalogPosition();
   if (state.route.view === 'home') rememberHomePosition();
@@ -1397,9 +1450,25 @@ document.querySelectorAll('[data-blog-link]').forEach(link => {
 const sourcePicks = document.querySelector('.source-picks');
 try { $('auto-source').checked = storage?.getItem('video-auto-source') !== 'off'; } catch { $('auto-source').checked = true; }
 const reloadCatalog = $('reload-catalog');
+$('account-login').addEventListener('click', async () => {
+  $('account-login').disabled = true;
+  try { location.assign(await accountClient.login(location.origin + location.pathname, location.hash || '#home')); }
+  catch (error) { $('account-status').textContent = error.message; $('account-login').disabled = false; }
+});
+$('account-sync').addEventListener('click', () => accountClient.sync());
+$('account-import').addEventListener('click', () => { try { accountClient.importLocal(); toast('本机收藏已加入当前账号片单，原收藏仍保留。'); } catch (error) { toast(error.message); } });
+$('account-logout').addEventListener('click', () => { accountClient.logout(); toast('已退出登录，回到本机未登录片单。'); });
+$('service-retry').addEventListener('click', async () => {
+  $('service-retry').disabled = true;
+  try { if (await backendTransport.retry()) { accountClient.sync(); toast('查询服务已恢复，可以继续搜索或刷新栏目。'); } else toast('查询服务尚未恢复，缓存目录和本地收藏仍保留。'); }
+  finally { $('service-retry').disabled = false; }
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && $('account-panel').open) { $('account-panel').open = false; $('account-summary').focus(); } });
+document.addEventListener('click', event => { if ($('account-panel').open && !$('account-panel').contains(event.target)) $('account-panel').open = false; });
 sourcePicks.replaceChildren(...SOURCES.map(source => {
   const label = el('label'); const input = document.createElement('input');
   input.type = 'checkbox'; input.value = source.id; input.checked = true;
   label.append(input, el('span', '', source.name)); return label;
 }), reloadCatalog);
+accountClient.initialize(location.hash); renderAccount(); renderServiceStatus(backendTransport.state);
 updateCounts(); renderSources(); handleRoute();

@@ -5,7 +5,16 @@
   "compatibility_date": "2026-10-02",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "d1_databases": [{
+    "binding": "VIDEO_DB",
+    "database_name": "video-accounts",
+    "database_id": "d6052175-ff90-49af-b0e4-54a2bb07a118",
+    "migrations_dir": "migrations"
+  }],
   "vars": {
+    "VIDEO_SITE_URL": "https://fengzhouxuan.github.io/video/",
+    "VIDEO_REGISTRATION": "invited",
+    "VIDEO_USER_LIMIT": "10",
     "VIDEO_ALLOWED_ORIGINS": "https://fengzhouxuan.github.io,http://127.0.0.1:4010,http://localhost:4010,http://127.0.0.1:4017"
   }
 }
