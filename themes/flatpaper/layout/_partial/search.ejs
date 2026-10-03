@@ -1,5 +1,5 @@
 <%
-// The post index lives in a standalone JSON file emitted by
+// The full-text index lives in a standalone JSON file emitted by
 // scripts/search-index.js; main.js fetches it lazily when the panel opens.
 %>
 <div class="search-panel" aria-hidden="true" data-index-url="<%= url_for('flatpaper-search.json') %>">
@@ -14,10 +14,18 @@
     </header>
     <label class="search-field">
       <%- partial('_partial/icons', { icon: 'search' }) %>
-      <input id="flatpaper-search" class="search-input" type="search" placeholder="<%= flatpaper_i18n('search.placeholder') %>" autocomplete="off">
+      <input id="flatpaper-search" class="search-input" type="search" aria-label="<%= flatpaper_i18n('search.query') %>" aria-describedby="flatpaper-search-hint flatpaper-search-status" aria-controls="flatpaper-search-results" placeholder="<%= flatpaper_i18n('search.placeholder') %>" autocomplete="off" maxlength="160">
     </label>
-    <div class="search-results" data-empty="<%= flatpaper_i18n('search.empty') %>">
+    <div class="search-filters" role="group" aria-label="<%= flatpaper_i18n('search.filter') %>">
+      <% ['', 'post', 'learning', 'project', 'site', 'page'].forEach(function(type) { %>
+        <button type="button" class="search-filter" data-search-type="<%= type %>" aria-pressed="<%= type ? 'false' : 'true' %>"><%= flatpaper_i18n(type ? 'search.type_' + type : 'search.all') %></button>
+      <% }) %>
+    </div>
+    <p class="search-status" id="flatpaper-search-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="search-results" id="flatpaper-search-results" role="region" aria-label="<%= flatpaper_i18n('search.results') %>" data-empty="<%= flatpaper_i18n('search.empty') %>">
       <p class="search-empty"><%= flatpaper_i18n('search.empty') %></p>
     </div>
+    <button type="button" class="search-retry" hidden><%= flatpaper_i18n('search.retry') %></button>
+    <p class="search-help" id="flatpaper-search-hint"><%= flatpaper_i18n('search.keyboard_hint') %></p>
   </section>
 </div>

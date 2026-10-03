@@ -140,6 +140,9 @@ var hasLinkedCustomStickers = customStickerItems.some(function (item) { return !
 >
   <div class="home-hero__grain" aria-hidden="true"></div>
   <div class="home-hero__tools" aria-label="<%= flatpaper_i18n('home_hero.tools') %>">
+    <button class="icon-button home-hero__tool js-search-open" type="button" aria-label="<%= flatpaper_i18n('common.search_posts') %>" title="<%= flatpaper_i18n('common.search_posts') %>">
+      <%- partial('_partial/icons', { icon: 'search' }) %>
+    </button>
     <% if (stickersEnabled && stickersDraggable) { %>
       <button class="icon-button home-hero__tool js-hero-shuffle" type="button" aria-label="<%= flatpaper_i18n('home_hero.shuffle_stickers') %>" title="<%= flatpaper_i18n('home_hero.shuffle_stickers') %>">
         <%- partial('_partial/icons', { icon: 'shuffle' }) %>

@@ -126,7 +126,7 @@ body.has-home-hero.is-hero-active::before {
 
 .home-hero__content {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   width: unquote('min(92vw, 720px)');
   display: grid;
   place-items: center;
@@ -236,14 +236,17 @@ body.has-home-hero.is-hero-active::before {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
+  gap: 4px 12px;
   margin: 16px auto 0;
 }
 
 .home-hero__nav-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 4px 8px;
+  white-space: nowrap;
   color: var(--muted);
   font-size: 14px;
   font-weight: 500;

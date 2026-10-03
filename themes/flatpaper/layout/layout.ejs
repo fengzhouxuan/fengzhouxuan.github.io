@@ -85,6 +85,7 @@ if (['default', 'grid', 'line', 'cross', 'dotted'].indexOf(backgroundStyle) === 
   <script>
   window.FLATPAPER_I18N = <%- flatpaper_i18n_json() %>;
   </script>
+  <%- js('js/search-core') %>
   <%- js('js/main') %>
   <% (theme.inject && Array.isArray(theme.inject.bottom) ? theme.inject.bottom : []).forEach(function(snippet) { if (snippet) { %>
   <%- snippet %>

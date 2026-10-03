@@ -1316,6 +1316,12 @@
   var input = document.getElementById('flatpaper-search');
   var results = document.querySelector('.search-results');
   var indexEl = document.getElementById('flatpaper-post-index');
+  var searchStatus = panel ? panel.querySelector('.search-status') : null;
+  var searchRetry = panel ? panel.querySelector('.search-retry') : null;
+  var searchFilters = panel ? panel.querySelectorAll('[data-search-type]') : [];
+  var searchType = '';
+  var searchDebounce = null;
+  var searchReturnFocus = null;
   var posts = [];
   // The index lives in a standalone JSON file (scripts/search-index.js) and is
   // fetched on first open instead of being inlined into every page.
@@ -1336,7 +1342,8 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
     }).then(function (data) {
-      posts = Array.isArray(data) ? data : [];
+      if (!Array.isArray(data)) throw new Error('Invalid search index');
+      posts = data;
       indexState = 'ready';
       if (input) render(input.value);
     }).catch(function () {
@@ -1349,15 +1356,21 @@
 
   function openPanel() {
     if (!panel) return;
+    if (!panel.classList.contains('is-open')) searchReturnFocus = document.activeElement;
     loadIndex();
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
     document.body.classList.add('no-scroll');
-    setTimeout(function () { if (input) input.focus(); }, 60);
+    if (input) {
+      render(input.value);
+      input.focus();
+      input.select();
+    }
   }
 
-  function closePanel() {
-    if (!panel) return;
+  function closePanel(restoreFocus) {
+    if (!panel || !panel.classList.contains('is-open')) return;
+    clearTimeout(searchDebounce);
     panel.classList.remove('is-open');
     panel.setAttribute('aria-hidden', 'true');
     // Keep the body locked while the sidebar drawer is still open underneath
@@ -1366,6 +1379,7 @@
     if (!openDrawer || !openDrawer.classList.contains('is-open')) {
       document.body.classList.remove('no-scroll');
     }
+    if (restoreFocus !== false && searchReturnFocus && searchReturnFocus.isConnected) searchReturnFocus.focus();
   }
 
   // Append text into `parent`, wrapping every case-insensitive match of `keyword`
@@ -1374,19 +1388,19 @@
   function appendHighlighted(parent, text, keyword) {
     if (!text) return;
     if (!keyword) { parent.appendChild(document.createTextNode(text)); return; }
-    var lower = text.toLowerCase();
-    // toLowerCase() is not length-preserving for a few characters (e.g. 'İ'),
-    // which would shift every index found in `lower`. Skip highlighting then —
-    // the result list itself is unaffected.
-    if (lower.length !== text.length) { parent.appendChild(document.createTextNode(text)); return; }
+    var parts = keyword.split(/\s+/).filter(Boolean).map(function (term) {
+      return term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    });
+    var pattern = new RegExp(parts.join('|'), 'gi');
     var i = 0;
-    var idx;
-    while ((idx = lower.indexOf(keyword, i)) !== -1) {
+    var match;
+    while ((match = pattern.exec(text))) {
+      var idx = match.index;
       if (idx > i) parent.appendChild(document.createTextNode(text.slice(i, idx)));
       var mark = document.createElement('mark');
-      mark.textContent = text.slice(idx, idx + keyword.length);
+      mark.textContent = match[0];
       parent.appendChild(mark);
-      i = idx + keyword.length;
+      i = idx + match[0].length;
     }
     if (i < text.length) parent.appendChild(document.createTextNode(text.slice(i)));
   }
@@ -1395,13 +1409,8 @@
     if (!results) return;
     var keyword = query.trim().toLowerCase();
     results.innerHTML = '';
-    if (!keyword) {
-      var empty = document.createElement('p');
-      empty.className = 'search-empty';
-      empty.textContent = t('search.empty');
-      results.appendChild(empty);
-      return;
-    }
+    if (searchStatus) searchStatus.textContent = '';
+    if (searchRetry) searchRetry.hidden = true;
     if (indexState !== 'ready') {
       var pending = document.createElement('p');
       pending.className = 'search-empty';
@@ -1409,12 +1418,24 @@
         ? t('search.load_failed')
         : t('search.loading');
       results.appendChild(pending);
+      if (searchRetry) searchRetry.hidden = indexState !== 'error';
       return;
     }
-    var hits = posts.filter(function (p) {
-      return (p.title && p.title.toLowerCase().indexOf(keyword) > -1) ||
-             (p.text && p.text.toLowerCase().indexOf(keyword) > -1);
-    }).slice(0, 12);
+    if (!keyword) {
+      var empty = document.createElement('p');
+      empty.className = 'search-empty';
+      empty.textContent = t('search.empty');
+      results.appendChild(empty);
+      return;
+    }
+    // Cached older HTML may load the new main script without search-core yet.
+    var hits = window.FlatPaperSearch ? window.FlatPaperSearch.search(posts, query, searchType) : posts.filter(function (p) {
+      return p && (!searchType || (p.type || 'post') === searchType) &&
+        typeof p.url === 'string' && /^(?:\/(?!\/)|https?:\/\/)/i.test(p.url) && !/[\s\\]/.test(p.url) &&
+        String((p.title || '') + ' ' + (p.text || '')).toLowerCase().indexOf(keyword) > -1;
+    }).map(function (p) { return { item: p, snippet: String(p.text || '').slice(0, 150) }; });
+
+    if (searchStatus) searchStatus.textContent = t('search.count', hits.length);
 
     if (!hits.length) {
       var none = document.createElement('p');
@@ -1424,21 +1445,30 @@
       return;
     }
 
-    hits.forEach(function (post) {
+    hits.forEach(function (hit) {
+      var post = hit.item;
       var a = document.createElement('a');
       a.className = 'search-result';
       a.href = post.url;
+      if (/^https?:\/\//i.test(post.url)) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      }
+      a.addEventListener('click', function () { closePanel(false); });
 
       var strong = document.createElement('strong');
       appendHighlighted(strong, post.title || '', keyword);
       a.appendChild(strong);
 
       var span = document.createElement('span');
-      span.textContent = post.date || '';
+      var typeKey = 'search.type_' + (post.type || 'post');
+      var typeLabel = t(typeKey);
+      if (typeLabel === typeKey) typeLabel = '';
+      span.textContent = typeLabel + (post.date ? (typeLabel ? ' · ' : '') + post.date : '');
       a.appendChild(span);
 
       var p = document.createElement('p');
-      appendHighlighted(p, post.text || '', keyword);
+      appendHighlighted(p, hit.snippet || '', keyword);
       a.appendChild(p);
 
       results.appendChild(a);
@@ -1456,12 +1486,70 @@
   if (input) {
     // Debounced: render() linearly scans the whole index and rebuilds the
     // result DOM, which janks on large sites if run per keystroke.
-    var searchDebounce = null;
-    input.addEventListener('input', function () {
+    input.addEventListener('input', function (event) {
       clearTimeout(searchDebounce);
+      if (event.isComposing) return;
       searchDebounce = setTimeout(function () { render(input.value); }, 120);
     });
   }
+
+  searchFilters.forEach(function (button) {
+    button.addEventListener('click', function () {
+      searchType = button.getAttribute('data-search-type') || '';
+      searchFilters.forEach(function (filter) { filter.setAttribute('aria-pressed', String(filter === button)); });
+      clearTimeout(searchDebounce);
+      if (input) render(input.value);
+    });
+  });
+
+  if (searchRetry) searchRetry.addEventListener('click', function () {
+    loadIndex();
+    if (input) { render(input.value); input.focus(); }
+  });
+
+  if (panel) panel.addEventListener('keydown', function (event) {
+    if (event.isComposing) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closePanel();
+      return;
+    }
+    var focused = document.activeElement;
+    if (event.key === 'Tab') {
+      var focusable = Array.prototype.filter.call(panel.querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]'), function (el) {
+        return el.offsetParent !== null;
+      });
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if ((event.shiftKey && focused === first) || (!event.shiftKey && focused === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      }
+      return;
+    }
+    var fromField = focused === input || (focused && focused.hasAttribute('data-search-type'));
+    if (fromField && (event.key === 'ArrowDown' || event.key === 'ArrowUp' || (event.key === 'Enter' && focused === input))) {
+      clearTimeout(searchDebounce);
+      render(input.value);
+    }
+    var links = Array.prototype.slice.call(results.querySelectorAll('a.search-result'));
+    if (!links.length) return;
+    if (event.key === 'Enter' && focused === input) {
+      event.preventDefault();
+      links[0].click();
+      return;
+    }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    var position = links.indexOf(focused);
+    if (!fromField && position === -1) return;
+    event.preventDefault();
+    var next = fromField ? (event.key === 'ArrowDown' ? 0 : links.length - 1) : position + (event.key === 'ArrowDown' ? 1 : -1);
+    if (next < 0) { input.focus(); return; }
+    var link = links[Math.min(next, links.length - 1)];
+    link.focus();
+    link.scrollIntoView({ block: 'nearest' });
+  });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {

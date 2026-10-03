@@ -157,6 +157,14 @@ home_hero:
   hero_links:
     - name: 兔子洞
       link: /rabbit-holes/
+    - name: 项目
+      link: /projects/
+    - name: 音乐站
+      link: /music/
+    - name: 壁纸站
+      link: /wallpapers/
+    - name: 视频站
+      link: /video/
     - name: 归档
       link: /archives/
     - name: 关于

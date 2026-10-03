@@ -7,7 +7,7 @@ common:
   page: 页面
   archive: 归档
   post_list: 文章列表
-  search_posts: 搜索文章
+  search_posts: 全站搜索
   random_posts: 随机文章
   reward: 赞赏
   view_all: 查看全部
@@ -90,15 +90,27 @@ not_found:
   title: 找不到这个页面
   text: 这个地址可能已经移动、删除，或者从未存在。
   home: 返回首页
-  search: 搜索文章
+  search: 全站搜索
 
 search:
-  placeholder: 输入关键词，按 Esc 关闭
-  empty: 输入关键词后显示匹配的文章
+  placeholder: 搜索文章、兔子洞、项目或站点
+  empty: 输入关键词，查找文章、学习笔记和项目
   loading: 正在加载搜索索引…
-  load_failed: 搜索索引加载失败，请重新打开搜索重试
-  no_result: 没有找到与 "%s" 相关的文章
+  load_failed: 暂时无法加载搜索内容，请重试
+  no_result: 没有找到与 "%s" 相关的内容，可换个关键词或切换到全部
   close: 关闭搜索
+  query: 搜索关键词
+  filter: 内容类型
+  all: 全部
+  type_post: 文章
+  type_learning: 兔子洞
+  type_project: 项目
+  type_site: 站点
+  type_page: 页面
+  results: 搜索结果
+  count: 找到 %s 条内容
+  retry: 重新加载
+  keyboard_hint: ↑↓ 选择 · Enter 打开 · Esc 关闭 · Ctrl / ⌘ K 搜索
 
 code:
   copy: 复制代码

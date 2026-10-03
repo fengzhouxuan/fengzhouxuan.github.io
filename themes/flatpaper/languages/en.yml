@@ -7,7 +7,7 @@ common:
   page: Page
   archive: Archive
   post_list: Posts
-  search_posts: Search posts
+  search_posts: Search site
   random_posts: Random posts
   reward: Reward
   view_all: View all
@@ -90,15 +90,27 @@ not_found:
   title: Page not found
   text: This address may have moved, been deleted, or never existed.
   home: Back home
-  search: Search posts
+  search: Search site
 
 search:
-  placeholder: Type keywords, press Esc to close
-  empty: Type keywords to search matching posts
+  placeholder: Search posts, notes, projects or sites
+  empty: Type keywords to find posts, learning notes and projects
   loading: Loading search index...
-  load_failed: Failed to load the search index. Reopen search and try again.
-  no_result: No posts found for "%s"
+  load_failed: Search is temporarily unavailable. Please try again.
+  no_result: No results for "%s". Try another keyword or choose All.
   close: Close search
+  query: Search keywords
+  filter: Content type
+  all: All
+  type_post: Posts
+  type_learning: Notes
+  type_project: Projects
+  type_site: Sites
+  type_page: Pages
+  results: Search results
+  count: Found %s results
+  retry: Try again
+  keyboard_hint: ↑↓ Select · Enter Open · Esc Close · Ctrl / ⌘ K Search
 
 code:
   copy: Copy code
