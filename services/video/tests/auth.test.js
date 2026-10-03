@@ -70,6 +70,28 @@ test('account favorites are isolated, sanitized, revision protected, and logout 
   f.advance(31 * 86400000); assert.equal((await f.request('favorites', { token: other.token })).status, 401);
 });
 
+test('GitHub requests use the Worker redirect contract and reject redirect responses before reading their bodies', async t => {
+  const compatible = fixture(t, { fetchImpl: async (url, init) => {
+    if (init.redirect !== 'manual') throw new TypeError('Unsupported redirect mode');
+    return Response.json(url.endsWith('access_token') ? { access_token: 'github-private-token' } : { id: 12, login: 'tester', avatar_url: '' });
+  } });
+  assert.equal((await compatible.session()).user.login, 'tester');
+  for (const stage of ['token', 'identity']) {
+    let bodyReads = 0;
+    const redirected = fixture(t, { fetchImpl: async url => {
+      if (stage === 'identity' && url.endsWith('access_token')) return Response.json({ access_token: 'github-private-token' });
+      const response = new Response(null, { status: 307, headers: { Location: 'https://untrusted.example/' } });
+      response.json = async () => { bodyReads++; throw new Error('private redirect body'); };
+      return response;
+    } });
+    assert.match((await redirected.callback()).headers.get('Location'), /error=unavailable/);
+    assert.equal(bodyReads, 0);
+    assert.equal(redirected.calls.length, stage === 'token' ? 1 : 2);
+    assert.ok(redirected.calls.every(call => call.init.redirect === 'manual'));
+    assert.equal(redirected.db.database.prepare('SELECT COUNT(*) AS total FROM video_users').get().total, 0);
+  }
+});
+
 test('expired, denied, non-invited and failed logins never create a usable session', async t => {
   const f = fixture(t);
   assert.equal(new URL((await f.request('callback?state=bad')).headers.get('Location')).hash, '#account?error=expired');

@@ -57,11 +57,13 @@ export function createAccountService({ fetchImpl = fetch, now = Date.now } = {})
         if (url.searchParams.has('error')) return redirect(flow.return_to, { error: 'cancelled' });
         const code = url.searchParams.get('code'); if (!code || code.length > 256) return redirect(flow.return_to, { error: 'expired' });
         try {
-          const response = await fetchImpl('https://github.com/login/oauth/access_token', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ client_id: env.VIDEO_GITHUB_CLIENT_ID, client_secret: env.VIDEO_GITHUB_CLIENT_SECRET, code, redirect_uri: callback, code_verifier: flow.verifier }), signal: AbortSignal.timeout(10000), redirect: 'error' });
-          const token = await response.json(); if (!response.ok || typeof token.access_token !== 'string' || token.error) throw new Error('login failed');
-          const identity = await fetchImpl('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token.access_token, Accept: 'application/vnd.github+json', 'User-Agent': 'videostation-login' }, signal: AbortSignal.timeout(10000), redirect: 'error' });
+          const response = await fetchImpl('https://github.com/login/oauth/access_token', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ client_id: env.VIDEO_GITHUB_CLIENT_ID, client_secret: env.VIDEO_GITHUB_CLIENT_SECRET, code, redirect_uri: callback, code_verifier: flow.verifier }), signal: AbortSignal.timeout(10000), redirect: 'manual' });
+          if (!response.ok) throw new Error('login failed');
+          const token = await response.json(); if (typeof token.access_token !== 'string' || token.error) throw new Error('login failed');
+          const identity = await fetchImpl('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token.access_token, Accept: 'application/vnd.github+json', 'User-Agent': 'videostation-login' }, signal: AbortSignal.timeout(10000), redirect: 'manual' });
+          if (!identity.ok) throw new Error('identity failed');
           const user = await identity.json();
-          if (!identity.ok || !Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.login !== 'string' || !/^[a-z\d-]{1,39}$/i.test(user.login)) throw new Error('identity failed');
+          if (!Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.login !== 'string' || !/^[a-z\d-]{1,39}$/i.test(user.login)) throw new Error('identity failed');
           const allowed = (env.VIDEO_GITHUB_ALLOWLIST || '').toLowerCase().split(',').map(value => value.trim()).filter(Boolean);
           if (!allowed.includes(user.login.toLowerCase()) && env.VIDEO_REGISTRATION !== 'open') return redirect(flow.return_to, { error: 'invitation' });
           const limit = Math.min(100, Math.max(1, Number(env.VIDEO_USER_LIMIT) || 10));
