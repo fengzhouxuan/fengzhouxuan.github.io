@@ -1,12 +1,12 @@
 import {
   SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, supportsSource, sourceLabel, requestEpisode,
-  safeURL, groupVideos, matchEpisode, nextEpisode, requestVideos, releaseSchedule, episodeNumber,
+  safeURL, groupVideos, plainText, nextEpisode, requestVideos, releaseSchedule,
   loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation,
 } from './core.js';
 import { createCatalogLoader, catalogSummary } from './catalog.js';
 import { createHomeLoader, requestHomeSources } from './home.js';
 import { sameFavorite, snapshotFavorite, favoriteSummary, acknowledgeFavorite, createWatchlistRefresher } from './watchlist.js';
-import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resumePosition, playbackSummary, screenPresentation, playbackQuality, matchingEpisode, matchingLine } from './playback.js';
+import { createPlaybackFallback, createPlaybackMonitor, createVariantDiscovery, createPlaybackIntent, resolvePlaybackSelection, resumePosition, playbackSummary, screenPresentation, playbackQuality, matchingEpisode, matchingLine } from './playback.js';
 import { createPlaybackExperience, createSourceHealth } from './experience.js';
 
 const $ = id => document.getElementById(id);
@@ -78,9 +78,12 @@ function toast(message, undo) {
 function save(key, items) {
   const property = key === 'video-history' ? 'history' : 'favorites';
   try {
-    const merged = mergeSavedItems(savedBaselines[key], items, loadSaved(storage, key, savedBaselines[key]));
-    state[property] = merged; savedBaselines[key] = JSON.parse(JSON.stringify(merged));
-    if (!saveItems(storage, key, merged)) toast('浏览器无法保存记录；本次打开仍可正常观看。');
+    const latest = loadSaved(storage, key, savedBaselines[key]);
+    const merged = mergeSavedItems(savedBaselines[key], items, latest);
+    state[property] = merged;
+    const successful = saveItems(storage, key, merged);
+    savedBaselines[key] = JSON.parse(JSON.stringify(successful ? merged : latest));
+    if (!successful) toast('浏览器无法保存记录；收藏与进度会保留在本次打开的页面中。');
   } catch { toast('记录暂时无法保存，本次打开仍可正常观看。'); }
 }
 
@@ -120,9 +123,11 @@ function minuteLabel(position) {
   return minutes ? minutes + ' 分钟' : '刚刚开始';
 }
 
-function filmRoute(view, item, episode) {
+function filmRoute(view, item, episode, episodeName = item.lines?.[0]?.episodes[episode]?.name) {
   const params = new URLSearchParams({ source: item.source, id: item.id });
   if (episode !== undefined) params.set('episode', String(episode + 1));
+  const name = plainText(episodeName);
+  if (view === 'watch' && name && name.length <= 120) params.set('name', name);
   return '#' + view + '?' + params;
 }
 
@@ -991,13 +996,13 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
   state.requestedPlay = false;
   fallbackMessage($('fallback-status').textContent);
   destroyPlayback(); state.episode = index; state.range = Math.floor(index / 30);
-  playbackIntent.remember(state.current, index, paused);
+  playbackIntent.remember(state.current, index, paused, episode.name);
   playbackExperience.begin(state.current, state.line, continued); renderPlaybackExperience(true);
   state.pendingResume = Math.max(0, Number(resume) || 0); state.lastSave = 0;
   $('playback-feedback').hidden = true;
   renderEpisodes(); screenMessage('正在加载这一集…'); $('play-status').textContent = '正在连接视频来源…';
-  window.history.replaceState(null, '', filmRoute('watch', state.current, index));
-  state.route = { ...state.route, source: state.current.source, id: state.current.id, episode: index };
+  window.history.replaceState(null, '', filmRoute('watch', state.current, index, episode.name));
+  state.route = { ...state.route, source: state.current.source, id: state.current.id, episode: index, episodeName: episode.name };
   const version = state.playbackVersion;
   monitorPlayback(state.pendingResume, recovered);
   let url = episode.url;
@@ -1005,7 +1010,7 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
     state.resolveController = new AbortController();
     screenMessage('正在解析这一集的播放地址…');
     try {
-      url = await requestEpisode(state.current.source, state.current.id, state.line, index, { base: config.apiBase || '', signal: state.resolveController.signal });
+      url = await requestEpisode(state.current.source, state.current.id, episode.ref, episode.name, { base: config.apiBase || '', signal: state.resolveController.signal });
     } catch {
       reportPlaybackFailure('播放地址暂时无法读取', version);
       return;
@@ -1098,34 +1103,27 @@ async function prepareVideo(route) {
       const override = state.resumeOverride?.uid === current.uid ? state.resumeOverride : null;
       state.resumeOverride = null;
       const saved = progressFor(current);
+      const selection = resolvePlaybackSelection(current, { episode: route.episode, episodeName: route.episodeName || (state.restorePlaybackIntent ? playbackIntent.episodeName(current, route.episode) : ''), saved, override, automatic: $('auto-source').checked, priority: playbackExperience.priority });
       if (!lines.length) {
-        const resume = override || saved;
-        const name = override?.episode || (route.episode !== null ? '第' + (route.episode + 1) + '集' : saved?.episode || '');
-        const position = override || route.episode === null || name === saved?.episode ? resume?.position || 0 : 0;
+        const name = selection.name; const position = selection.position;
         renderEpisodes(); playbackFallback.begin(current, 0, route.episode || 0, position, name);
         reportPlaybackFailure('来源没有可播放的剧集'); return;
       }
-      const resume = override || saved;
-      const requested = override?.episode || (route.episode !== null && route.episode >= lines[0].episodes.length ? episodeNumber(saved?.episode) === route.episode + 1 ? saved.episode : '第' + (route.episode + 1) + '集' : '');
-      const target = requested ? matchingLine(current, requested, /电影|片$/.test(current.category || ''), new Set(), playbackExperience.priority) : null;
-      if (requested && !target) {
-        const missing = override || { uid: current.uid, episode: requested, index: route.episode, position: saved?.episode === requested ? saved.position : 0, paused: state.restorePlaybackIntent && playbackIntent.paused(current, route.episode) };
+      if (selection.missing) {
+        const requested = selection.name;
+        const missing = override || { uid: current.uid, episode: requested, index: route.episode ?? 0, position: selection.position, paused: state.restorePlaybackIntent && playbackIntent.paused(current, route.episode, requested) };
         state.resumeOverride = missing; state.pendingResume = missing.position || 0; state.userPaused = Boolean(missing.paused);
-        playbackIntent.remember(current, missing.index, state.userPaused);
+        playbackIntent.remember(current, missing.index, state.userPaused, requested);
         renderEpisodes(); $('episode-caption').textContent = '原观看集数：' + requested;
         $('playback-feedback').hidden = false;
         screenMessage('这个来源暂无 ' + requested + '，请手动选集或切换来源。');
         $('play-status').textContent = '已保留原来集数与位置，尚未开始播放。';
         playbackExperience.observe('paused'); renderPlaybackExperience(true); return;
       }
-      const baseIndex = target?.episode ?? (override ? matchEpisode(lines[0].episodes, '', override.index) : route.episode !== null ? Math.min(route.episode, lines[0].episodes.length - 1) : matchEpisode(lines[0].episodes, saved?.episode));
-      const name = target ? requested : lines[0].episodes[baseIndex]?.name || '';
-      state.line = target?.line ?? ($('auto-source').checked ? playbackExperience.chooseLine(current, name) : 0);
-      const episodes = lines[state.line].episodes;
-      const index = target?.episode ?? (state.line === 0 ? baseIndex : matchingEpisode(episodes, name, /电影|片$/.test(current.category || '')));
-      const position = resume && matchEpisode(episodes, resume.episode, resume.index || 0) === index ? resume.position : 0;
+      state.line = selection.line;
+      const index = selection.episode; const position = selection.position;
       renderWatch();
-      const paused = Boolean(override?.paused || (state.restorePlaybackIntent && playbackIntent.paused(current, index)));
+      const paused = Boolean(override?.paused || (state.restorePlaybackIntent && playbackIntent.paused(current, index, selection.name)));
       startEpisode(index, position || 0, false, false, paused);
       if (state.line !== 0) fallbackMessage('已按近期观看表现选择 ' + lines[state.line].name + '；仍可手动选择其他线路。');
     }
@@ -1146,7 +1144,7 @@ function switchVariant(variant) {
     state.resumeOverride = { uid: variant.uid, episode: episode?.name || state.resumeOverride?.episode, index, position: playbackPosition(), paused: state.userPaused };
     saveProgress();
   }
-  navigate(filmRoute(state.route.view === 'watch' ? 'watch' : 'detail', variant, index));
+  navigate(filmRoute(state.route.view === 'watch' ? 'watch' : 'detail', variant, index, state.resumeOverride?.episode));
 }
 
 function saveProgress() {
@@ -1256,7 +1254,7 @@ video.addEventListener('canplay', () => { if (!state.switching) { applyPendingRe
 video.addEventListener('play', () => {
   if (state.switching) return;
   state.requestedPlay = true; state.userPaused = false; state.autoplayBlocked = false;
-  playbackIntent.remember(state.current, state.episode, false);
+  playbackIntent.remember(state.current, state.episode, false, currentEpisode()?.name);
   renderQuality();
   if (playbackMonitor.state.phase === 'ended') monitorPlayback(video.currentTime, playbackMonitor.state.recovered);
   else checkPlayback();
@@ -1282,7 +1280,7 @@ video.addEventListener('timeupdate', () => {
 });
 video.addEventListener('pause', () => {
   if (!state.switching && state.requestedPlay && video.paused && !video.error && !video.ended && !document.hidden) {
-    state.userPaused = true; playbackIntent.remember(state.current, state.episode, true); checkPlayback();
+    state.userPaused = true; playbackIntent.remember(state.current, state.episode, true, currentEpisode()?.name); checkPlayback();
   }
   saveProgress();
   renderQuality();

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAdapterRequest, parsePianku, parseAuete, parseZipSearch, parseZipDetail, buildEpisodePage, parseEpisodeURL } from '../adapters.js';
+import { requestVideos } from '../core.js';
 import { piankuList, piankuDetail, piankuPlay, aueteList, aueteDetail, auetePlay, zipSearch, zipDetail } from './fixtures/site-pages.js';
 
 const request = fields => buildAdapterRequest(new URLSearchParams(fields));
@@ -32,6 +33,14 @@ test('public HTML directories and details keep metadata and lazy episodes only',
   assert.equal(parseAuete(aueteList.replace(/<img[^>]+>/g, ''), {}).list[0].vod_pic, '');
   assert.equal(parseAuete(aueteList.replace(' alt="测试剧"', ''), {}).list[0].vod_name, '');
   for (const parse of [parseAuete, parsePianku]) { assert.throws(() => parse('<title>安全验证</title>')); assert.throws(() => parse('<title>安全验证</title>', { id: '12' })); }
+});
+
+test('HTML pagination retains the actual scope so the client distinguishes its twenty-page query limit', async () => {
+  for (const data of [parsePianku(piankuList.replace('-20.html', '-100.html')), parseAuete(aueteList.replace('index3.html', 'index100.html'))]) {
+    assert.equal(data.pagecount, 100);
+    const result = await requestVideos('pianku', { query: '测试', fetchImpl: async () => new Response(JSON.stringify(data)) });
+    assert.equal(result.pages, 20); assert.equal(result.limited, true);
+  }
 });
 
 test('Auete update time comes only from the detail status, without treating publication year or recommendations as updates', () => {

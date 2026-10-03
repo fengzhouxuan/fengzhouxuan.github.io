@@ -106,14 +106,35 @@ test('portable adapter routes integrate directory, details and on-demand episode
     assert.equal((await response.json()).list.length, 1);
   }
   for (const [source, id] of [['pianku', '12'], ['auete', 'Tv/neidi/test']]) {
-    const path = '/api/play?' + new URLSearchParams({ source, id, line: '0', episode: '0' });
+    const path = '/api/play?' + new URLSearchParams({ source, id, ref: source === 'pianku' ? '2-1' : '0-0', name: '第01集' });
     assert.equal((await query(request(path))).status, 200);
     assert.equal((await (await query(request(path))).json()).url, 'https://cdn.example/1.m3u8');
-    assert.equal((await query(request(path.replace('episode=0', 'episode=99')))).status, 404);
+    assert.equal((await query(request(path.replace(/ref=[^&]+/, 'ref=9-99')))).status, 404);
   }
   assert.equal((await query(request('/api/play?source=pianku&id=12&line=-1&episode=0'))).status, 400);
   assert.equal((await query(request('/api/vod?source=auete&q=test'))).status, 400);
   const blocked = createVideoQuery({ fetchImpl: async () => new Response('private challenge page') });
   assert.equal((await blocked(request('/api/vod?source=pianku&q=test'))).status, 502);
-  assert.equal((await blocked(request('/api/play?source=pianku&id=12&line=0&episode=0'))).status, 502);
+  assert.equal((await blocked(request('/api/play?source=pianku&id=12&ref=2-1&name=1'))).status, 502);
+});
+
+test('lazy playback uses the displayed reference and name across reordered or expired directories, and rejects stale index clients', async t => {
+  let now = Date.now(); t.mock.method(Date, 'now', () => now);
+  let mode = 'original'; const played = [];
+  const first = '<a href="/vodplay/12-2-1.html">第01集</a>'; const second = '<a href="/vodplay/12-2-2.html">第02集</a>';
+  const query = createVideoQuery({ fetchImpl: async url => {
+    if (url.pathname.startsWith('/voddetail/')) return new Response(mode === 'removed' ? piankuDetail.replace(first, '') : mode === 'reused' ? piankuDetail.replace('第01集', '第03集') : mode === 'reordered' ? piankuDetail.replace(first + second, second + first) : piankuDetail);
+    played.push(url.pathname); return new Response(piankuPlay);
+  } });
+  const detail = request('/api/vod?source=pianku&id=12');
+  assert.equal((await query(detail)).status, 200);
+  const play = request('/api/play?source=pianku&id=12&ref=2-1&name=1');
+  mode = 'reordered'; now += 300001;
+  assert.equal((await query(play)).status, 200); assert.deepEqual(played, ['/vodplay/12-2-1.html']);
+  for (const next of ['removed', 'reused']) {
+    mode = next; now += 300001;
+    assert.equal((await query(play)).status, 404); assert.equal(played.length, 1);
+  }
+  assert.equal((await query(request('/api/play?source=pianku&id=12&line=0&episode=0'))).status, 400);
+  for (const params of ['ref=../1&name=1', 'ref=2-1', 'name=1', 'ref=2-1&name=' + 'x'.repeat(121)]) assert.equal((await query(request('/api/play?source=pianku&id=12&' + params))).status, 400);
 });

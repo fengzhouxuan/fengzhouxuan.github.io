@@ -45,7 +45,10 @@ export function parseRoute(hash) {
     const source = params.get('source'); const id = params.get('id');
     if (!validVideoId(source, id || '')) return { view: 'home' };
     const episode = Number(params.get('episode'));
-    return { view: path, source, id, episode: Number.isInteger(episode) && episode > 0 && episode <= 10000 ? episode - 1 : null };
+    const route = { view: path, source, id, episode: Number.isInteger(episode) && episode > 0 && episode <= 10000 ? episode - 1 : null };
+    const name = plainText(params.get('name'));
+    if (path === 'watch' && name && name.length <= 120) route.episodeName = name;
+    return route;
   }
   if (path === 'browse' || path === 'search') {
     const category = CATEGORIES.find(item => item.id === params.get('category')) || CATEGORIES[0];
@@ -150,7 +153,7 @@ export function filterVideos(videos, { year = '', area = '', status = '' } = {})
   return videos.filter(item => {
     if (year && item.year !== year) return false;
     if (area && (!Object.hasOwn(FILTER_AREAS, area) || !FILTER_AREAS[area].test(item.area || ''))) return false;
-    const complete = /已完结|全\d+|\d+集全|完结|全集|全剧集|HD|高清|正片|蓝光/i.test(item.remarks || '');
+    const complete = item.isComplete === true || /已完结|全\d+|\d+集全|完结|全集|全剧集|HD|高清|正片|蓝光/i.test(item.remarks || '');
     if (status === 'complete' && !complete) return false;
     if (status === 'updating' && (complete || !/更新|连载|^至\d+集/.test(item.remarks || ''))) return false;
     return true;
@@ -275,6 +278,11 @@ export function episodeNumber(name) {
   return match && Number(match[1]) > 0 ? Number(match[1]) : null;
 }
 
+export function sameEpisodeName(first, second) {
+  const left = plainText(first); const right = plainText(second);
+  return Boolean(left && right) && (left === right || episodeNumber(left) !== null && episodeNumber(left) === episodeNumber(right));
+}
+
 export function nextEpisode(index, length) {
   return Number.isInteger(index) && index >= 0 && index + 1 < length ? index + 1 : -1;
 }
@@ -312,9 +320,10 @@ export async function requestVideos(source, { query = '', id = '', page = 1, mod
   return { videos: normalizeResponse(data, source), pages: Math.min(20, Math.max(1, Number(data.pagecount) || 1)), limited: Number(data.pagecount) > 20 };
 }
 
-export async function requestEpisode(source, id, line, episode, { base = '', signal, fetchImpl = fetch } = {}) {
-  if (!validVideoId(source, id) || !['auete', 'pianku'].includes(source) || ![line, episode].every(index => Number.isInteger(index) && index >= 0 && index < 10000)) throw new Error('剧集参数不正确');
-  const params = new URLSearchParams({ source, id, line: String(line), episode: String(episode) });
+export async function requestEpisode(source, id, ref, name, { base = '', signal, fetchImpl = fetch } = {}) {
+  const label = plainText(name);
+  if (!validVideoId(source, id) || !['auete', 'pianku'].includes(source) || !/^\d{1,4}-\d{1,4}$/.test(ref || '') || !label || label.length > 120) throw new Error('剧集参数不正确');
+  const params = new URLSearchParams({ source, id, ref, name: label });
   const response = await fetchQuery(`${base.replace(/\/$/, '')}/api/play?${params}`, signal, fetchImpl);
   let data;
   try { data = await response.json(); } catch { throw queryServiceError('查询服务没有返回有效数据，请重试'); }

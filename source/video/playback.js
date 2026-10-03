@@ -1,4 +1,4 @@
-import { SOURCES, episodeNumber, plainText, validVideoId, videoKey, groupVideos } from './core.js';
+import { SOURCES, episodeNumber, sameEpisodeName, plainText, validVideoId, videoKey, groupVideos } from './core.js';
 
 export function screenPresentation(width, height, mode = 'auto') {
   const valid = Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
@@ -59,12 +59,14 @@ export function resumePosition(position, duration, automatic = false) {
 
 export function createPlaybackIntent(storage = null) {
   const key = 'video-playback-intent';
-  const valid = value => value && validVideoId(value.source, value.id) && Number.isInteger(value.episode) && value.episode >= 0 && value.episode < 10000 && typeof value.paused === 'boolean';
+  const valid = value => value && validVideoId(value.source, value.id) && Number.isInteger(value.episode) && value.episode >= 0 && value.episode < 10000 && typeof value.paused === 'boolean'
+    && (value.episodeName === undefined || typeof value.episodeName === 'string' && value.episodeName.length > 0 && value.episodeName.length <= 120 && plainText(value.episodeName) === value.episodeName);
   let saved = null;
-  try { const text = storage?.getItem(key); const value = typeof text === 'string' && text.length <= 1024 ? JSON.parse(text) : null; if (valid(value)) saved = { source: value.source, id: String(value.id), episode: value.episode, paused: value.paused }; } catch { /* A fresh tab can watch without remembered intent. */ }
+  try { const text = storage?.getItem(key); const value = typeof text === 'string' && text.length <= 1024 ? JSON.parse(text) : null; if (valid(value)) saved = { source: value.source, id: String(value.id), episode: value.episode, paused: value.paused, ...(value.episodeName ? { episodeName: value.episodeName } : {}) }; } catch { /* A fresh tab can watch without remembered intent. */ }
 
-  function remember(item, episode, paused) {
+  function remember(item, episode, paused, name = '') {
     const value = { source: item?.source, id: String(item?.id || ''), episode, paused };
+    if (name) value.episodeName = plainText(name);
     if (!valid(value)) return false;
     saved = value;
     try { storage?.setItem(key, JSON.stringify(value)); } catch { /* The in-tab state still works without storage. */ }
@@ -72,7 +74,13 @@ export function createPlaybackIntent(storage = null) {
   }
 
   function clear() { saved = null; try { storage?.removeItem(key); } catch {} }
-  return { remember, paused: (item, episode) => Boolean(saved?.paused && item?.source === saved.source && String(item.id) === saved.id && episode === saved.episode), clear };
+  const sameFilm = item => Boolean(saved && item?.source === saved.source && String(item.id) === saved.id);
+  return {
+    remember,
+    paused: (item, episode, name = '') => Boolean(saved?.paused && sameFilm(item) && (saved.episodeName && name ? sameEpisodeName(saved.episodeName, name) : episode === saved.episode)),
+    episodeName: (item, episode) => sameFilm(item) && episode === saved.episode ? saved.episodeName || '' : '',
+    clear,
+  };
 }
 
 export function createPlaybackMonitor({ now = () => performance.now(), startupAfter = 20000, stallAfter = 12000, noticeAfter = 1500, seekAfter = 20000 } = {}) {
@@ -162,6 +170,18 @@ export function matchingLine(item, name, movie = false, excludedURLs = new Set()
     if (episode >= 0 && !excludedURLs.has(value.episodes[episode].url)) return { line, episode };
   }
   return null;
+}
+
+export function resolvePlaybackSelection(item, { episode = null, episodeName = '', saved = null, override = null, automatic = true, priority = () => 0 } = {}) {
+  const lines = item?.lines || [];
+  const movie = /电影|片$/.test(item?.category || '');
+  const resume = override || saved;
+  const requested = plainText(override?.episode || episodeName || (episode !== null ? lines[0]?.episodes[episode]?.name || '第' + (episode + 1) + '集' : saved?.episode || ''));
+  const name = requested || lines[0]?.episodes[0]?.name || '';
+  const target = name ? matchingLine(item, name, movie, new Set(), automatic ? priority : (_item, line) => line) : null;
+  const position = resume && (sameEpisodeName(resume.episode, name) || movie && target && lines[target.line].episodes.length === 1) && Number.isFinite(resume.position) ? Math.max(0, resume.position) : 0;
+  if (!target) return { line: -1, episode: -1, name, position, missing: true };
+  return { ...target, name: lines[target.line].episodes[target.episode].name, position, missing: false };
 }
 
 export function createPlaybackFallback({ maximum = 3, priority = () => 0 } = {}) {

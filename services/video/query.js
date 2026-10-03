@@ -1,4 +1,4 @@
-import { SOURCES, CATEGORIES, supportsSource } from './core.js';
+import { SOURCES, CATEGORIES, supportsSource, plainText, sameEpisodeName } from './core.js';
 import { buildAdapterRequest, parsePianku, parseAuete, parseZipSearch, parseZipDetail, buildEpisodePage, parseEpisodeURL } from './adapters.js';
 
 export function buildUpstream(params) {
@@ -64,18 +64,19 @@ export function createVideoQuery({ fetchImpl = fetch, upstreamTimeout = 10000 } 
       const url = new URL(request.url);
       if (url.pathname === '/healthz') return send(200, { service: 'videostation-api', status: 'ok' });
       if (url.pathname === '/api/play') {
-        let adapter; let line; let episode;
+        let adapter; let ref; let name;
         try {
           const params = url.searchParams;
           if (!['pianku', 'auete'].includes(params.get('source')) || !params.get('id')) throw new Error('剧集参数不正确');
           adapter = buildAdapterRequest(params);
-          line = Number(params.get('line')); episode = Number(params.get('episode'));
-          if (!params.has('line') || !params.has('episode') || ![line, episode].every(index => Number.isInteger(index) && index >= 0 && index < 10000)) throw new Error('剧集参数不正确');
+          ref = params.get('ref'); name = plainText(params.get('name'));
+          if (!ref && params.has('episode')) throw new Error('播放页面已更新，请刷新页面后重试');
+          if (!/^\d{1,4}-\d{1,4}$/.test(ref || '') || !name || name.length > 120) throw new Error('剧集参数不正确');
         } catch (error) { return send(400, { error: error.message }); }
         try {
           const detail = await readAdapter(adapter);
-          const ref = detail.list[0]?.vod_lines?.[line]?.episodes[episode]?.ref;
-          if (!ref) return send(404, { error: '这条线路没有这一集，请重新获取影片信息' });
+          const episode = detail.list[0]?.vod_lines?.flatMap(line => line.episodes).find(value => value.ref === ref && sameEpisodeName(value.name, name));
+          if (!episode) return send(404, { error: '来源的剧集目录已变化，请重新获取影片信息或选择其他线路' });
           const page = buildEpisodePage(adapter.source, adapter.id, ref);
           const address = await cached('play:' + page.href, 30000, async () => ({ url: parseEpisodeURL(adapter.source, await readUpstream(page)) }));
           return send(200, address);

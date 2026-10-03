@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, validVideoId, supportsSource, sourceLabel, requestEpisode, sameEpisodeName, safeURL, plainText, parseUpdateSchedule, releaseSchedule, parseLines, normalizeVideo, normalizeResponse, groupVideos, matchEpisode, nextEpisode, requestVideos, loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation } from '../core.js';
+import { SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, validVideoId, supportsSource, sourceLabel, requestEpisode, sameEpisodeName, safeURL, plainText, parseUpdateSchedule, releaseSchedule, parseLines, normalizeVideo, normalizeResponse, groupVideos, matchEpisode, nextEpisode, requestVideos, loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation } from '../../source/video/core.js';
 
 const raw = {
   vod_id: 12, vod_name: '<b>琅琊榜</b>', vod_year: '2015', type_name: '国产剧',

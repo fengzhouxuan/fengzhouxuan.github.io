@@ -26,7 +26,7 @@ function field(html, label) {
 }
 
 function pageCount(html, pattern) {
-  return Math.min(20, Math.max(1, ...[...html.matchAll(pattern)].map(match => Number(match[1] || match[2]))));
+  return Math.max(1, ...[...html.matchAll(pattern)].map(match => Number(match[1] || match[2])));
 }
 
 function ensurePage(html, marker) {
