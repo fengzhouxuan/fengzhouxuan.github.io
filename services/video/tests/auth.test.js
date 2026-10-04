@@ -138,3 +138,28 @@ test('music and video share one OAuth session with separate account data and ind
   await f.request('logout', { token: session.token, method: 'POST' });
   assert.equal((await f.request('music', { token: session.token })).status, 401);
 });
+
+test('concurrent first music saves allow one writer and return the winning snapshot to the conflict', async t => {
+  const f = fixture(t); const session = await f.session();
+  const items = title => ({ favorites: [{ uid: 'netease-12', source: 'netease', songid: '12', title }], playlists: [] });
+  const responses = await Promise.all(['本机修改', '另一台修改'].map(title => f.request('music', { token: session.token, method: 'PUT', body: { version: 0, items: items(title) } })));
+  assert.deepEqual(responses.map(response => response.status).sort(), [200, 409]);
+  const snapshots = await Promise.all(responses.map(response => response.json()));
+  const saved = snapshots[responses.findIndex(response => response.status === 200)];
+  const conflict = snapshots[responses.findIndex(response => response.status === 409)];
+  assert.equal(saved.version, 1); assert.equal(conflict.version, saved.version);
+  assert.equal(conflict.code, 'library_conflict'); assert.deepEqual(conflict.items, saved.items);
+  assert.deepEqual(await (await f.request('music', { token: session.token })).json(), saved);
+});
+
+test('malformed and oversized music writes preserve the last saved library and revision', async t => {
+  const f = fixture(t); const session = await f.session();
+  const items = { favorites: [], playlists: [{ id: 'pl-retained', name: '保留歌单', tracks: [] }] };
+  const saved = await (await f.request('music', { token: session.token, method: 'PUT', body: { version: 0, items } })).json();
+  const track = { uid: 'netease-12', source: 'netease', songid: '12', title: '测试歌曲' };
+  for (const body of [null, { version: 1.5, items }, { version: Number.MAX_SAFE_INTEGER + 1, items }, { version: 1, items: { favorites: Array(1001).fill(track), playlists: [] } }, { version: 1, items: { favorites: [], playlists: Array.from({ length: 101 }, (_, id) => ({ id: 'pl-' + id, tracks: [] })) } }, 'x'.repeat(1100001)]) {
+    const response = await f.request('music', { token: session.token, method: 'PUT', body });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await (await f.request('music', { token: session.token })).json(), saved);
+  }
+});

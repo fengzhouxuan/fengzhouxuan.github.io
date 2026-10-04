@@ -7,7 +7,7 @@ import { MUSIC_LIBRARY_KEY } from '../../source/music/shared/music-library.js';
 const memory = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }; };
 
 test('music account controls handle login, import, automatic sync, shared logout and accessible dismissal', async () => {
-  const storage = memory(); const tabStorage = memory(); const events = new Map(); const nodes = new Map(); const notifications = []; const libraries = [];
+  const storage = memory(); const tabStorage = memory(); const events = new Map(); const nodes = new Map(); const notifications = []; const libraries = []; const libraryScopes = [];
   const element = id => {
     if (!nodes.has(id)) nodes.set(id, { textContent: '', hidden: false, disabled: false, open: false, classList: { toggle() {} }, addEventListener: (name, fn) => events.set(id + ':' + name, fn), contains: target => [...nodes.values()].includes(target), focus() { this.focused = true; } });
     return nodes.get(id);
@@ -30,13 +30,20 @@ test('music account controls handle login, import, automatic sync, shared logout
     return Response.json({ user, items: remote, version });
   };
   try {
-    client = attachMusicAccount({ applyLibrary: value => libraries.push(value), showToast: value => notifications.push(value), getLanguage: () => language });
+    client = attachMusicAccount({ applyLibrary: (value, options) => { libraries.push(value); libraryScopes.push(options?.scopeChanged === true); }, showToast: value => notifications.push(value), getLanguage: () => language });
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(client.state.enabled, true); assert.equal(libraries[0].favorites[0].title, '本机歌曲');
+    assert.equal(libraryScopes[0], true);
     language = 'en'; client.render(); assert.equal(element('music-account-label').textContent, 'Sign in'); language = 'zh'; client.render();
     await events.get('music-account-login:click')(); assert.equal(location.target, 'https://github.com/login/oauth/authorize');
     await client.initialize('#account?ticket=' + 'a'.repeat(43));
     assert.equal(history.url, '/music/#library'); assert.equal(element('music-account-panel').open, true); assert.equal(element('music-account-label').textContent, 'tester');
+    assert.equal(libraryScopes.filter(Boolean).length, 2);
+    assert.equal(libraryScopes.at(-1), false);
+    storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ user, token: 'r'.repeat(43), expiresAt: Date.now() + 86400000 }));
+    events.get('window:storage')({ storageArea: storage, key: ACCOUNT_SESSION_KEY });
+    await client.sync();
+    assert.equal(libraryScopes.filter(Boolean).length, 2, 'Renewing the same account session preserves its playback queue.');
     events.get('music-account-import:click')(); await client.sync(); assert.equal(remote.favorites.length, 1); assert.equal(notifications.length, 1);
     assert.equal(JSON.parse(storage.getItem(MUSIC_LIBRARY_KEY)).favorites.length, 1);
     offline = true; client.changed({ favorites: [], playlists: [] }); await client.sync(); assert.match(element('music-account-status').textContent, /音乐库.*本机/);
@@ -44,6 +51,7 @@ test('music account controls handle login, import, automatic sync, shared logout
     element('music-account-panel').open = true; events.get('document:keydown')({ key: 'Escape' }); assert.equal(element('music-account-panel').open, false); assert.equal(element('music-account-summary').focused, true);
     element('music-account-panel').open = true; events.get('document:click')({ target: {} }); assert.equal(element('music-account-panel').open, false);
     storage.removeItem(ACCOUNT_SESSION_KEY); events.get('window:storage')({ storageArea: storage, key: ACCOUNT_SESSION_KEY }); assert.equal(client.state.user, null); assert.equal(client.state.items.favorites.length, 1);
+    assert.equal(libraryScopes.at(-1), true);
     events.get('window:storage')({ storageArea: {}, key: null }); events.get('document:visibilitychange')(); await events.get('window:online')();
     events.get('music-account-logout:click')(); assert.equal(storage.getItem(ACCOUNT_SESSION_KEY), null);
   } finally {

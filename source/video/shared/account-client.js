@@ -14,26 +14,34 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
   const mergeData = library.merge;
   const endpoint = base.replace(/\/$/, '');
   const state = { user: null, enabled: null, phase: 'local', pending: false, items: copy(library.empty), lastSync: 0, message: '' };
-  let session = null; let baseline = copy(library.empty); let version = 0; let generation = 0; let pending; let controller; let timer;
+  let session = null; let baseline = copy(library.empty); let persisted = copy(library.empty); let observed = copy(library.empty); let version = 0; let generation = 0; let pending; let controller; let timer;
   const metaKey = () => library.namespace + '-cloud:' + state.user?.id;
   function read(key, fallback) { try { return JSON.parse(storage?.getItem(key) || 'null') ?? fallback; } catch { return fallback; } }
   function write(key, value) { try { storage?.setItem(key, JSON.stringify(value)); return Boolean(storage); } catch { return false; } }
-  function readItems(user) { try { return cleanData(library.read(storage, user)); } catch { return copy(library.empty); } }
+  function readItems(user, fallback = library.empty) { try { return storage ? cleanData(library.read(storage, user)) : copy(fallback); } catch { return copy(fallback); } }
+  // Remember records received from another tab, even before that tab's cloud
+  // revision is known, so deleting them cannot be mistaken for a new cloud item.
+  function observe() { observed = state.user ? mergeData(library.empty, state.items, observed) : copy(state.items); }
   function remember() {
-    state.pending = Boolean(state.user && !equal(state.items, baseline));
+    observe();
+    state.pending = Boolean(state.user && (!equal(state.items, baseline) || !equal(state.items, observed)));
     const saved = write(storageKey(state.user), state.items);
-    if (state.user) write(metaKey(), { baseline, version, lastSync: state.lastSync });
-    if (!saved) state.message = `浏览器无法保存，${label}只保留在本次打开的页面中；请保持页面打开直到同步完成。`;
+    if (saved) persisted = copy(state.items);
+    const metaSaved = !state.user || write(metaKey(), { baseline, observed, version, lastSync: state.lastSync });
+    if (!saved || !metaSaved) state.message = `浏览器无法保存，${label}只保留在本次打开的页面中；请保持页面打开直到同步完成。`;
     onChange(state);
   }
   function scope(next) {
     generation++; controller?.abort(); clearTimeout(timer); pending = null;
     session = next; state.user = next?.user || null; state.items = readItems(state.user);
+    persisted = copy(state.items);
     const meta = state.user ? read(metaKey(), {}) : {};
     try { baseline = cleanData(meta.baseline || library.empty); } catch { baseline = copy(library.empty); }
+    try { observed = cleanData(meta.observed || baseline); } catch { observed = copy(baseline); }
+    observe();
     version = Number.isSafeInteger(meta.version) && meta.version >= 0 ? meta.version : 0;
     state.lastSync = Number.isFinite(meta.lastSync) ? meta.lastSync : 0;
-    state.pending = Boolean(state.user && !equal(state.items, baseline));
+    state.pending = Boolean(state.user && (!equal(state.items, baseline) || !equal(state.items, observed)));
     state.phase = !state.user ? 'local' : tokenValid(session.token) && session.expiresAt > now() ? 'idle' : 'expired';
     state.message = state.phase === 'expired' ? `登录已过期，${label}仍在本机，请重新登录后同步。` : '';
     onScope(state); onChange(state);
@@ -61,8 +69,13 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
     return { items: cleanData(data.items), version: data.version };
   }
   function apply(remote, previous = baseline) {
-    state.items = mergeData(previous, state.items, remote.items);
+    const merged = mergeData(previous, state.items, remote.items);
+    // Use current metadata for observed records: this second merge adds only
+    // deletion evidence and leaves cloud metadata/order decisions intact.
+    const before = mergeData(library.empty, state.items, observed);
+    state.items = mergeData(before, state.items, merged);
     baseline = copy(remote.items); version = remote.version;
+    if (equal(state.items, baseline)) observed = copy(baseline);
     onData(copy(state.items)); remember();
   }
   async function sync() {
@@ -100,7 +113,8 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
   }
   function changed(items) {
     const next = cleanData(items);
-    state.items = cleanData(mergeData(state.items, next, readItems(state.user)));
+    observe();
+    state.items = cleanData(mergeData(persisted, next, readItems(state.user, persisted)));
     onData(copy(state.items)); remember();
     if (state.user && state.phase !== 'expired') { clearTimeout(timer); timer = setTimeout(sync, 800); }
   }
@@ -151,9 +165,14 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
     return false;
   }
   function refreshLocal() {
-    const latest = readItems(state.user);
-    if (equal(latest, state.items)) return false;
-    changed(latest); return true;
+    const latest = readItems(state.user, persisted);
+    if (equal(latest, persisted)) return false;
+    observe();
+    state.items = cleanData(mergeData(persisted, state.items, latest));
+    persisted = copy(latest);
+    onData(copy(state.items)); remember();
+    if (state.user && state.phase !== 'expired') { clearTimeout(timer); timer = setTimeout(sync, 800); }
+    return true;
   }
   return { state, initialize, login, logout, sync, changed, importLocal, refreshSession, refreshLocal, localCount: () => library.count(readItems(null)) };
 }

@@ -731,13 +731,39 @@
       }
     }
 
-    function applyLibrary(data){
+    function applyLibrary(data,{scopeChanged=false}={}){
       const selected=dom.playlistSelect.value;
+      const context=state.playContext;
+      const libraryQueue=context.type==='favorites' || context.type==='playlist';
+      const previousList=libraryQueue
+        ? (context.queueUids || getActiveList().map(track=>track.uid)).map(uid=>({uid})) : [];
+      const previousIndex=previousList.findIndex(track=>track.uid===state.currentTrack?.uid);
       state.favorites=data.favorites.map(deserializeTrack).filter(Boolean);
       state.playlists=data.playlists.map(pl=>({...pl,tracks:pl.tracks.map(deserializeTrack).filter(Boolean)}));
       rebuildLibraryTrackMap();
-      if(state.playContext.type==='playlist' && !state.playlists.some(pl=>pl.id===state.playContext.playlistId)){
-        state.playContext={type:'results',index:-1,playlistId:null};
+      if(libraryQueue){
+        if(scopeChanged || context.type==='playlist' && !state.playlists.some(pl=>pl.id===context.playlistId)){
+          // Keep the current audio, but do not continue a queue from another library.
+          state.playContext={type:'standalone',index:-1,playlistId:null};
+        }else{
+          const list=getActiveList();
+          const currentIndex=list.findIndex(track=>track.uid===state.currentTrack?.uid);
+          if(currentIndex>=0){
+            state.playContext={...context,index:currentIndex,queueUids:list.map(track=>track.uid)};
+            delete state.playContext.nextUid;delete state.playContext.previousUid;
+          }else{
+            // Finish a removed song, then choose its closest surviving old neighbor.
+            const oldNext=previousList.findIndex(track=>track.uid===context.nextUid);
+            const gap=previousIndex>=0 ? previousIndex : oldNext>=0 ? oldNext-1 : context.index;
+            const ids=new Set(list.map(track=>track.uid));
+            const survives=track=>ids.has(track.uid);
+            const next=previousList.slice(gap+1).find(survives);
+            const previous=previousList.slice(0,gap+1).reverse().find(survives);
+            state.playContext={...context,index:-1,queueUids:list.map(track=>track.uid),
+              nextUid:next?.uid || list[0]?.uid,
+              previousUid:previous?.uid || list[list.length-1]?.uid};
+          }
+        }
       }
       renderPlaylistOptions();
       if(state.playlists.some(pl=>pl.id===selected))dom.playlistSelect.value=selected;
@@ -1639,6 +1665,7 @@
 
     function getActiveList(){
       const tp=state.playContext.type;
+      if(tp==='standalone')return [];
       if(tp==='featured')return state.featured.queue;
       if(tp==='results'){
         let list=getInterleavedSearchList();
@@ -1671,6 +1698,7 @@
       if(index<0)index=list.length-1;
       if(index>=list.length)index=0;
       state.playContext={type,index,playlistId:plId||null};
+      if(type==='favorites' || type==='playlist')state.playContext.queueUids=list.map(track=>track.uid);
       playTrack(list[index],state.playContext);
     }
 
@@ -1680,6 +1708,11 @@
         const index=MusicSquareFeatured.nextIndex(list,state.playContext.index,direction,state.playMode==='single'?'list':state.playMode,state.featured.failed);
         if(index>=0)playFromList('featured',index,state.playContext.playlistId);
         return;
+      }
+      const neighbor=direction==='prev' ? state.playContext.previousUid : state.playContext.nextUid;
+      if(neighbor && state.playMode==='list'){
+        const index=list.findIndex(track=>track.uid===neighbor);
+        if(index>=0){playFromList(state.playContext.type,index,state.playContext.playlistId);return;}
       }
       let idx=state.playContext.index ?? -1;
       if(idx<0||idx>=list.length)idx=0;

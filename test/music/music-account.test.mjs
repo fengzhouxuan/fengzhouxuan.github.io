@@ -122,3 +122,108 @@ test('large legacy libraries stay usable locally and show cloud limits without l
   const migrated = f.client({ storage: guest, guest: true }); assert.equal(migrated.account.state.items.favorites.length, 1);
   assert.equal(JSON.parse(guest.getItem(musicLibraryStorageKey())).favorites.length, 2);
 });
+
+test('failed persistence retains consecutive favorites and playlist edits instead of treating old storage as deletion', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const storage = memory();
+  const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked) throw new Error('quota'); originalSet(key, value); };
+  const a = f.client({ storage }); await a.account.initialize(); blocked = true; f.offline(true);
+  a.account.changed(collection([song(1), song(2)], [song(1), song(2)]));
+  assert.equal(a.account.refreshLocal(), false);
+  a.account.changed(collection([song(1), song(2), song(3)], [song(1), song(2), song(3)], '新名称'));
+  assert.deepEqual(a.account.state.items.favorites.map(item => item.songid), ['1', '2', '3']);
+  assert.deepEqual(a.account.state.items.playlists[0].tracks.map(item => item.songid), ['1', '2', '3']);
+  assert.equal(await a.account.sync(), false); assert.match(a.account.state.message, /无法保存/);
+  blocked = false; f.offline(false); await a.account.sync();
+  assert.deepEqual(f.records.get('12/music').items, a.account.state.items); assert.equal(a.account.state.pending, false);
+});
+
+test('a cloud apply that cannot be persisted stays present in the next edit', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const storage = memory();
+  const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked) throw new Error('quota'); originalSet(key, value); };
+  const a = f.client({ storage }); await a.account.initialize(); blocked = true;
+  const remote = f.records.get('12/music'); remote.items = collection([song(1), song(2)], [song(1), song(2)]); remote.version++;
+  await a.account.sync(); a.account.changed(collection([song(1), song(2), song(3)], [song(1), song(2), song(3)]));
+  assert.deepEqual(a.account.state.items.favorites.map(item => item.songid), ['1', '2', '3']);
+  assert.deepEqual(a.account.state.items.playlists[0].tracks.map(item => item.songid), ['1', '2', '3']);
+});
+
+test('failed synchronization metadata persistence warns without losing edits kept by this tab', async t => {
+  const f = fixture(t, collection([song(1)])); const storage = memory();
+  const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked && key.startsWith('music-cloud:')) throw new Error('quota'); originalSet(key, value); };
+  const a = f.client({ storage }); await a.account.initialize(); blocked = true;
+  a.account.changed(collection([song(1), song(2)])); a.account.changed(collection([song(1), song(2), song(3)]));
+  assert.match(a.account.state.message, /无法保存/);
+  assert.deepEqual(a.account.state.items.favorites.map(item => item.songid), ['1', '2', '3']);
+  blocked = false; await a.account.sync();
+  assert.equal(a.account.state.pending, false); assert.equal(a.account.state.message, '');
+});
+
+test('another tab can delete newly received favorites, playlists and nested songs after they reach the cloud', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const shared = memory();
+  const a = f.client({ storage: shared }); const b = f.client({ storage: shared });
+  await a.account.initialize(); await b.account.initialize();
+  const added = collection([song(1), song(2)], [song(1), song(2)]);
+  added.playlists.push({ id: 'pl-new', name: '新歌单', tracks: [song(2)] });
+  a.account.changed(added); assert.equal(b.account.refreshLocal(), true); await a.account.sync();
+  b.account.changed(collection([song(1)], [song(1)]));
+  await b.account.sync(); await a.account.sync();
+  assert.deepEqual(f.records.get('12/music').items, collection([song(1)], [song(1)]));
+  assert.deepEqual(a.account.state.items, b.account.state.items);
+});
+
+test('newly observed deletions survive an offline reload without blocking unrelated remote additions', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const shared = memory();
+  const a = f.client({ storage: shared }); const b = f.client({ storage: shared });
+  await a.account.initialize(); await b.account.initialize();
+  a.account.changed(collection([song(1), song(2)], [song(1), song(2)])); b.account.refreshLocal(); await a.account.sync();
+  f.offline(true); b.account.changed(collection([song(1)], [song(1)])); await b.account.sync();
+  const reloaded = f.client({ storage: shared });
+  const remote = f.records.get('12/music'); remote.items.favorites.push(song(3)); remote.items.playlists[0].tracks.push(song(3)); remote.version++;
+  f.offline(false); await reloaded.account.initialize();
+  assert.deepEqual(new Set(reloaded.account.state.items.favorites.map(item => item.songid)), new Set(['1', '3']));
+  assert.deepEqual(new Set(reloaded.account.state.items.playlists[0].tracks.map(item => item.songid)), new Set(['1', '3']));
+  const meta = JSON.parse(shared.getItem('music-cloud:12'));
+  assert.deepEqual(meta.observed, meta.baseline);
+});
+
+test('deletion evidence preserves cloud metadata and order and is isolated when the account changes', async t => {
+  const f = fixture(t, collection([song(1)], [song(1), song(2)])); const a = f.client(); await a.account.initialize();
+  a.account.changed(collection([song(1), song(3)], [song(1), song(2), song(3)]));
+  a.account.changed(collection([song(1)], [song(1), song(2)]));
+  assert.equal(a.account.state.pending, true);
+  const remote = f.records.get('12/music');
+  remote.items = collection([{ ...song(1), title: '云端标题' }], [song(2), song(1)], '云端名称'); remote.version++;
+  await a.account.sync();
+  assert.equal(a.account.state.items.favorites[0].title, '云端标题');
+  assert.equal(a.account.state.items.playlists[0].name, '云端名称');
+  assert.deepEqual(a.account.state.items.playlists[0].tracks.map(item => item.songid), ['2', '1']);
+  assert.equal(a.account.state.pending, false);
+  const other = { id: '13', login: 'other' };
+  a.storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ user: other, token: 'o'.repeat(43), expiresAt: 1e12 }));
+  f.records.set('13/music', { items: collection([song(3)], [song(3)]), version: 1 });
+  a.account.refreshSession(); await a.account.sync();
+  assert.deepEqual(a.account.state.items.favorites.map(item => item.songid), ['3']);
+});
+
+test('new records removed while the creating tab upload response is delayed remain deleted', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const shared = memory();
+  const a = f.client({ storage: shared }); const b = f.client({ storage: shared });
+  await a.account.initialize(); await b.account.initialize();
+  a.account.changed(collection([song(1), song(2)], [song(1), song(2)])); b.account.refreshLocal();
+  let release; let once = true;
+  f.intercept(async (_url, init) => {
+    if (init.method !== 'PUT' || !once) return null;
+    once = false; const value = f.records.get('12/music');
+    value.items = JSON.parse(init.body).items; value.version++;
+    const response = Response.json({ user, ...value });
+    return new Promise(resolve => { release = () => resolve(response); });
+  });
+  const pending = a.account.sync(); while (!release) await new Promise(resolve => setImmediate(resolve));
+  b.account.changed(collection([song(1)], [song(1)])); await b.account.sync();
+  a.account.refreshLocal(); release(); await pending;
+  assert.deepEqual(f.records.get('12/music').items, collection([song(1)], [song(1)]));
+  assert.deepEqual(a.account.state.items, b.account.state.items);
+});

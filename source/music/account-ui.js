@@ -5,7 +5,7 @@ import config from './config.js';
 
 export function attachMusicAccount({ applyLibrary, showToast, getLanguage = () => 'zh' }) {
   const get = id => document.getElementById(id);
-  let storage = null; let tabStorage = null; let client;
+  let storage = null; let tabStorage = null; let client; let libraryOwner;
   try { storage = window.localStorage; } catch { /* The shared client reports unavailable persistence. */ }
   try { tabStorage = window.sessionStorage; } catch { /* Login needs the per-tab proof. */ }
   const panel = get('music-account-panel');
@@ -38,7 +38,13 @@ export function attachMusicAccount({ applyLibrary, showToast, getLanguage = () =
   }
   client = createMusicAccountClient({
     base: config.accountApiBase, storage, tabStorage,
-    onChange: render, onScope: value => applyLibrary(value.items), onLibrary: applyLibrary,
+    onChange: render,
+    onScope(value) {
+      const owner = value.user?.id ?? null;
+      const scopeChanged = owner !== libraryOwner; libraryOwner = owner;
+      applyLibrary(value.items, { scopeChanged });
+    },
+    onLibrary: applyLibrary,
     onCallback(hash) { history.replaceState(null, '', location.pathname + location.search + hash); panel.open = true; },
   });
   get('music-account-login').addEventListener('click', async () => {

@@ -105,3 +105,14 @@ test('cross-tab account switches cancel stale sync responses and keep each accou
   assert.equal(f.client.state.user.id, '13'); assert.deepEqual(f.client.state.items, [film('14')]); assert.equal(f.client.refreshSession(), false);
   f.storage.removeItem('video-account-session-v1'); assert.equal(f.client.refreshSession(), true); assert.equal(f.client.state.user, null);
 });
+
+test('consecutive edits and storage refresh retain unsaved favorites when persistence fails', async t => {
+  const storage = memory(); const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked) throw new Error('quota'); originalSet(key, value); };
+  const f = fixture(t, { storage, remote: [film()] }); await f.client.initialize(); blocked = true;
+  f.client.changed([film(), film('13')]);
+  assert.equal(f.client.refreshLocal(), false);
+  f.client.changed([film(), film('13'), film('14')]);
+  assert.deepEqual(new Set(f.client.state.items.map(item => item.id)), new Set(['12', '13', '14']));
+  assert.match(f.client.state.message, /无法保存/);
+});
