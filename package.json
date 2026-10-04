@@ -8,7 +8,8 @@
     "check": "hexo clean && hexo generate",
     "clean": "hexo clean",
     "server": "hexo server",
-    "test:video": "node --test --experimental-test-coverage --test-coverage-include=source/video/core.js --test-coverage-include=source/video/catalog.js --test-coverage-include=source/video/home.js --test-coverage-include=source/video/playback.js --test-coverage-include=source/video/experience.js --test-coverage-include=source/video/watchlist.js --test-coverage-include=source/video/account.js --test-coverage-include=source/video/favorites.js --test-coverage-include=source/video/resilience.js test/video/*.test.mjs && npm --prefix services/video run check"
+    "test:video": "node --test --experimental-test-coverage --test-coverage-include=source/video/core.js --test-coverage-include=source/video/catalog.js --test-coverage-include=source/video/home.js --test-coverage-include=source/video/playback.js --test-coverage-include=source/video/experience.js --test-coverage-include=source/video/watchlist.js --test-coverage-include=source/video/account.js --test-coverage-include=source/video/favorites.js --test-coverage-include=source/video/resilience.js --test-coverage-include=source/video/shared/*.js test/video/*.test.mjs && npm --prefix services/video run check",
+    "test:music": "node --test --experimental-test-coverage --test-coverage-include=source/music/shared/*.js test/music/*.test.mjs test/shared-account-sync.test.mjs"
   },
   "hexo": {
     "version": "8.1.2"

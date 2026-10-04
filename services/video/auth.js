@@ -1,5 +1,6 @@
 import { safeURL } from './core.js';
 import { cleanFavorites } from './favorites.js';
+import { cleanMusicLibrary, EMPTY_MUSIC_LIBRARY } from './shared/music-library.js';
 
 const encoder = new TextEncoder();
 const encode = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -27,7 +28,7 @@ export function createAccountService({ fetchImpl = fetch, now = Date.now } = {})
     const row = (sql, ...args) => db.prepare(sql).bind(...args).first();
     async function body() {
       if (!request.headers.get('Content-Type')?.startsWith('application/json')) throw new Error('请求格式不正确');
-      const text = await request.text(); if (text.length > 350000) throw new Error('请求内容过大');
+      const text = await request.text(); if (encoder.encode(text).length > (url.pathname === '/api/account/music' ? 1100000 : 350000)) throw new Error('请求内容过大');
       return JSON.parse(text);
     }
     try {
@@ -39,7 +40,7 @@ export function createAccountService({ fetchImpl = fetch, now = Date.now } = {})
         let data; try { data = await body(); } catch { return send(400, { error: '登录请求格式不正确' }); }
         let returnTo;
         try { returnTo = new URL(data.returnTo); } catch { return send(400, { error: '返回页面不正确' }); }
-        if (!validToken(data.challenge) || returnTo.origin !== origin || !allowedOrigins.includes(returnTo.origin) || returnTo.username || returnTo.password || returnTo.search || returnTo.hash || ![new URL(site).pathname, '/'].includes(returnTo.pathname) || returnTo.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(returnTo.hostname)) return send(400, { error: '登录参数不正确' });
+        if (!validToken(data.challenge) || returnTo.origin !== origin || !allowedOrigins.includes(returnTo.origin) || returnTo.username || returnTo.password || returnTo.search || returnTo.hash || ![new URL(site).pathname, '/video/', '/music/', '/'].includes(returnTo.pathname) || returnTo.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(returnTo.hostname)) return send(400, { error: '登录参数不正确' });
         await db.batch(['video_oauth_flows', 'video_login_tickets', 'video_sessions'].map(table => db.prepare('DELETE FROM ' + table + ' WHERE expires_at < ?').bind(now())));
         const active = await row('SELECT COUNT(*) AS total FROM video_oauth_flows');
         if (active.total >= 100) return send(429, { code: 'login_busy', error: '登录请求较多，请稍后重试' });
@@ -101,6 +102,19 @@ export function createAccountService({ fetchImpl = fetch, now = Date.now } = {})
           const result = await row('UPDATE video_users SET favorites = ?, revision = revision + 1 WHERE github_id = ? AND revision = ? RETURNING *', JSON.stringify(items), account.github_id, data.version);
           if (result) return send(200, snapshot(result));
           return send(409, { code: 'favorites_conflict', ...snapshot(await row('SELECT * FROM video_users WHERE github_id = ?', account.github_id)) });
+        }
+      }
+      if (url.pathname === '/api/account/music') {
+        const current = () => row("SELECT * FROM account_libraries WHERE github_id = ? AND namespace = 'music'", account.github_id);
+        const snapshot = value => ({ user: publicUser(account), items: value ? cleanMusicLibrary(JSON.parse(value.data)) : EMPTY_MUSIC_LIBRARY, version: value?.revision || 0 });
+        if (request.method === 'GET') return send(200, snapshot(await current()));
+        if (request.method === 'PUT') {
+          let data; let items;
+          try { data = await body(); items = cleanMusicLibrary(data.items); if (!Number.isSafeInteger(data.version) || data.version < 0) throw new Error('同步版本不正确'); }
+          catch (error) { return send(400, { error: error.message }); }
+          await db.prepare("INSERT OR IGNORE INTO account_libraries (github_id, namespace) VALUES (?, 'music')").bind(account.github_id).run();
+          const result = await row("UPDATE account_libraries SET data = ?, revision = revision + 1 WHERE github_id = ? AND namespace = 'music' AND revision = ? RETURNING *", JSON.stringify(items), account.github_id, data.version);
+          return result ? send(200, snapshot(result)) : send(409, { code: 'library_conflict', ...snapshot(await current()) });
         }
       }
       return send(405, { error: '不支持这个账号操作' });

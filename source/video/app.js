@@ -146,7 +146,7 @@ function renderAccount(value = accountClient?.state) {
   const status = value.message || (!loggedIn ? value.enabled === false ? '账号同步正在准备中；本地收藏可以正常使用。' : '使用受邀的 GitHub 账号登录后，可在不同电脑同步收藏。'
     : value.phase === 'syncing' ? '正在同步收藏…' : value.pending ? '有收藏等待同步，已保留在本机。' : value.lastSync ? '收藏已同步 · ' + new Date(value.lastSync).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '收藏保留在本机，点击同步获取云端片单。');
   $('account-status').textContent = status;
-  $('account-status').classList.toggle('error', ['offline', 'expired'].includes(value.phase));
+  $('account-status').classList.toggle('error', ['offline', 'expired', 'error'].includes(value.phase));
   $('account-login').hidden = loggedIn && value.phase !== 'expired'; $('account-login').disabled = value.enabled === false;
   $('account-login').textContent = value.phase === 'expired' ? '重新用 GitHub 登录' : 'GitHub 登录';
   $('account-sync').hidden = !loggedIn; $('account-sync').disabled = value.phase === 'syncing' || value.phase === 'expired';
@@ -1340,12 +1340,12 @@ window.addEventListener('offline', resumePlaybackChecks);
 document.addEventListener('visibilitychange', resumePlaybackChecks);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && syncSavedRecords()) renderSavedRecords(); });
 window.addEventListener('storage', event => {
-  if (event.storageArea === storage && (event.key === 'video-account-session-v1' || event.key === null)) accountClient.refreshSession();
+  if (event.storageArea === storage && (event.key === 'video-account-session-v1' || event.key === null) && accountClient.refreshSession()) accountClient.sync();
   if (event.storageArea === storage && event.key === favoriteStorageKey(state.account) && syncSavedRecords()) renderSavedRecords();
   if (event.storageArea === storage && (event.key === null || Object.hasOwn(savedBaselines, event.key)) && syncSavedRecords()) renderSavedRecords();
 });
 window.addEventListener('online', () => { if (backendTransport.state.phase !== 'limited') backendTransport.retry().then(ready => { if (ready) accountClient.sync(); }); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && accountClient.state.user && Date.now() - accountClient.state.lastSync > 60000) accountClient.sync(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { const changed = accountClient.refreshSession(); if (accountClient.state.user && (changed || Date.now() - accountClient.state.lastSync > 60000)) accountClient.sync(); } });
 window.addEventListener('pagehide', () => {
   if (['browse', 'search'].includes(state.route.view)) rememberCatalogPosition();
   if (state.route.view === 'home') rememberHomePosition();

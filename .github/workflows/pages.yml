@@ -55,6 +55,9 @@ jobs:
       - name: Export music station
         run: node .music-station/scripts/export-site.mjs source/music
 
+      - name: Test shared login and music library synchronization
+        run: npm run test:music
+
       - name: Preserve committed wallpaper seed
         run: cp source/wallpapers/data/official-feeds.json "$RUNNER_TEMP/wallpaper-official-seed.json"
 

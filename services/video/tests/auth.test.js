@@ -12,7 +12,7 @@ const verifier = 'p'.repeat(43);
 const film = cleanFavorites([{ uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试影片' }])[0];
 
 function fixture(t, options = {}) {
-  const db = createD1(new URL('../migrations/0001_accounts.sql', import.meta.url)); t.after(() => db.close());
+  const db = createD1(['0001_accounts', '0002_music_library'].map(name => new URL('../migrations/' + name + '.sql', import.meta.url))); t.after(() => db.close());
   let time = 1000000; const calls = [];
   const env = { VIDEO_DB: db, VIDEO_ALLOWED_ORIGINS: origin, VIDEO_SITE_URL: origin + '/video/', VIDEO_GITHUB_CLIENT_ID: 'public-client', VIDEO_GITHUB_CLIENT_SECRET: 'server-secret', VIDEO_GITHUB_ALLOWLIST: 'tester', ...options.env };
   const user = { id: 12, login: 'tester', avatar_url: 'https://avatars.githubusercontent.com/12' };
@@ -113,4 +113,28 @@ test('pending login records are bounded and expired records are cleaned without 
   for (let index = 0; index < 100; index++) f.db.database.prepare('INSERT INTO video_oauth_flows VALUES (?, ?, ?, ?, ?)').run(String(index), verifier, verifier, origin, 2000000);
   assert.equal((await f.request('login', { method: 'POST', body: { challenge: await digest(verifier), returnTo: origin + '/video/' } })).status, 429);
   f.advance(2000000); assert.ok((await f.start()).url); assert.equal(f.db.database.prepare('SELECT COUNT(*) AS count FROM video_oauth_flows').get().count, 1);
+});
+
+test('music and video share one OAuth session with separate account data and independent revisions', async t => {
+  const f = fixture(t);
+  const login = await f.start({ returnTo: origin + '/music/' });
+  const callback = await f.callback(login); assert.match(callback.headers.get('Location'), /^https:\/\/site\.example\/music\/#account\?/);
+  const ticket = new URLSearchParams(new URL(callback.headers.get('Location')).hash.slice(9)).get('ticket');
+  const session = await (await f.request('exchange', { method: 'POST', body: { ticket, verifier } })).json();
+  const items = { favorites: [{ uid: 'netease-12', source: 'netease', songid: '12', title: '测试歌曲', audioUrl: 'https://private.example/audio', lrc: 'lyrics' }], playlists: [{ id: 'pl-test', name: '我的歌单', tracks: [] }] };
+  assert.deepEqual((await (await f.request('music', { token: session.token })).json()).items, { favorites: [], playlists: [] });
+  const music = await (await f.request('music', { token: session.token, method: 'PUT', body: { version: 0, items } })).json();
+  assert.equal(music.version, 1); assert.equal(music.items.favorites[0].audioUrl, undefined); assert.equal(music.items.favorites[0].lrc, undefined);
+  const video = await (await f.request('favorites', { token: session.token, method: 'PUT', body: { version: 0, items: [film] } })).json();
+  assert.equal(video.version, 1); assert.deepEqual(video.items, [film]);
+  assert.equal((await (await f.request('music', { token: session.token })).json()).version, 1);
+  const conflict = await f.request('music', { token: session.token, method: 'PUT', body: { version: 0, items: { favorites: [], playlists: [] } } });
+  assert.equal(conflict.status, 409); assert.deepEqual((await conflict.json()).items, music.items);
+  for (const body of ['{bad', { version: -1, items }, { version: 1, items: { ...items, playlists: [{ id: '../bad', tracks: [] }] } }]) assert.equal((await f.request('music', { token: session.token, method: 'PUT', body })).status, 400);
+  assert.equal((await f.request('music', { token: session.token, method: 'POST' })).status, 405);
+  assert.equal((await f.request('music', { token: session.token, from: 'https://bad.example' })).status, 403);
+  f.user.id = 13; const other = await f.session();
+  assert.deepEqual((await (await f.request('music', { token: other.token })).json()).items, { favorites: [], playlists: [] });
+  await f.request('logout', { token: session.token, method: 'POST' });
+  assert.equal((await f.request('music', { token: session.token })).status, 401);
 });

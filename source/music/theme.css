@@ -41,6 +41,20 @@ header::after { left:25%; }
 .blog-nav a[aria-current],.blog-nav a:hover { color:var(--accent);background-color:var(--accent-soft);background-image:var(--tape-stripes); }
 .blog-nav svg { width:15px;height:15px; }
 .header-controls { gap:14px; }
+.account-panel { position:relative;font-size:12px;flex-shrink:0; }
+.account-panel summary { display:flex;align-items:center;gap:7px;cursor:pointer;list-style:none;border:1px solid var(--line);border-radius:var(--radius-control);padding:5px 9px;color:var(--ink-soft);background:var(--paper); }
+.account-panel summary::-webkit-details-marker { display:none; }
+.account-panel summary svg { width:16px;height:16px;flex-shrink:0; }
+.account-panel[open] summary { color:var(--accent);border-color:var(--accent-line); }
+#music-account-label { max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.account-popover { position:absolute;right:0;top:calc(100% + 10px);width:min(320px,calc(100vw - 40px));padding:20px;background:var(--paper);border:1px solid var(--dash);border-radius:var(--radius-control);box-shadow:0 8px 30px rgba(82,64,38,.12);z-index:40; }
+.account-popover strong { font-size:15px; }
+.account-popover p { margin:10px 0 16px;color:var(--muted);font-size:12px;line-height:1.8; }
+.account-popover p.error { color:var(--favorite); }
+.account-actions { display:flex;gap:8px;flex-wrap:wrap; }
+.account-actions .btn { font-size:12px; }
+.library-sync-note { margin:0 0 14px;color:var(--muted);font-size:11px;line-height:1.8; }
+header:has(.account-panel[open]) { z-index:40; }
 .mobile-search-link { display:none; }
 .lang-toggle { display:flex;gap:3px; }
 .lang-btn { border:0;border-radius:var(--radius-handdrawn);padding:3px 7px;background:transparent;color:var(--muted);font-size:12px; }
@@ -300,6 +314,8 @@ kbd { display:inline-block;margin-right:3px;padding:1px 5px;border:1px solid var
   .blog-nav a { font-size:13px;padding:2px 9px; }
   .blog-nav svg { display:block;width:14px;height:14px; }
   .header-controls { margin-left:auto;gap:8px; }
+  .account-panel { position:static; }
+  .account-popover { right:16px;top:calc(100% + 8px);width:min(320px,calc(100vw - 48px)); }
   .lang-btn { font-size:11px;padding:2px 5px; }
   .mobile-search-link { display:inline;font-size:11px;color:var(--muted); }
   .shortcut-toggle-btn { display:none; }

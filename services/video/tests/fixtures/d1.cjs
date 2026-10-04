@@ -2,7 +2,8 @@ const { DatabaseSync } = require('node:sqlite');
 const { readFileSync } = require('node:fs');
 
 exports.createD1 = schema => {
-  const database = new DatabaseSync(':memory:'); database.exec(readFileSync(schema, 'utf8'));
+  const database = new DatabaseSync(':memory:');
+  for (const file of Array.isArray(schema) ? schema : [schema]) database.exec(readFileSync(file, 'utf8'));
   return {
     database,
     prepare(sql) {

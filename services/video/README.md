@@ -32,3 +32,14 @@ Wrangler 使用账号的本地登录状态；凭证不保存到仓库。生产�
 后端限额错误可能没有 CORS 响应头。前端 `resilience.js` 区分明确1027错误与普通不可用，暂停重复请求；量子可尝试浏览器直连，其他来源读取同一查询页的缓存，最多24份、约1MB文本、24小时有效。没有缓存时明确失败，不显示成完整空结果。`/api/play` 和账号请求不进入目录缓存，收藏同步失败不会退出账号或清空片单。缓存目录并不能保证所有视频可播放。
 
 2026-10-02：量子、如意、Auete、ZIP0 的查询样本正常；片库要求验证，非凡在 Workers 查询中暂时失败。各来源单独降级，不自动通过验证或执行上游脚本。
+
+## 音乐站共享账号同步
+
+新增 `GET/PUT /api/account/music`，与视频站共用 GitHub 登录、邀请名单、会话及 D1。音乐库存储于独立表 `account_libraries`，首次发布时应用 `migrations/0002_music_library.sql`，再部署 Worker：
+
+```sh
+npx --yes wrangler@4.146.0 d1 migrations apply video-accounts --remote
+npm run deploy
+```
+
+迁移只新增音乐表，保留原视频数据。前端公共模块来自 `videostation/shared/`；博客构建在导出 musicsquare 后运行 `npm run test:music`，检查模块一致性、账号隔离、离线合并与界面交互。发布前先推送 musicsquare 更新，再推送博客，最后验收真实 GitHub 登录与双设备同步。

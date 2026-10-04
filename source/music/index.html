@@ -25,6 +25,19 @@
         <a href="/music/" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2.5"/><ellipse cx="17" cy="16" rx="3" ry="2.5"/></svg><span data-i18n="navMusic">音乐站</span></a>
       </nav>
       <div class="header-controls">
+        <details id="music-account-panel" class="account-panel">
+          <summary id="music-account-summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><span id="music-account-label">登录同步</span></summary>
+          <div class="account-popover">
+            <strong id="music-account-heading">让歌单跟着你走</strong>
+            <p id="music-account-status" role="status" aria-live="polite">使用受邀的 GitHub 账号，同步收藏歌曲和自建歌单。</p>
+            <div class="account-actions">
+              <button id="music-account-login" class="btn" type="button">GitHub 登录</button>
+              <button id="music-account-sync" class="btn" type="button" hidden>立即同步</button>
+              <button id="music-account-import" class="btn btn-secondary" type="button" hidden>导入本机歌单与收藏</button>
+              <button id="music-account-logout" class="btn btn-ghost" type="button" hidden>退出登录</button>
+            </div>
+          </div>
+        </details>
         <a class="mobile-search-link home-link" href="#song-search" data-i18n="jumpToSearch">搜索</a>
         <div class="lang-toggle ripple-target">
           <button class="lang-btn active" data-lang="zh">中</button>
@@ -335,7 +348,8 @@
   <div id="toast"></div>
 
   <script src="./featured-core.js"></script>
-  <script>
+  <script type="module">
+  import { attachMusicAccount } from './account-ui.js';
   (function(){
     const translations = {
       zh: {
@@ -545,6 +559,7 @@
     };
 
     const LIBRARY_STORAGE_KEY = 'pikachu-music-library-v1';
+    let musicAccount;
 
     const dom = {};
 
@@ -584,6 +599,7 @@
       if(lang!=='zh' && lang!=='en') lang='zh';
       state.language=lang;
       document.documentElement.lang=lang;
+      musicAccount?.render();
       try{localStorage.setItem('pikachu-music-lang',lang);}catch(e){}
       document.querySelectorAll('.lang-btn').forEach(btn=>{
         btn.classList.toggle('active',btn.dataset.lang===lang);
@@ -705,10 +721,27 @@
 
     function saveLibraryToStorage(){
       try{
-        localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(getLibrarySnapshot()));
+        if(musicAccount)musicAccount.changed(getLibrarySnapshot());
+        else localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(getLibrarySnapshot()));
+        return true;
       }catch(e){
-        console.warn('save library failed', e);
+        if(musicAccount)applyLibrary(musicAccount.state.items);
+        showToast(e.message || '歌单保存失败，请重试。');
+        return false;
       }
+    }
+
+    function applyLibrary(data){
+      const selected=dom.playlistSelect.value;
+      state.favorites=data.favorites.map(deserializeTrack).filter(Boolean);
+      state.playlists=data.playlists.map(pl=>({...pl,tracks:pl.tracks.map(deserializeTrack).filter(Boolean)}));
+      rebuildLibraryTrackMap();
+      if(state.playContext.type==='playlist' && !state.playlists.some(pl=>pl.id===state.playContext.playlistId)){
+        state.playContext={type:'results',index:-1,playlistId:null};
+      }
+      renderPlaylistOptions();
+      if(state.playlists.some(pl=>pl.id===selected))dom.playlistSelect.value=selected;
+      updateMainFavButton();renderPlaylistList();
     }
 
     function rebuildLibraryTrackMap(){
@@ -817,7 +850,7 @@
 
       rebuildLibraryTrackMap();
       renderPlaylistOptions();
-      saveLibraryToStorage();
+      if(!saveLibraryToStorage())throw new Error('歌单保存失败');
       renderPlaylistList();
       updateMainFavButton();
 
@@ -1735,7 +1768,7 @@
         return;
       }
       pl.tracks.push(track);
-      saveLibraryToStorage();
+      if(!saveLibraryToStorage())return;
       renderPlaylistList();
       showToast(t('toastAddedToPlaylist'));
     }
@@ -1755,7 +1788,7 @@
       }
       renderPlaylistOptions();
       if(next)dom.playlistSelect.value=next.id;
-      saveLibraryToStorage();
+      if(!saveLibraryToStorage())return;
       renderPlaylistList();
       showToast(t('toastPlaylistDeleted'));
     }
@@ -1778,7 +1811,7 @@
           state.playContext.index=pl.tracks.length-1;
         }
       }
-      saveLibraryToStorage();
+      if(!saveLibraryToStorage())return;
       renderPlaylistList();
       showToast(t('toastTrackRemovedFromPlaylist'));
     }
@@ -2142,12 +2175,12 @@
     function createPlaylist(){
       let name=dom.playlistNameInput.value.trim();
       if(!name)name=state.language==='zh'?'未命名歌单':'Untitled Playlist';
-      const id='pl-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+      const id='pl-'+crypto.randomUUID();
       const pl={id,name,tracks:[]};
       state.playlists.push(pl);
       renderPlaylistOptions();
       dom.playlistSelect.value=pl.id;
-      saveLibraryToStorage();
+      if(!saveLibraryToStorage())return;
       closePlaylistModal();
       renderPlaylistList();
       showToast(t('toastPlaylistCreated'));
@@ -2469,6 +2502,9 @@
       renderPlaylistList();
       setPlaymodeUI();
       dom.audio.volume=parseFloat(dom.volumeSlider.value);
+      const note=document.createElement('p');note.id='music-library-note';note.className='library-sync-note';
+      dom.playlistMain.parentNode.insertBefore(note,dom.playlistMain);
+      musicAccount=attachMusicAccount({applyLibrary,showToast,getLanguage:()=>state.language});
       loadFeatured();
     }
 
