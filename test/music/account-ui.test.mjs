@@ -14,6 +14,8 @@ test('music account controls handle login, import, automatic sync, shared logout
   };
   const names = ['window', 'document', 'location', 'history', 'fetch']; const saved = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
   let language = 'zh'; let client; let remote = { favorites: [], playlists: [] }; let version = 0; let offline = false;
+  let loginRequests = 0; let failLogin = true; let completeLogin; let notifyLogin;
+  const loginRequested = new Promise(resolve => { notifyLogin = resolve; });
   const user = { id: '12', login: 'tester', avatar: '' }; const token = 't'.repeat(43);
   storage.setItem(MUSIC_LIBRARY_KEY, JSON.stringify({ favorites: [{ uid: 'netease-12', source: 'netease', songid: '12', title: '本机歌曲' }], playlists: [] }));
   globalThis.window = { localStorage: storage, sessionStorage: tabStorage, addEventListener: (name, fn) => events.set('window:' + name, fn) };
@@ -23,7 +25,13 @@ test('music account controls handle login, import, automatic sync, shared logout
   globalThis.fetch = async (url, init = {}) => {
     if (offline) throw new TypeError('offline');
     if (url.endsWith('/config')) return Response.json({ enabled: true });
-    if (url.endsWith('/login')) return Response.json({ url: 'https://github.com/login/oauth/authorize' });
+    if (url.endsWith('/login')) {
+      loginRequests++;
+      if (failLogin) throw new TypeError('Login unavailable');
+      const waiting = new Promise(resolve => { completeLogin = resolve; });
+      notifyLogin(); await waiting;
+      return Response.json({ url: 'https://github.com/login/oauth/authorize' });
+    }
     if (url.endsWith('/exchange')) return Response.json({ user, token, expiresAt: Date.now() + 86400000 });
     if (url.endsWith('/logout')) return Response.json({ ok: true });
     if (init.method === 'PUT') { const data = JSON.parse(init.body); assert.equal(data.version, version); remote = data.items; version++; }
@@ -35,7 +43,18 @@ test('music account controls handle login, import, automatic sync, shared logout
     assert.equal(client.state.enabled, true); assert.equal(libraries[0].favorites[0].title, '本机歌曲');
     assert.equal(libraryScopes[0], true);
     language = 'en'; client.render(); assert.equal(element('music-account-label').textContent, 'Sign in'); language = 'zh'; client.render();
-    await events.get('music-account-login:click')(); assert.equal(location.target, 'https://github.com/login/oauth/authorize');
+    await events.get('music-account-login:click')();
+    assert.equal(element('music-account-login').disabled, false, 'A failed login can be retried.');
+    assert.equal(notifications.at(-1), 'Login unavailable');
+    failLogin = false;
+    const firstLogin = events.get('music-account-login:click')();
+    const repeatedLogin = events.get('music-account-login:click')();
+    await loginRequested;
+    assert.equal(element('music-account-login').disabled, true, 'Shared-client changes must preserve the login button lock.');
+    client.render(); assert.equal(element('music-account-login').disabled, true);
+    assert.equal(loginRequests, 2, 'The retry sends one login request despite repeated clicks.');
+    completeLogin(); await Promise.all([firstLogin, repeatedLogin]);
+    assert.equal(location.target, 'https://github.com/login/oauth/authorize');
     await client.initialize('#account?ticket=' + 'a'.repeat(43));
     assert.equal(history.url, '/music/#library'); assert.equal(element('music-account-panel').open, true); assert.equal(element('music-account-label').textContent, 'tester');
     assert.equal(libraryScopes.filter(Boolean).length, 2);
@@ -44,7 +63,7 @@ test('music account controls handle login, import, automatic sync, shared logout
     events.get('window:storage')({ storageArea: storage, key: ACCOUNT_SESSION_KEY });
     await client.sync();
     assert.equal(libraryScopes.filter(Boolean).length, 2, 'Renewing the same account session preserves its playback queue.');
-    events.get('music-account-import:click')(); await client.sync(); assert.equal(remote.favorites.length, 1); assert.equal(notifications.length, 1);
+    events.get('music-account-import:click')(); await client.sync(); assert.equal(remote.favorites.length, 1); assert.equal(notifications.length, 2);
     assert.equal(JSON.parse(storage.getItem(MUSIC_LIBRARY_KEY)).favorites.length, 1);
     offline = true; client.changed({ favorites: [], playlists: [] }); await client.sync(); assert.match(element('music-account-status').textContent, /音乐库.*本机/);
     offline = false; await events.get('music-account-sync:click')();

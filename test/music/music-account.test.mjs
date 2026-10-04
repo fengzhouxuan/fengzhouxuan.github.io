@@ -227,3 +227,38 @@ test('new records removed while the creating tab upload response is delayed rema
   assert.deepEqual(f.records.get('12/music').items, collection([song(1)], [song(1)]));
   assert.deepEqual(a.account.state.items, b.account.state.items);
 });
+
+test('same-account token refresh retains unpersisted edits and cancels responses from the previous token', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const storage = memory();
+  const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked && (key.startsWith('pikachu-music-library') || key.startsWith('music-cloud:'))) throw new Error('quota'); originalSet(key, value); };
+  const a = f.client({ storage }); await a.account.initialize(); blocked = true;
+  a.account.changed(collection([song(1), song(2)], [song(1), song(2)], '待保存名称'));
+  let release; f.intercept(async url => url.endsWith('/music') ? new Promise(resolve => { release = resolve; }) : null);
+  const pending = a.account.sync(); while (!release) await new Promise(resolve => setImmediate(resolve));
+  storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ user, token: 'r'.repeat(43), expiresAt: 1e12 }));
+  assert.equal(a.account.refreshSession(), true);
+  release(Response.json({ user, items: collection([song(9)], [song(9)]), version: 9 }));
+  assert.equal(await pending, false);
+  assert.deepEqual(a.account.state.items, collection([song(1), song(2)], [song(1), song(2)], '待保存名称'));
+  assert.equal(a.account.state.pending, true); assert.match(a.account.state.message, /无法保存/);
+  f.intercept(null); blocked = false; await a.account.sync();
+  assert.deepEqual(f.records.get('12/music').items, a.account.state.items);
+  assert.equal(a.account.state.pending, false);
+});
+
+test('same-account OAuth re-login keeps unsaved favorites and playlists after an expired session', async t => {
+  const f = fixture(t, collection([song(1)], [song(1)])); const storage = memory();
+  const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked && (key.startsWith('pikachu-music-library') || key.startsWith('music-cloud:'))) throw new Error('quota'); originalSet(key, value); };
+  const a = f.client({ storage }); await a.account.initialize();
+  await a.account.login('https://site.example/music/', '#library'); blocked = true;
+  const edited = collection([song(1), song(2)], [song(1), song(2)], '待保存名称');
+  a.account.changed(edited);
+  f.intercept(async url => url.endsWith('/music') ? Response.json({ error: 'expired' }, { status: 401 }) : null);
+  await a.account.sync(); assert.equal(a.account.state.phase, 'expired');
+  f.intercept(async url => url.endsWith('/exchange') ? Response.json({ user, token: 'r'.repeat(43), expiresAt: 1e12 }) : null);
+  await a.account.initialize('#account?ticket=' + 'a'.repeat(43));
+  assert.deepEqual(a.account.state.items, edited); assert.deepEqual(f.records.get('12/music').items, edited);
+  assert.equal(a.account.state.user.id, user.id); assert.equal(a.account.state.pending, false);
+});

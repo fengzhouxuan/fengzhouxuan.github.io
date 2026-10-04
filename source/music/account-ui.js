@@ -5,7 +5,7 @@ import config from './config.js';
 
 export function attachMusicAccount({ applyLibrary, showToast, getLanguage = () => 'zh' }) {
   const get = id => document.getElementById(id);
-  let storage = null; let tabStorage = null; let client; let libraryOwner;
+  let storage = null; let tabStorage = null; let client; let libraryOwner; let loggingIn = false;
   try { storage = window.localStorage; } catch { /* The shared client reports unavailable persistence. */ }
   try { tabStorage = window.sessionStorage; } catch { /* Login needs the per-tab proof. */ }
   const panel = get('music-account-panel');
@@ -24,7 +24,7 @@ export function attachMusicAccount({ applyLibrary, showToast, getLanguage = () =
       : say('歌单保留在本机，点击同步获取云端音乐库。', 'Sync to load your cloud library.'));
     get('music-account-status').classList.toggle('error', ['offline', 'expired', 'error'].includes(value.phase));
     get('music-account-login').hidden = loggedIn && value.phase !== 'expired';
-    get('music-account-login').disabled = value.enabled === false;
+    get('music-account-login').disabled = value.enabled === false || loggingIn;
     get('music-account-login').textContent = value.phase === 'expired' ? say('重新用 GitHub 登录', 'Sign in again') : say('GitHub 登录', 'Sign in with GitHub');
     get('music-account-sync').hidden = !loggedIn;
     get('music-account-sync').disabled = ['syncing', 'expired'].includes(value.phase);
@@ -48,9 +48,10 @@ export function attachMusicAccount({ applyLibrary, showToast, getLanguage = () =
     onCallback(hash) { history.replaceState(null, '', location.pathname + location.search + hash); panel.open = true; },
   });
   get('music-account-login').addEventListener('click', async () => {
-    const button = get('music-account-login'); button.disabled = true;
+    if (loggingIn) return;
+    loggingIn = true; render();
     try { location.assign(await client.login(location.origin + location.pathname, location.hash || '#library')); }
-    catch (error) { showToast(error.message); render(); }
+    catch (error) { loggingIn = false; showToast(error.message); render(); }
   });
   get('music-account-sync').addEventListener('click', () => client.sync());
   get('music-account-import').addEventListener('click', () => {

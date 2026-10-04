@@ -9,6 +9,7 @@ const userValid = user => user && /^\d{1,20}$/.test(String(user.id)) && typeof u
 export function createLibraryAccountClient({ library, base = '', storage = null, tabStorage = null, fetchImpl = fetch, now = Date.now, onChange = () => {}, onScope = () => {}, onData = () => {}, onCallback = () => {} } = {}) {
   const loginKey = library.loginKey;
   const label = library.label || '收藏';
+  const saveWarning = `浏览器无法保存，${label}只保留在本次打开的页面中；请保持页面打开直到同步完成。`;
   const cleanData = library.clean;
   const storageKey = library.storageKey;
   const mergeData = library.merge;
@@ -28,23 +29,34 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
     const saved = write(storageKey(state.user), state.items);
     if (saved) persisted = copy(state.items);
     const metaSaved = !state.user || write(metaKey(), { baseline, observed, version, lastSync: state.lastSync });
-    if (!saved || !metaSaved) state.message = `浏览器无法保存，${label}只保留在本次打开的页面中；请保持页面打开直到同步完成。`;
+    if (!saved || !metaSaved) state.message = saveWarning;
+    else if (state.message === saveWarning) state.message = '';
     onChange(state);
+    return saved && metaSaved;
   }
   function scope(next) {
+    const sameUser = state.user && next?.user && String(state.user.id) === String(next.user.id);
     generation++; controller?.abort(); clearTimeout(timer); pending = null;
-    session = next; state.user = next?.user || null; state.items = readItems(state.user);
-    persisted = copy(state.items);
-    const meta = state.user ? read(metaKey(), {}) : {};
-    try { baseline = cleanData(meta.baseline || library.empty); } catch { baseline = copy(library.empty); }
-    try { observed = cleanData(meta.observed || baseline); } catch { observed = copy(baseline); }
+    session = next; state.user = next?.user || null;
+    if (sameUser) {
+      // A renewed token keeps this tab's edits, including changes that could
+      // not be persisted. Only a different account starts a new library scope.
+      const latest = readItems(state.user, persisted);
+      state.items = cleanData(mergeData(persisted, state.items, latest));
+      persisted = copy(latest);
+    } else {
+      state.items = readItems(state.user); persisted = copy(state.items);
+      const meta = state.user ? read(metaKey(), {}) : {};
+      try { baseline = cleanData(meta.baseline || library.empty); } catch { baseline = copy(library.empty); }
+      try { observed = cleanData(meta.observed || baseline); } catch { observed = copy(baseline); }
+      version = Number.isSafeInteger(meta.version) && meta.version >= 0 ? meta.version : 0;
+      state.lastSync = Number.isFinite(meta.lastSync) ? meta.lastSync : 0;
+    }
     observe();
-    version = Number.isSafeInteger(meta.version) && meta.version >= 0 ? meta.version : 0;
-    state.lastSync = Number.isFinite(meta.lastSync) ? meta.lastSync : 0;
     state.pending = Boolean(state.user && (!equal(state.items, baseline) || !equal(state.items, observed)));
     state.phase = !state.user ? 'local' : tokenValid(session.token) && session.expiresAt > now() ? 'idle' : 'expired';
     state.message = state.phase === 'expired' ? `登录已过期，${label}仍在本机，请重新登录后同步。` : '';
-    onScope(state); onChange(state);
+    onScope(state); if (sameUser) remember(); else onChange(state);
   }
   function storedSession() {
     const saved = read(sessionKey, null);
@@ -120,6 +132,10 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
   }
   async function login(returnTo, route = '#home') {
     if (!tabStorage) throw new Error('浏览器需要允许本页保存登录状态，才能使用 GitHub 登录。');
+    const guestEdits = !state.user && !equal(state.items, persisted);
+    if (!remember() && (state.user ? state.pending : guestEdits)) {
+      throw new Error(`浏览器无法保存当前${label}。请先恢复存储或导出备份，再用 GitHub 登录，避免丢失本次修改。`);
+    }
     const bytes = crypto.getRandomValues(new Uint8Array(32));
     const encode = value => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     const verifier = encode(bytes); const challenge = encode(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));

@@ -59,6 +59,7 @@ let heroPoster;
 let fullscreenFocus;
 let submittedSearchHash = '';
 let accountClient;
+let loggingIn = false;
 const backendTransport = createBackendTransport({ base: config.apiBase || '', storage, onChange: renderServiceStatus });
 const accountTransport = config.accountApiBase && config.accountApiBase !== config.apiBase ? createBackendTransport({ base: config.accountApiBase, storage }) : backendTransport;
 accountClient = createAccountClient({
@@ -147,7 +148,7 @@ function renderAccount(value = accountClient?.state) {
     : value.phase === 'syncing' ? '正在同步收藏…' : value.pending ? '有收藏等待同步，已保留在本机。' : value.lastSync ? '收藏已同步 · ' + new Date(value.lastSync).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '收藏保留在本机，点击同步获取云端片单。');
   $('account-status').textContent = status;
   $('account-status').classList.toggle('error', ['offline', 'expired', 'error'].includes(value.phase));
-  $('account-login').hidden = loggedIn && value.phase !== 'expired'; $('account-login').disabled = value.enabled === false;
+  $('account-login').hidden = loggedIn && value.phase !== 'expired'; $('account-login').disabled = value.enabled === false || loggingIn;
   $('account-login').textContent = value.phase === 'expired' ? '重新用 GitHub 登录' : 'GitHub 登录';
   $('account-sync').hidden = !loggedIn; $('account-sync').disabled = value.phase === 'syncing' || value.phase === 'expired';
   $('account-sync').textContent = value.phase === 'syncing' ? '正在同步…' : '立即同步';
@@ -1451,9 +1452,10 @@ const sourcePicks = document.querySelector('.source-picks');
 try { $('auto-source').checked = storage?.getItem('video-auto-source') !== 'off'; } catch { $('auto-source').checked = true; }
 const reloadCatalog = $('reload-catalog');
 $('account-login').addEventListener('click', async () => {
-  $('account-login').disabled = true;
+  if (loggingIn || accountClient.state.enabled === false) return;
+  loggingIn = true; renderAccount();
   try { location.assign(await accountClient.login(location.origin + location.pathname, location.hash || '#home')); }
-  catch (error) { $('account-status').textContent = error.message; $('account-login').disabled = false; }
+  catch (error) { loggingIn = false; renderAccount(); $('account-status').textContent = error.message; $('account-status').classList.add('error'); }
 });
 $('account-sync').addEventListener('click', () => accountClient.sync());
 $('account-import').addEventListener('click', () => { try { accountClient.importLocal(); toast('本机收藏已加入当前账号片单，原收藏仍保留。'); } catch (error) { toast(error.message); } });

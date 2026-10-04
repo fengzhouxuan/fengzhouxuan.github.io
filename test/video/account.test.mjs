@@ -116,3 +116,55 @@ test('consecutive edits and storage refresh retain unsaved favorites when persis
   assert.deepEqual(new Set(f.client.state.items.map(item => item.id)), new Set(['12', '13', '14']));
   assert.match(f.client.state.message, /无法保存/);
 });
+
+test('successful guest persistence clears only the client save warning and retains sync errors', async t => {
+  const storage = memory(); const originalSet = storage.setItem; let blocked = true;
+  storage.setItem = (key, value) => { if (blocked) throw new Error('quota'); originalSet(key, value); };
+  const guest = fixture(t, { loggedIn: false, storage });
+  guest.client.changed([film()]); assert.match(guest.client.state.message, /无法保存/);
+  blocked = false; guest.client.changed([film(), film('13')]);
+  assert.equal(guest.client.state.message, '');
+  for (const status of [401, 503]) {
+    const f = fixture(t, { fetchImpl: async url => url.endsWith('/favorites') ? Response.json({ error: 'sync failed' }, { status }) : null });
+    await f.client.initialize(); const message = f.client.state.message;
+    f.client.changed([film()]); assert.equal(f.client.state.message, message);
+    assert.equal(f.client.state.phase, status === 401 ? 'expired' : 'offline');
+  }
+});
+
+test('login blocks navigation for unpersisted guest edits and retries normally after storage recovers', async t => {
+  const storage = memory(); const originalSet = storage.setItem; let blocked = true;
+  storage.setItem = (key, value) => { if (blocked) throw new Error('quota'); originalSet(key, value); };
+  const f = fixture(t, { loggedIn: false, storage }); f.client.changed([film()]);
+  await assert.rejects(f.client.login('https://site.example/video/'), /恢复存储.*导出.*再.*登录/);
+  assert.equal(f.calls.some(call => call.url.endsWith('/login')), false);
+  assert.equal(f.tabStorage.getItem('video-account-login-v1'), null);
+  assert.deepEqual(f.client.state.items, [film()]);
+  blocked = false; assert.ok((await f.client.login('https://site.example/video/')).startsWith('https://github.com/'));
+  assert.deepEqual(JSON.parse(storage.getItem('video-favorites')), [film()]);
+});
+
+test('expired account login preserves pending edits until local storage can save them', async t => {
+  const storage = memory(); const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked && key !== 'video-account-session-v1') throw new Error('quota'); originalSet(key, value); };
+  const f = fixture(t, { storage, remote: [film()] }); await f.client.initialize(); blocked = true;
+  f.client.changed([film(), film('13')]);
+  storage.setItem('video-account-session-v1', JSON.stringify({ user, token: '', expiresAt: 1e12 })); f.client.refreshSession();
+  assert.equal(f.client.state.phase, 'expired'); assert.equal(f.client.state.pending, true);
+  await assert.rejects(f.client.login('https://site.example/video/'), /恢复存储.*导出/);
+  assert.equal(f.calls.some(call => call.url.endsWith('/login')), false);
+  blocked = false; await f.client.login('https://site.example/video/');
+  assert.deepEqual(new Set(JSON.parse(storage.getItem(favoriteStorageKey(user))).map(item => item.id)), new Set(['12', '13']));
+});
+
+test('cloud-saved account collections and unchanged guest storage do not prevent login when persistence is unavailable', async t => {
+  const storage = memory(); const originalSet = storage.setItem; let blocked = false;
+  storage.setItem = (key, value) => { if (blocked) throw new Error('quota'); originalSet(key, value); };
+  const f = fixture(t, { storage, remote: [film()] }); await f.client.initialize(); blocked = true;
+  assert.equal(f.client.state.pending, false);
+  assert.ok((await f.client.login('https://site.example/video/')).startsWith('https://github.com/'));
+  const guestStorage = memory(); guestStorage.setItem('video-favorites', JSON.stringify([film()]));
+  guestStorage.setItem = () => { throw new Error('quota'); };
+  const guest = fixture(t, { loggedIn: false, storage: guestStorage });
+  assert.ok((await guest.client.login('https://site.example/video/')).startsWith('https://github.com/'));
+});

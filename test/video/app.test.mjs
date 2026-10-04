@@ -110,3 +110,47 @@ test('failed save merges still honor external deletions and retain current-tab d
     const blocked = saving(storage); blocked.state.favorites.push(item); blocked.save(); blocked.sync(); assert.equal(blocked.state.favorites.length, 1);
   }
 });
+
+function loginPage() {
+  const nodes = new Map(); const handlers = new Map(); const calls = []; const destinations = []; let resolve; let reject;
+  const pending = new Promise((yes, no) => { resolve = yes; reject = no; });
+  const accountClient = {
+    state: { enabled: true, user: null, phase: 'guest' }, localCount: () => 0,
+    login(...args) { calls.push(args); harness.run('renderAccount()'); return pending; },
+  };
+  const harness = appHarness(source, {
+    accountClient, location: { origin: 'https://site.example', pathname: '/video/', hash: '#library', assign: url => destinations.push(url) },
+    $: id => {
+      if (!nodes.has(id)) nodes.set(id, { classList: { toggle() {}, add() {} }, addEventListener: (type, handler) => handlers.set(id + ':' + type, handler) });
+      return nodes.get(id);
+    },
+  });
+  const declaration = source.match(/^let loggingIn = false;$/m); assert.ok(declaration, 'Missing login state initialization'); harness.run(declaration[0]);
+  harness.include('renderAccount', 'renderServiceStatus');
+  const start = source.indexOf("$('account-login').addEventListener('click',");
+  const end = source.indexOf("$('account-sync').addEventListener(", start);
+  assert.ok(start >= 0 && end > start, 'Missing account login event boundary'); harness.run(source.slice(start, end));
+  harness.run('renderAccount()');
+  return { nodes, calls, destinations, accountClient, resolve, reject, render: () => harness.run('renderAccount()'), click: () => handlers.get('account-login:click')() };
+}
+
+test('page login remains disabled during account onChange and duplicate clicks start only one login', async () => {
+  const view = loginPage(); assert.equal(view.nodes.get('account-login').disabled, false);
+  const pending = view.click(); assert.equal(view.calls.length, 1); assert.equal(view.nodes.get('account-login').disabled, true);
+  view.render(); assert.equal(view.nodes.get('account-login').disabled, true);
+  await view.click(); assert.equal(view.calls.length, 1);
+  assert.deepEqual(view.calls[0], ['https://site.example/video/', '#library']);
+  view.resolve('https://github.com/login/oauth/authorize'); await pending;
+  assert.deepEqual(view.destinations, ['https://github.com/login/oauth/authorize']);
+  assert.equal(view.nodes.get('account-login').disabled, true);
+});
+
+test('failed page login restores retry controls and retains its error while unavailable login stays disabled', async () => {
+  const view = loginPage(); const pending = view.click();
+  view.reject(new Error('登录服务暂时不可用')); await pending;
+  assert.equal(view.nodes.get('account-login').disabled, false); assert.equal(view.nodes.get('account-status').textContent, '登录服务暂时不可用');
+  assert.deepEqual(view.destinations, []);
+  await view.click(); assert.equal(view.calls.length, 2); assert.equal(view.nodes.get('account-login').disabled, false);
+  view.accountClient.state.enabled = false; view.render(); assert.equal(view.nodes.get('account-login').disabled, true);
+  await view.click(); assert.equal(view.calls.length, 2);
+});
