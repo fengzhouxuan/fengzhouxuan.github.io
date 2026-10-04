@@ -1,12 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBackendTransport } from '../../source/video/resilience.js';
-import { requestVideos } from '../../source/video/core.js';
+import { requestVideos, requestEpisode } from '../../source/video/core.js';
+import { createVideoQuery } from '../../services/video/query.js';
+import { piankuDetail, piankuPlay } from '../../services/video/tests/fixtures/site-pages.js';
 
 const base = 'https://api.example';
 const data = { list: [{ vod_id: 12, vod_name: '测试影片', vod_year: '2026', vod_remarks: '第1027集' }], pagecount: 1 };
 const search = '/api/vod?source=ruyi&page=1&q=test';
 const memory = () => { const values = new Map(); return { values, getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }; };
+const queryFetch = query => (url, options) => new Promise((resolve, reject) => {
+  if (options.signal.aborted) { reject(options.signal.reason); return; }
+  const abort = () => reject(options.signal.reason);
+  options.signal.addEventListener('abort', abort, { once: true });
+  query(new Request(url, options)).then(response => { options.signal.removeEventListener('abort', abort); resolve(response); }, error => { options.signal.removeEventListener('abort', abort); reject(error); });
+});
 
 test('backend quota pages pause queries until UTC reset and return bounded cached data across reloads', async () => {
   let time = Date.UTC(2026, 9, 3, 12); let broken = false; let calls = 0; const storage = memory();
@@ -49,6 +57,50 @@ test('provider 502 failures and account database failures never pause the entire
     const transport = createBackendTransport({ base, fetchImpl: async () => Response.json(payload, { status }) });
     assert.equal((await transport.fetch(base + path)).status, status); assert.equal(transport.state.phase, 'ready');
   }
+});
+
+test('a provider deadline returns a source failure while other sources and account sync stay available', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  t.mock.method(AbortSignal, 'timeout', milliseconds => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(new DOMException('Deadline', 'TimeoutError')), milliseconds);
+    return controller.signal;
+  });
+  const query = createVideoQuery({ fetchImpl: async (url, { signal }) => {
+    if (url.hostname === 'cj.lziapi.com') return Response.json(data);
+    return new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+  } });
+  let accountCalls = 0;
+  const forward = queryFetch(query);
+  const transport = createBackendTransport({ base, fetchImpl: async (url, options) => {
+    if (new URL(url).pathname === '/api/account/favorites') { accountCalls++; return Response.json({ favorites: [], revision: 1 }); }
+    return forward(url, options);
+  } });
+  const slow = transport.fetch(base + search);
+  t.mock.timers.tick(10001);
+  const result = await slow;
+  assert.equal(result.status, 502); assert.equal(transport.state.phase, 'ready');
+  assert.equal((await transport.fetch(base + '/api/vod?source=liangzi&q=test')).status, 200);
+  assert.equal((await transport.fetch(base + '/api/account/favorites')).status, 200); assert.equal(accountCalls, 1);
+});
+
+test('lazy playback can finish two sequential page reads without either browser deadline cutting it off', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  t.mock.method(AbortSignal, 'timeout', milliseconds => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(new DOMException('Deadline', 'TimeoutError')), milliseconds);
+    return controller.signal;
+  });
+  const query = createVideoQuery({ fetchImpl: async (url, { signal }) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(new Response(url.pathname.startsWith('/voddetail/') ? piankuDetail : piankuPlay)), 9000);
+    signal.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
+  }) });
+  const transport = createBackendTransport({ base, fetchImpl: queryFetch(query) });
+  const pending = requestEpisode('pianku', '12', '2-1', '第01集', { base, fetchImpl: transport.fetch });
+  t.mock.timers.tick(9000);
+  await new Promise(resolve => setImmediate(resolve));
+  t.mock.timers.tick(9000);
+  assert.equal(await pending, 'https://cdn.example/1.m3u8'); assert.equal(transport.state.phase, 'ready');
 });
 
 test('HTML, malformed success responses and temporary overload enter a short circuit that manual retry can recover', async () => {

@@ -133,6 +133,55 @@ test('source discovery publishes fast matches before slow neighbours and retains
   assert.equal(discovery.state.loading, false); assert.deepEqual(discovery.state.failed, ['feifan']); assert.equal(updates, 3);
 });
 
+test('source discovery limits active requests and keeps fast alternatives usable while a failed source frees its slot', async () => {
+  const sources = ['ruyi', 'feifan', 'pianku', 'zip0'].map(id => ({ id }));
+  const jobs = []; let active = 0; let maximum = 0;
+  const discovery = createVariantDiscovery({ sources, request: (source, options) => {
+    active++; maximum = Math.max(maximum, active);
+    return new Promise((resolve, reject) => jobs.push({ source, options, resolve, reject })).finally(() => active--);
+  } });
+  const current = film(); const group = { ...current, variants: [current] };
+  const pending = discovery.open(group);
+  assert.equal(jobs.length, 3); assert.equal(maximum, 3);
+  jobs[1].resolve({ videos: [film('feifan')] }); await tick();
+  assert.equal(jobs.length, 4); assert.equal(jobs[3].source, 'zip0');
+  assert.deepEqual(group.variants.map(item => item.source), ['liangzi', 'feifan']);
+  assert.equal(discovery.state.loading, true); assert.equal(discovery.state.completed, 1);
+  jobs[0].reject(new Error('source unavailable')); jobs[2].resolve({ videos: [film('pianku')] }); jobs[3].resolve({ videos: [] });
+  await pending;
+  assert.equal(maximum, 3); assert.equal(active, 0); assert.equal(discovery.state.completed, 4);
+  assert.deepEqual(discovery.state.failed, ['ruyi']); assert.equal(discovery.state.loading, false);
+  assert.deepEqual(group.variants.map(item => item.source), ['liangzi', 'feifan', 'pianku']);
+
+  const advanced = [];
+  const serial = createVariantDiscovery({ sources, concurrency: 1, request: async source => {
+    advanced.push(source); if (source === 'ruyi') throw new Error('failed first source');
+    return { videos: source === 'feifan' ? [film(source)] : [] };
+  } });
+  await serial.open({ ...current, variants: [current] });
+  assert.deepEqual(advanced, sources.map(source => source.id));
+  assert.deepEqual(serial.state.failed, ['ruyi']); assert.equal(serial.state.completed, 4);
+});
+
+test('stopping or replacing source discovery never starts the abandoned queued sources', async () => {
+  for (const action of ['stop', 'replace']) {
+    const jobs = [];
+    const discovery = createVariantDiscovery({ concurrency: 1, sources: ['ruyi', 'feifan', 'pianku'].map(id => ({ id })), request: (source, options) => {
+      if (options.query === '另一部剧') return Promise.resolve({ videos: [film(source, { title: options.query })] });
+      return new Promise((resolve, reject) => jobs.push({ source, options, resolve, reject }));
+    } });
+    const current = film(); const first = { ...current, variants: [current] };
+    const pending = discovery.open(first); assert.equal(jobs.length, 1);
+    if (action === 'stop') discovery.stop();
+    else await discovery.open({ ...current, title: '另一部剧', variants: [film('liangzi', { title: '另一部剧' })] });
+    assert.equal(jobs[0].options.signal.aborted, true);
+    jobs[0].resolve({ videos: [film('ruyi')] }); await pending;
+    assert.equal(jobs.length, 1); assert.deepEqual(first.variants, [current]);
+    assert.equal(discovery.state.loading, false);
+    assert.equal(discovery.state.completed, action === 'stop' ? 0 : 3);
+  }
+});
+
 test('switching films cancels discovery and late success or failure cannot mutate the new film', async () => {
   const jobs = []; let updates = 0;
   const discovery = createVariantDiscovery({ sources: [{ id: 'ruyi' }, { id: 'feifan' }], request: (source, options) => new Promise((resolve, reject) => jobs.push({ options, resolve, reject })), onChange: () => updates++ });
@@ -147,7 +196,7 @@ test('switching films cancels discovery and late success or failure cannot mutat
 });
 
 test('source discovery handles empty, malformed and unavailable results without hiding existing sources', async () => {
-  for (const options of [undefined, {}, { request: 1 }, { request() {}, onChange: null }, { request() {}, sources: null }, { request() {}, sources: [{ id: 'unknown' }] }]) assert.throws(() => createVariantDiscovery(options), /配置/);
+  for (const options of [undefined, {}, { request: 1 }, { request() {}, onChange: null }, { request() {}, sources: null }, { request() {}, sources: [{ id: 'unknown' }] }, ...[0, 6, 1.5, NaN, Infinity, '3', null].map(concurrency => ({ request() {}, concurrency }))]) assert.throws(() => createVariantDiscovery(options), /配置/);
   const discovery = createVariantDiscovery({ request: async source => source === 'ruyi' ? { videos: [] } : null, sources: [{ id: 'liangzi' }, { id: 'ruyi' }, { id: 'feifan' }, { id: 'auete', search: false }] });
   for (const group of [null, {}, { title: '', variants: [] }]) await assert.rejects(discovery.open(group), /信息/);
   const current = film(); const group = { ...current, variants: [current] }; await discovery.open(group);

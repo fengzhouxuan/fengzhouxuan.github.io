@@ -80,7 +80,11 @@ export function createBackendTransport({ base = '', storage = null, fetchImpl = 
     if (state.retryAt > now()) return query ? fallback(url, options) : jsonResponse({ code: 'backend_unavailable', error: '云端暂时不可用，收藏已保留在本机，恢复后可继续同步' }, 503);
     const current = generation;
     try {
-      const networkSignal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000);
+      // Let a provider's deadline return its isolated 502 before declaring the service unavailable.
+      // Lazy playback may read both the detail page and the episode page, each with its own deadline.
+      const timeout = url.pathname === '/api/play' ? 25000 : url.pathname === '/api/vod' ? 15000 : 10000;
+      const deadline = AbortSignal.timeout(timeout);
+      const networkSignal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline;
       const response = await fetchImpl(input, { ...options, signal: networkSignal });
       const text = await response.clone().text();
       let data; try { data = JSON.parse(text); } catch { /* Platform error pages may be HTML or plain text. */ }

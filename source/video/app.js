@@ -474,7 +474,7 @@ function renderCatalog() {
   });
   $('library-title').textContent = route.view === 'search' ? '“' + route.query + '”的搜索结果' : route.category === 'short' && route.type === 52 ? 'AI漫剧' : cat.name;
   $('category-note').hidden = route.view !== 'browse' || route.category !== 'short';
-  $('category-note').textContent = route.type === 52 ? 'AI 漫剧目录由量子资源提供，作品归类以来源标注为准。' : '按来源短剧目录浏览，也可以切换到 AI 漫剧。';
+  $('category-note').textContent = route.type === 52 ? '按支持此分类的来源浏览 AI 漫剧，作品归类以来源标注为准。' : '按来源短剧目录浏览，也可以切换到 AI 漫剧。';
   $('catalog-eyebrow').textContent = route.view === 'search' ? 'FIND YOUR NEXT STORY' : 'EXPLORE THE SHELF';
   $('type-picks').hidden = route.view === 'search';
   $('type-picks').parentElement.classList.toggle('search-filters', route.view === 'search');
@@ -562,7 +562,8 @@ async function loadCatalog({ more = false, force = false, restore = null, retryS
     $('catalog-filters').open = restore.expanded;
     if (restore.sources.length) document.querySelectorAll('.source-picks input').forEach(input => { input.checked = restore.sources.includes(input.value); });
   }
-  const sources = [...document.querySelectorAll('.source-picks input:checked:not(:disabled)')].map(item => item.value);
+  const selected = [...document.querySelectorAll('.source-picks input:checked:not(:disabled)')].map(item => item.value);
+  const sources = sourceHealth.order(selected, route.view, { retry: true });
   if (!sources.length) { toast('至少选择一个查询来源'); return; }
   if (route.view === 'search' && !route.query) { $('query').focus(); return; }
   if (more) return catalogLoader.more();
@@ -1232,7 +1233,10 @@ function handleRoute() {
   if (!state.restorePlaybackIntent) playbackIntent.clear();
   const fromCatalog = ['browse', 'search'].includes(state.route.view);
   if (fromCatalog) rememberCatalogPosition();
-  if (state.route.view === 'home') rememberHomePosition();
+  if (state.route.view === 'home') {
+    rememberHomePosition();
+    if (route.view !== 'home') homeLoader.stop();
+  }
   const restore = searchSubmitted && route.query !== state.route.query ? null : listNavigation.catalog(location.hash);
   const homeRestore = route.view === 'home' && state.route.view !== 'home' ? listNavigation.home() : null;
   cancelFallback();

@@ -4,15 +4,96 @@ import { createCatalogLoader, catalogSummary } from '../../source/video/catalog.
 
 const query = { sources: ['liangzi', 'ruyi'], mode: 'browse', category: 'anime', type: 29, query: '' };
 const video = (source, id, year = '2026') => ({ source, origin: source, id: String(id), uid: source + ':' + id, title: '影片' + id, year, area: '大陆', remarks: '更新至12集' });
-const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+const deferred = () => { let resolve; let reject; const promise = new Promise((done, fail) => { resolve = done; reject = fail; }); return { promise, resolve, reject }; };
+const tick = () => new Promise(resolve => setImmediate(resolve));
 
 test('catalog loaders validate dependencies and query scope', async () => {
   assert.throws(() => createCatalogLoader(), /查询方法/);
-  for (const options of [{ batchPages: 0 }, { batchPages: 21 }, { batchPages: 1.5 }, { minimumResults: 0 }, { minimumResults: 1.5 }]) assert.throws(() => createCatalogLoader({ request: async () => {}, ...options }), /范围/);
+  for (const options of [{ batchPages: 0 }, { batchPages: 21 }, { batchPages: 1.5 }, { minimumResults: 0 }, { minimumResults: 1.5 }, ...[0, 6, 1.5, NaN, Infinity, '4', null].map(concurrency => ({ concurrency }))]) assert.throws(() => createCatalogLoader({ request: async () => {}, ...options }), /范围/);
   const loader = createCatalogLoader({ request: async () => ({ videos: [], pages: 1 }) });
   for (const invalid of [null, {}, { sources: [] }]) await assert.rejects(loader.open(invalid), /来源/);
   await loader.fill(); await loader.more(); loader.stop();
   assert.equal(loader.state.items.length, 0);
+});
+
+test('catalog source queues bound active requests while publishing fast results and advancing past failures', async () => {
+  const sources = Array.from({ length: 12 }, (_, index) => 'provider' + index);
+  const jobs = []; let active = 0; let maximum = 0;
+  const loader = createCatalogLoader({ request: (source, options) => {
+    const job = { source, options, ...deferred() }; jobs.push(job);
+    active++; maximum = Math.max(maximum, active);
+    return job.promise.finally(() => active--);
+  } });
+  const pending = loader.open({ ...query, sources });
+  assert.equal(jobs.length, 4); assert.equal(maximum, 4);
+  jobs[1].resolve({ videos: [video(jobs[1].source, 1)], pages: 1 }); await tick();
+  assert.equal(loader.state.items[0].source, sources[1]); assert.equal(loader.state.loading, true);
+  assert.equal(jobs.length, 5); assert.equal(jobs[4].source, sources[4]);
+  jobs[2].reject(new Error('provider failed')); await tick();
+  assert.deepEqual(catalogSummary(loader.state).failed, [sources[2]]);
+  assert.equal(jobs.length, 6); assert.equal(jobs[5].source, sources[5]);
+  for (let index = 0; index < sources.length; index++) {
+    if (index === 1 || index === 2) continue;
+    jobs[index].resolve({ videos: [video(jobs[index].source, 1)], pages: 1 }); await tick();
+  }
+  await pending;
+  assert.equal(maximum, 4); assert.equal(active, 0); assert.equal(loader.state.items.length, 11);
+  assert.deepEqual(jobs.map(job => job.source), sources); assert.equal(loader.state.loading, false);
+  const retry = loader.more(); assert.equal(jobs.length, 13); assert.equal(jobs[12].source, sources[2]);
+  assert.equal(jobs[12].options.page, 1); assert.equal(jobs[12].options.retrySources, true);
+  jobs[12].resolve({ videos: [video(sources[2], 1)], pages: 1 }); await retry;
+  assert.equal(catalogSummary(loader.state).phase, 'complete'); assert.equal(loader.state.items.length, 12);
+});
+
+test('stopping or replacing a catalog never starts queued requests from its old scope', async () => {
+  for (const action of ['stop', 'replace']) {
+    const waiting = deferred(); const calls = [];
+    const loader = createCatalogLoader({ concurrency: 1, request: (source, options) => {
+      calls.push({ source, ...options });
+      return options.query === 'new' ? Promise.resolve({ videos: [video(source, 2)], pages: 1 }) : waiting.promise;
+    } });
+    const pending = loader.open({ sources: ['liangzi', 'ruyi', 'feifan'], query: 'old' });
+    assert.equal(calls.length, 1);
+    if (action === 'stop') loader.stop();
+    else await loader.open({ sources: ['liangzi'], query: 'new' });
+    assert.equal(calls[0].signal.aborted, true);
+    waiting.resolve({ videos: [video('liangzi', 1)], pages: 5 }); await pending;
+    assert.equal(calls.filter(call => call.query === 'old').length, 1);
+    assert.equal(loader.state.items.length, action === 'stop' ? 0 : 1);
+    if (action === 'replace') assert.equal(loader.state.items[0].id, '2');
+    assert.equal(loader.state.loading, false);
+  }
+});
+
+test('serialized catalog queues preserve restored page limits and explicit pagination', async () => {
+  const calls = [];
+  const loader = createCatalogLoader({ concurrency: 1, request: async (source, options) => {
+    calls.push([source, options.page]); return { videos: [video(source, options.page)], pages: 4 };
+  } });
+  await loader.open({ ...query, sources: ['liangzi', 'ruyi', 'feifan'] }, { pages: { liangzi: 2, ruyi: 1, feifan: 3 } });
+  assert.deepEqual(calls, [['liangzi', 1], ['ruyi', 1], ['feifan', 1], ['liangzi', 2], ['feifan', 2], ['feifan', 3]]);
+  assert.deepEqual(catalogSummary(loader.state).pages, { liangzi: 2, ruyi: 1, feifan: 3 });
+  await loader.more();
+  assert.deepEqual(calls.slice(-3), [['liangzi', 3], ['ruyi', 2], ['feifan', 4]]);
+});
+
+test('health reordering preserves catalog identity and retries only missed pages without replacing visible results', async () => {
+  const calls = []; let failing = true;
+  const loader = createCatalogLoader({ request: async (source, options) => {
+    calls.push([source, options.page, options.retrySources]);
+    if (source === 'ruyi' && failing) throw new Error('unavailable');
+    return { videos: [video(source, options.page)], pages: 1 };
+  } });
+  const initial = { sources: ['ruyi', 'liangzi'], query: '凡人' };
+  await loader.open(initial);
+  assert.deepEqual(calls.map(call => call[0]), initial.sources);
+  const retained = loader.state.items[0]; const key = loader.state.key;
+  const reordered = { ...initial, sources: ['liangzi', 'ruyi', 'liangzi'] };
+  await loader.open(reordered);
+  assert.equal(calls.length, 2); assert.equal(loader.state.key, key); assert.equal(loader.state.items[0], retained);
+  failing = false; await loader.open(reordered, { retrySources: true });
+  assert.deepEqual(calls, [['ruyi', 1, false], ['liangzi', 1, false], ['ruyi', 1, true]]);
+  assert.equal(loader.state.items[0], retained); assert.equal(catalogSummary(loader.state).phase, 'complete');
 });
 
 test('catalog pagination advances each source independently, reuses a query and replaces duplicate records', async () => {

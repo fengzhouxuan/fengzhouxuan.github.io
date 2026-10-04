@@ -10,17 +10,75 @@ test('home sections appear independently and keep editorial order despite revers
   const loader = createHomeLoader({ request: options => new Promise(resolve => queries.push({ options, resolve })), onChange: () => updates++ });
   assert.equal(loader.state.sections.short.phase, 'idle');
   const first = loader.open(); assert.equal(loader.open(), first);
-  await tick(); assert.equal(queries.length, 9); assert.equal(loader.state.loading, true);
-  queries[5].resolve({ videos: [video('肖申克的救赎'), video('无关结果')] });
-  queries[8].resolve({ videos: [video('原创 AI 故事')] }); await tick();
-  assert.deepEqual(loader.state.picks.map(item => item.title), ['肖申克的救赎']);
+  await tick(); assert.equal(queries.length, 4); assert.equal(loader.state.loading, true);
+  assert.deepEqual(queries.slice(0, 4).map(job => job.options.category || job.options.query), ['tv', 'movie', 'short', '琅琊榜']);
+  queries[2].resolve({ videos: [video('原创 AI 故事')] }); await tick();
+  queries[4].resolve({ videos: [video('漫长的季节'), video('无关结果')] }); await tick();
+  assert.deepEqual(loader.state.picks.map(item => item.title), ['漫长的季节']);
   assert.equal(loader.state.short[0].title, '原创 AI 故事'); assert.equal(loader.state.sections.short.loading, false);
   assert.equal(loader.state.sections.tv.loading, true); assert.equal(loader.state.loading, true);
-  for (const [index, job] of queries.entries()) if (![5, 8].includes(index)) job.resolve({ videos: [video(job.options.query || job.options.category)] });
+  for (let index = 0; index < 9; index++) {
+    if ([2, 4].includes(index)) continue;
+    const job = queries[index]; job.resolve({ videos: [video(job.options.query || job.options.category)] }); await tick();
+  }
   await first;
   assert.deepEqual(loader.state.picks.map(item => item.title), ['琅琊榜', '漫长的季节', '武林外传', '楚门的世界', '星际穿越', '肖申克的救赎']);
   assert.equal(loader.state.loading, false); assert.equal(loader.state.sections.picks.phase, 'ready'); assert.ok(updates >= 10);
   await loader.open(); await loader.retry('picks'); assert.equal(queries.length, 9);
+});
+
+test('home queues cap requests across overlapping section retries and continue after a failure', async () => {
+  const jobs = []; let active = 0; let maximum = 0;
+  const loader = createHomeLoader({ request: options => {
+    active++; maximum = Math.max(maximum, active);
+    return new Promise((resolve, reject) => jobs.push({ options, resolve, reject })).finally(() => active--);
+  } });
+  const opening = loader.open(); await tick(); assert.equal(jobs.length, 4); assert.equal(maximum, 4);
+  jobs[2].reject(new Error('short source failed')); await tick();
+  assert.equal(jobs.length, 5); assert.equal(loader.state.sections.short.phase, 'failed');
+  const retry = loader.retry('short'); await tick();
+  assert.equal(jobs.length, 5); assert.equal(loader.state.sections.short.loading, true);
+  for (let index = 0; index < 10; index++) {
+    if (index === 2) continue;
+    const job = jobs[index]; job.resolve({ videos: [video(job.options.query || job.options.category)] }); await tick();
+  }
+  await Promise.all([opening, retry]);
+  assert.equal(maximum, 4); assert.equal(active, 0); assert.equal(loader.state.loading, false);
+  assert.equal(jobs[9].options.category, 'short'); assert.equal(jobs[9].options.retrySources, true);
+  assert.equal(loader.state.sections.short.phase, 'ready'); assert.equal(loader.state.picks.length, 6);
+});
+
+test('stopping home cancels queued jobs and source fallback, preserves ready sections and resumes only unfinished work', async () => {
+  const queries = [];
+  const loader = createHomeLoader({ request: options => requestHomeSources(['liangzi', 'ruyi'], options, (source, requestOptions) =>
+    new Promise(resolve => queries.push({ source, options: requestOptions, resolve }))) });
+  const old = loader.open(); await tick();
+  queries[0].resolve({ videos: [video('已返回的电视剧')] }); await tick();
+  const retained = loader.state.tv[0]; const oldRequests = queries.length; assert.equal(oldRequests, 5);
+  loader.stop();
+  assert.equal(loader.state.loading, false); assert.equal(loader.state.tv[0], retained);
+  assert.equal(loader.state.sections.movie.phase, 'idle'); assert.equal(loader.state.sections.short.phase, 'idle');
+  assert.ok(queries.every(job => job.options.signal.aborted));
+  const fresh = loader.open(); await tick(); assert.equal(queries.length, oldRequests + 4);
+  for (const job of queries.slice(1, oldRequests)) job.resolve({ videos: [] });
+  await old;
+  assert.equal(loader.open(), fresh); assert.equal(loader.state.loading, true); assert.equal(loader.state.tv[0], retained);
+  for (let index = oldRequests; index < oldRequests + 8; index++) {
+    const job = queries[index]; job.resolve({ videos: [video(job.options.query || job.options.category)] }); await tick();
+  }
+  await fresh;
+  assert.equal(queries.length, oldRequests + 8); assert.ok(queries.every(job => job.source === 'liangzi'));
+  assert.equal(queries.slice(oldRequests).filter(job => job.options.category === 'tv').length, 0);
+  assert.equal(loader.state.tv[0], retained); assert.equal(loader.state.picks.length, 6); assert.equal(loader.state.loading, false);
+});
+
+test('stopping before home dispatch prevents all scheduled requests and later opening remains usable', async () => {
+  let calls = 0;
+  const loader = createHomeLoader({ concurrency: 1, request: async options => { calls++; return { videos: [video(options.query || options.category)] }; } });
+  const pending = loader.open(); loader.stop(); await pending;
+  assert.equal(calls, 0); assert.equal(loader.state.loading, false);
+  await loader.open(); assert.equal(calls, 9); assert.equal(loader.state.picks.length, 6);
+  loader.stop(); assert.equal(loader.state.sections.picks.phase, 'ready');
 });
 
 test('failed and empty sections can be retried individually without reloading successful results', async () => {
@@ -72,6 +130,7 @@ test('a repeated retry during loading shares requests and does not clear ready n
 
 test('invalid dependencies, sections and malformed replies fail safely', async () => {
   for (const options of [undefined, {}, { request: 1 }, { request() {}, onChange: null }]) assert.throws(() => createHomeLoader(options), /方法/);
+  for (const concurrency of [0, 6, 1.5, NaN, Infinity, '4', null]) assert.throws(() => createHomeLoader({ request() {}, concurrency }), /范围/);
   const loader = createHomeLoader({ request: async () => null });
   await loader.open(); assert.equal(loader.state.loading, false);
   for (const section of ['picks', 'tv', 'movie', 'short']) assert.equal(loader.state.sections[section].phase, 'failed');

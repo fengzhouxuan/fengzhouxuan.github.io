@@ -1,10 +1,64 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createVideoQuery } from '../query.js';
+import { createVideoQuery, buildUpstream } from '../query.js';
+import { SOURCES, CATEGORIES, supportsSource, requestVideos, groupVideos } from '../core.js';
 import { piankuList, piankuDetail, piankuPlay, aueteList, aueteDetail, auetePlay, zipSearch, zipDetail } from './fixtures/site-pages.js';
 
 const blog = 'https://fengzhouxuan.github.io';
 const request = (path, options = {}) => new Request('https://video-api.example' + path, options);
+
+test('expanded source categories use their own verified IDs and reject unsupported scopes before making a request', async () => {
+  const categories = CATEGORIES.flatMap(category => category.types.map(([type]) => ({ category: category.id, type })));
+  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu'];
+  const fixtures = [
+    ['dyttzy', 29, 29, 46, 36, null], ['360zy', 29, 38, 46, 46, null],
+    ['modu', 29, 1, 46, 38, 42], ['zuid', 29, 29, 46, 54, null],
+    ['uku', 13, 13, 46, 32, null], ['jszy', 29, 24, null, null, 54],
+    ['xinlang', 29, 38, null, null, 57], ['jinying', 29, 24, null, null, 48],
+    ['guangsu', 29, 41, null, null, 52], ['ikun', 29, 35, 46, 45, null],
+    ['hongniu', 29, 36, null, null, 51],
+  ];
+  for (const [source, type, upstreamType, short, shortType, aiType] of fixtures) {
+    const category = type === 13 ? 'tv' : 'anime';
+    assert.equal(buildUpstream(new URLSearchParams({ source, mode: 'browse', category, type })).searchParams.get('t'), String(upstreamType));
+    if (short) assert.equal(buildUpstream(new URLSearchParams({ source, mode: 'browse', category: 'short', type: short })).searchParams.get('t'), String(shortType));
+    if (aiType) assert.equal(buildUpstream(new URLSearchParams({ source, mode: 'browse', category: 'short', type: 52 })).searchParams.get('t'), String(aiType));
+  }
+  let calls = 0;
+  const query = createVideoQuery({ fetchImpl: async () => { calls++; return Response.json({ list: [] }); } });
+  for (const id of sources) {
+    const source = SOURCES.find(item => item.id === id);
+    assert.equal(new URL(source.api).protocol, 'https:'); assert.ok(Array.isArray(source.browseTypes));
+    for (const { category, type } of categories) {
+      const path = '/api/vod?' + new URLSearchParams({ source: id, mode: 'browse', category, type });
+      const before = calls;
+      const response = await query(request(path));
+      if (supportsSource(source, { view: 'browse', type })) { assert.equal(response.status, 200); assert.equal(calls, before + 1); }
+      else { assert.equal(response.status, 400); assert.equal(calls, before); }
+    }
+  }
+  assert.equal(new Set(SOURCES.map(source => source.id)).size, SOURCES.length);
+  assert.equal(new Set(SOURCES.filter(source => source.api).map(source => source.api)).size, SOURCES.filter(source => source.api).length);
+});
+
+test('expanded sources keep search and detail identity and deduplicate a matching ZIP0 upstream', async () => {
+  const ids = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu'];
+  for (const source of ids) {
+    const calls = [];
+    const query = createVideoQuery({ fetchImpl: async url => {
+      calls.push(url); return Response.json({ list: [{ vod_id: 12, vod_name: '测试影片', vod_year: '2026', vod_play_from: 'hls', vod_play_url: '第01集$https://cdn.example/1.m3u8' }], pagecount: 1 });
+    } });
+    const fetchImpl = input => query(request(new URL(input).pathname + new URL(input).search));
+    const searchResult = await requestVideos(source, { query: '凡人 & 修仙', base: 'https://video-api.example', fetchImpl });
+    assert.equal(searchResult.videos[0].uid, source + ':12'); assert.equal(calls[0].searchParams.get('wd'), '凡人 & 修仙');
+    const detail = await requestVideos(source, { id: '12', base: 'https://video-api.example', fetchImpl });
+    assert.equal(calls[1].searchParams.get('ids'), '12'); assert.equal(calls[1].searchParams.has('wd'), false);
+    assert.equal(detail.videos[0].lines[0].episodes[0].url, 'https://cdn.example/1.m3u8');
+    const aggregated = { ...detail.videos[0], source: 'zip0', id: source + ':12', uid: 'zip0:' + source + ':12', origin: source };
+    assert.equal(groupVideos([aggregated, detail.videos[0]])[0].variants.length, 1);
+    assert.equal(groupVideos([aggregated, detail.videos[0]])[0].variants[0].source, source);
+  }
+});
 
 test('portable query handler permits exact configured origins on success, errors and preflight', async () => {
   let calls = 0;

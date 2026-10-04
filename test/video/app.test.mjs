@@ -3,12 +3,41 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as core from '../../source/video/core.js';
 import * as playback from '../../source/video/playback.js';
+import { createHomeLoader } from '../../source/video/home.js';
 import { appHarness } from './fixtures/app-harness.cjs';
 
 const source = await readFile(new URL('../../source/video/app.js', import.meta.url), 'utf8');
 const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
+
+test('page navigation cancels home requests and returning home opens a fresh queue', async () => {
+  const requests = []; const nodes = new Map(); const location = { hash: '#library' };
+  const homeLoader = createHomeLoader({ request: options => new Promise((resolve, reject) => {
+    requests.push(options);
+    options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true });
+  }) });
+  const state = { route: { view: 'home' }, detailVersion: 0, watchlist: { loading: false }, catalog: { loading: false } };
+  const harness = appHarness(source, {
+    ...core, state, location, homeLoader, submittedSearchHash: '', filterTimer: null, clearTimeout() {},
+    document: { activeElement: null, querySelectorAll: () => [], body: { classList: { toggle() {} } } },
+    window: { scrollY: 0, scrollTo() {} },
+    $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); },
+    syncSavedRecords() {}, rememberCatalogPosition() {}, rememberHomePosition() {}, cancelFallback() {}, renderLibrary() {}, renderHome() {},
+    playbackIntent: { clear() {} }, variantDiscovery: { stop() {} },
+    listNavigation: { catalog: () => null, home: () => null, remember: hash => hash },
+  });
+  harness.include('handleRoute', 'applyPendingResume');
+  const pending = homeLoader.open(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 4);
+  harness.run('handleRoute()'); await pending;
+  assert.equal(state.route.view, 'library'); assert.equal(homeLoader.state.loading, false);
+  assert.ok(requests.every(options => options.signal.aborted)); assert.equal(requests.length, 4);
+  location.hash = '#home'; harness.run('handleRoute()'); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(state.route.view, 'home'); assert.equal(requests.length, 8);
+  assert.ok(requests.slice(4).every(options => !options.signal.aborted));
+  const fresh = homeLoader.open(); homeLoader.stop(); await fresh;
+});
 
 function page(current = film, { saved = null, route = {}, override = null, intent = playback.createPlaybackIntent() } = {}) {
   const nodes = new Map(); const started = []; const messages = []; const failures = [];

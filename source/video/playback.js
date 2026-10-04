@@ -237,8 +237,8 @@ export function createPlaybackFallback({ maximum = 3, priority = () => 0 } = {})
   return { state, begin, remember, mark, next, available: (current, variants) => Boolean(candidate(current, variants)), stop, lineFor };
 }
 
-export function createVariantDiscovery({ request, onChange = () => {}, sources = SOURCES } = {}) {
-  if (typeof request !== 'function' || typeof onChange !== 'function' || !Array.isArray(sources) || sources.some(source => !SOURCES.some(value => value.id === source?.id))) throw new Error('来源查询配置不正确');
+export function createVariantDiscovery({ request, onChange = () => {}, sources = SOURCES, concurrency = 3 } = {}) {
+  if (typeof request !== 'function' || typeof onChange !== 'function' || !Array.isArray(sources) || sources.some(source => !SOURCES.some(value => value.id === source?.id)) || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 5) throw new Error('来源查询配置不正确');
   const state = { group: null, loading: false, completed: 0, total: 0, failed: [] };
   let version = 0; let controller;
 
@@ -249,19 +249,24 @@ export function createVariantDiscovery({ request, onChange = () => {}, sources =
     stop(); const current = version; const activeController = new AbortController(); controller = activeController;
     const missing = sources.filter(source => source.search !== false && !group.variants.some(variant => variant.source === source.id));
     Object.assign(state, { group, loading: Boolean(missing.length), completed: 0, total: missing.length, failed: [] }); onChange();
-    await Promise.allSettled(missing.map(async source => {
-      try {
-        const result = await request(source.id, { query: group.title, signal: activeController.signal });
-        if (current !== version) return;
-        if (!Array.isArray(result?.videos)) throw new Error('来源查询结果不正确');
-        const matches = result.videos.filter(item => item && videoKey(item) === videoKey(group));
-        if (matches.length) group.variants = groupVideos([...group.variants, ...matches])[0].variants;
-      } catch {
-        if (current !== version) return;
-        state.failed.push(source.id);
+    let next = 0;
+    async function worker() {
+      while (current === version && !activeController.signal.aborted && next < missing.length) {
+        const source = missing[next++];
+        try {
+          const result = await request(source.id, { query: group.title, signal: activeController.signal });
+          if (current !== version) return;
+          if (!Array.isArray(result?.videos)) throw new Error('来源查询结果不正确');
+          const matches = result.videos.filter(item => item && videoKey(item) === videoKey(group));
+          if (matches.length) group.variants = groupVideos([...group.variants, ...matches])[0].variants;
+        } catch {
+          if (current !== version) return;
+          state.failed.push(source.id);
+        }
+        state.completed++; state.loading = state.completed < state.total; onChange();
       }
-      state.completed++; state.loading = state.completed < state.total; onChange();
-    }));
+    }
+    await Promise.all(Array.from({ length: Math.min(concurrency, missing.length) }, worker));
     if (current === version && controller === activeController) controller = null;
   }
 

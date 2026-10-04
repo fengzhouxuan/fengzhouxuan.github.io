@@ -322,7 +322,6 @@ test('progress updates one record, keeps at most 100 and discards playlist URLs'
   assert.equal(rememberProgress([], item, '', Infinity, Infinity)[0].position, 0);
   assert.equal(rememberProgress([], item, '', NaN, -1)[0].duration, 0);
   assert.equal(rememberProgress(Array.from({ length: 110 }, (_, index) => ({ uid: String(index) })), item, '', 0, 0).length, 100);
-  assert.equal(SOURCES.length, 6);
 });
 
 test('saved edits preserve records added in other tabs while applying only local additions, edits and removals', () => {
@@ -382,6 +381,15 @@ test('site identities, capabilities, lazy episodes and duplicate upstreams are s
   assert.equal(groupVideos([duplicate, direct])[0].variants.length, 1);
   assert.equal(groupVideos([duplicate, direct])[0].variants[0].source, 'ruyi');
   assert.equal(groupVideos([direct, duplicate])[0].variants.length, 1);
+  for (const [source, alias] of [['dyttzy', 'dyttzy'], ['360zy', 'zy360'], ['jszy', 'jisu'], ['modu', 'mdzy'], ['zuid', 'zuid'], ['ikun', 'ikun']]) {
+    const item = normalizeVideo(raw, source);
+    const aggregated = normalizeVideo({ ...raw, vod_id: alias + ':12' }, 'zip0');
+    assert.equal(aggregated.origin, source);
+    assert.equal(groupVideos([aggregated, item])[0].variants.length, 1);
+    assert.equal(groupVideos([item, aggregated])[0].variants.length, 1);
+    assert.equal(groupVideos([aggregated, item])[0].variants[0].source, source);
+  }
+  assert.equal(normalizeVideo({ ...raw, vod_id: 'unknown:12' }, 'zip0').origin, 'zip0:unknown');
   const lazy = normalizeVideo({ ...raw, vod_lines: [{ name: '<b>A</b>', episodes: [{ name: '1', ref: '2-1' }, { name: 'bad', ref: '//evil' }] }, { episodes: null }] }, 'pianku');
   assert.deepEqual(lazy.lines, [{ name: 'A', episodes: [{ name: '1', ref: '2-1' }] }]);
   const storage = { getItem: () => JSON.stringify([{ ...lazy }, { ...lazy, id: '../bad' }]) };
@@ -433,8 +441,8 @@ test('short drama routes expose separate AI catalogs and source capabilities sta
   assert.equal(parseRoute('#browse?category=short&type=52').type, 52);
   assert.equal(parseRoute('#browse?category=short&type=36').type, 46);
   assert.equal(parseRoute('#browse?category=anime&type=52').type, 29);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan']);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu']);
   assert.equal(supportsSource(SOURCES[1], { view: 'search', type: 52 }), true);
   assert.equal(supportsSource(SOURCES[2], { view: 'browse', type: 13 }), true);
   const ai = normalizeVideo({ ...raw, vod_name: '测试 AI 漫剧', type_name: 'AI漫剧', vod_remarks: '已完结', vod_play_url: '全集$https://example.com/all.m3u8' }, 'liangzi');

@@ -5,6 +5,37 @@ export const SOURCES = [
   { id: 'pianku', name: '片库', site: 'https://4k01.pianku.online', browseTypes: [6, 7, 8, 9, 10, 11, 12, 20, 13, 16] },
   { id: 'auete', name: 'Auete', site: 'https://www.aeete.com', search: false, browseTypes: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31] },
   { id: 'zip0', name: 'ZIP0', site: 'https://zip0.com', browseTypes: [] },
+  { id: 'dyttzy', name: '电影天堂', api: 'https://caiji.dyttzyapi.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46], browseTypeMap: { 46: 36 } },
+  { id: '360zy', name: '360资源', api: 'https://360zyzz.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 46],
+    browseTypeMap: { 20: 27, 21: 30, 22: 31, 23: 32, 24: 33, 25: 34, 26: 35, 27: 36, 28: 37, 29: 38, 30: 40, 31: 39 } },
+  { id: 'modu', name: '魔都资源', api: 'https://www.mdzyapi.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 25, 26, 27, 28, 46, 52],
+    browseTypeMap: { 6: 10, 7: 11, 8: 12, 9: 13, 10: 14, 11: 15, 12: 16, 13: 26, 14: 27, 15: 28, 16: 29, 20: 24, 21: 30, 22: 31, 23: 32, 24: 33, 25: 34, 26: 35, 27: 36, 28: 37, 29: 1, 30: 2, 31: 3, 32: 4, 46: 38, 52: 42 } },
+  { id: 'zuid', name: '最大资源', api: 'https://api.zuidapi.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
+    browseTypeMap: { 14: 17, 16: 14, 21: 18, 22: 16, 24: 19, 26: 27, 27: 26, 32: 44, 33: 45, 46: 54 } },
+  { id: 'uku', name: 'U酷资源', api: 'https://api.ukuapi88.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 46], browseTypeMap: { 15: 22, 20: 24, 22: 15, 24: 23, 46: 32 } },
+  { id: 'jszy', name: '极速资源', api: 'https://jszyapi.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 6: 9, 7: 11, 8: 10, 9: 12, 10: 13, 11: 14, 12: 15, 13: 20, 14: 4, 15: 5, 16: 3, 20: 16, 21: 28, 22: 6, 24: 7, 25: 30, 26: 32, 27: 31, 28: 33, 29: 24, 30: 25, 31: 26, 52: 54 } },
+  { id: 'xinlang', name: '新浪资源', api: 'https://api.xinlangapi.com/xinlangapi.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 7: 12, 8: 7, 9: 8, 10: 11, 11: 10, 12: 9, 15: 18, 20: 5, 21: 15, 22: 20, 24: 21, 25: 45, 26: 47, 27: 46, 28: 48, 29: 38, 30: 39, 31: 40, 52: 57 } },
+  { id: 'jinying', name: '金鹰资源', api: 'https://jinyingzy.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 6: 9, 7: 11, 8: 10, 9: 12, 10: 13, 11: 14, 12: 15, 13: 20, 14: 4, 15: 5, 16: 3, 20: 16, 21: 28, 22: 6, 24: 7, 25: 36, 26: 38, 27: 37, 28: 39, 29: 24, 30: 25, 31: 26, 52: 48 } },
+  { id: 'guangsu', name: '光速资源', api: 'https://api.guangsuapi.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 10: 11, 11: 10, 14: 15, 15: 16, 16: 14, 20: 24, 21: 22, 22: 21, 24: 23, 25: 37, 26: 39, 27: 38, 28: 40, 29: 41, 30: 42, 31: 43 } },
+  { id: 'ikun', name: 'iKun资源', api: 'https://ikunzyapi.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 46],
+    browseTypeMap: { 13: 23, 14: 24, 15: 25, 16: 26, 21: 27, 22: 28, 23: 29, 24: 30, 25: 31, 26: 32, 27: 33, 28: 34, 29: 35, 30: 37, 31: 36, 46: 45 } },
+  { id: 'hongniu', name: '红牛资源', api: 'https://www.hongniuzy2.com/api.php/provide/vod',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 18, 16: 15, 20: 19, 21: 16, 22: 14, 24: 17, 25: 39, 26: 41, 27: 40, 28: 42, 29: 36, 30: 37, 31: 38, 52: 51 } },
 ];
 
 export function validVideoId(source, id) {
@@ -225,8 +256,9 @@ export function normalizeVideo(raw, source) {
   const title = plainText(raw.vod_name);
   const category = plainText(raw.type_name);
   if (!validVideoId(source, id) || !title || /伦理|色情|福利|写真|里番|成人|解说|预告/.test(category + title)) return null;
-  const aliases = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi' };
-  const origin = source === 'zip0' ? aliases[id.split(':')[0]] || 'zip0:' + id.split(':')[0] : source;
+  const aliases = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu' };
+  const upstream = id.split(':')[0];
+  const origin = source === 'zip0' ? aliases[upstream] || (SOURCES.some(item => item.id === upstream && item.api) ? upstream : 'zip0:' + upstream) : source;
   const lines = Array.isArray(raw.vod_lines) && ['auete', 'pianku'].includes(source) ? raw.vod_lines.map(line => ({
     name: plainText(line.name), episodes: (Array.isArray(line.episodes) ? line.episodes : []).filter(item => /^\d{1,4}-\d{1,4}$/.test(item.ref || '')).map(item => ({ name: plainText(item.name), ref: item.ref })),
   })).filter(line => line.episodes.length) : parseLines(raw.vod_play_from, raw.vod_play_url);
@@ -291,8 +323,8 @@ function queryServiceError(message) {
   const error = new Error(message); error.name = 'QueryServiceError'; return error;
 }
 
-async function fetchQuery(url, signal, fetchImpl) {
-  const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000);
+async function fetchQuery(url, signal, fetchImpl, timeout = 15000) {
+  const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout);
   try { return await fetchImpl(url, { signal: requestSignal }); }
   catch (error) {
     if (signal?.aborted) throw error;
@@ -324,7 +356,7 @@ export async function requestEpisode(source, id, ref, name, { base = '', signal,
   const label = plainText(name);
   if (!validVideoId(source, id) || !['auete', 'pianku'].includes(source) || !/^\d{1,4}-\d{1,4}$/.test(ref || '') || !label || label.length > 120) throw new Error('剧集参数不正确');
   const params = new URLSearchParams({ source, id, ref, name: label });
-  const response = await fetchQuery(`${base.replace(/\/$/, '')}/api/play?${params}`, signal, fetchImpl);
+  const response = await fetchQuery(`${base.replace(/\/$/, '')}/api/play?${params}`, signal, fetchImpl, 25000);
   let data;
   try { data = await response.json(); } catch { throw queryServiceError('查询服务没有返回有效数据，请重试'); }
   const url = safeURL(data?.url);

@@ -22,14 +22,15 @@ export async function requestHomeSources(sources, options, request) {
   throw new Error('来源暂时无法连接，可以重试或搜索片名');
 }
 
-export function createHomeLoader({ request, onChange = () => {} } = {}) {
+export function createHomeLoader({ request, onChange = () => {}, concurrency = 4 } = {}) {
   if (typeof request !== 'function' || typeof onChange !== 'function') throw new Error('需要提供首页查询和更新方法');
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 5) throw new Error('首页查询并发范围不正确');
   const jobs = [
     ...featuredTitles.map(query => ({ section: 'picks', options: { query }, phase: 'idle', items: [], pending: null })),
     ...Object.entries(sectionQueries).map(([section, options]) => ({ section, options, phase: 'idle', items: [], pending: null })),
   ];
   const state = { picks: [], tv: [], movie: [], short: [], loading: false, sections: {} };
-  let opening;
+  let opening; let version = 0; let controller = new AbortController(); let active = 0; let queue = [];
 
   function update(notify = true) {
     state.loading = jobs.some(job => job.phase === 'loading');
@@ -47,18 +48,44 @@ export function createHomeLoader({ request, onChange = () => {} } = {}) {
     if (notify) onChange();
   }
 
-  function run(selected, retrySources = false) {
-    const started = selected.filter(job => job.phase !== 'loading' && job.phase !== 'ready');
-    for (const job of started) {
-      job.phase = 'loading';
-      job.pending = Promise.resolve().then(() => request({ ...job.options, retrySources })).then(result => {
+  function runNext() {
+    while (active < concurrency && queue.length) {
+      const { job, current, signal, retrySources, resolve } = queue.shift();
+      if (current !== version || signal.aborted) { resolve(); continue; }
+      active++;
+      Promise.resolve().then(() => {
+        if (current !== version || signal.aborted) return;
+        return request({ ...job.options, retrySources, signal });
+      }).then(result => {
+        if (current !== version) return;
         if (!Array.isArray(result?.videos)) throw new Error('首页目录格式不正确');
         job.items = job.options.query ? result.videos.filter(item => item.title === job.options.query) : result.videos;
         job.phase = job.items.length ? 'ready' : 'empty';
-      }).catch(() => { job.phase = 'failed'; }).finally(() => { job.pending = null; update(); });
+      }).catch(() => { if (current === version) job.phase = 'failed'; }).finally(() => {
+        if (current === version) { active--; job.pending = null; update(); runNext(); }
+        resolve();
+      });
     }
-    update();
+  }
+
+  function run(selected, retrySources = false) {
+    // The first batch covers every section instead of waiting for all featured-title searches.
+    const started = selected.filter(job => job.phase !== 'loading' && job.phase !== 'ready')
+      .sort((a, b) => Number(a.section === 'picks') - Number(b.section === 'picks'));
+    for (const job of started) {
+      job.phase = 'loading';
+      job.pending = new Promise(resolve => queue.push({ job, current: version, signal: controller.signal, retrySources, resolve }));
+    }
+    update(); runNext();
     return Promise.all(selected.map(job => job.pending));
+  }
+
+  function stop() {
+    version++; controller.abort(); controller = new AbortController();
+    for (const entry of queue) entry.resolve();
+    queue = []; active = 0; opening = null;
+    for (const job of jobs) if (job.phase === 'loading') { job.phase = 'idle'; job.pending = null; }
+    update();
   }
 
   update(false);
@@ -67,12 +94,14 @@ export function createHomeLoader({ request, onChange = () => {} } = {}) {
     open() {
       if (opening) return opening;
       if (!jobs.some(job => job.phase === 'idle' || job.phase === 'loading')) return Promise.resolve();
-      opening = run(jobs.filter(job => job.phase === 'idle' || job.phase === 'loading')).finally(() => { opening = null; });
+      const current = version;
+      opening = run(jobs.filter(job => job.phase === 'idle' || job.phase === 'loading')).finally(() => { if (current === version) opening = null; });
       return opening;
     },
     retry(section) {
       if (!Object.hasOwn(state.sections, section)) throw new Error('首页栏目不正确');
       return run(jobs.filter(job => job.section === section && job.phase !== 'ready'), true);
     },
+    stop,
   };
 }
