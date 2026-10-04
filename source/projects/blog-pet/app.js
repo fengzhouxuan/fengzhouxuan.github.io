@@ -8,12 +8,14 @@
     const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
     const ui={hovered:false,focused:false,pinned:false,compact:mobile.matches,speaking:false};
     const spriteURL=outfit=>new URL(outfit.sprite,assetBase).href;
+    const blinkURL=outfit=>new URL(outfit.blink || 'assets/youyou-blink-v1.webp',assetBase).href;
     const loadedOutfits=new Map();
+    const loadedBlinks=new Set();
     let storage;
     try{storage=window.localStorage;}catch(e){/* Browsers can deny storage access. */}
     let state=core.load(storage);
     let drag=null,dragFrame=null,dragPoint=null,draggedTarget=null;
-    let keyboard=false,blinkReady=false,changingOutfit=false;
+    let keyboard=false,changingOutfit=false;
     let speechTimer,leaveTimer,compactTimer,blinkTimer,outfitTimer,changeTimer;
     let feeding=false,petUntil=0,lastHeart=0,lookFrame=null;
     let anchor={x:0,y:0,width:112,height:112},lookX=0;
@@ -176,7 +178,8 @@
       clearTimeout(blinkTimer);
       if(document.hidden || reducedMotion.matches || body.dataset.renderer==='canvas')return;
       blinkTimer=setTimeout(()=>{
-        if(blinkReady && !drag && !state.minimized && !ui.compact && !changingOutfit && body.dataset.mood==='idle'){
+        const outfit=core.outfits.find(item=>item.id===state.outfit);
+        if(loadedBlinks.has(blinkURL(outfit)) && !drag && !state.minimized && !ui.compact && !changingOutfit && body.dataset.mood==='idle'){
           body.dataset.blinking='true';
           setTimeout(()=>{body.dataset.blinking='false';},170);
         }
@@ -185,10 +188,10 @@
     }
 
     function setupBlinking(){
-      const image=new Image();
-      const url=new URL('assets/youyou-blink-v1.webp',assetBase).href;
-      body.style.setProperty('--blink-sprite','url("'+url+'")');
-      image.onload=()=>{blinkReady=true;};image.src=url;
+      for(const url of new Set(core.outfits.map(blinkURL))){
+        const image=new Image();
+        image.onload=()=>{loadedBlinks.add(url);};image.src=url;
+      }
       reducedMotion.addEventListener('change',()=>{
         body.dataset.blinking='false';body.dataset.cuddling='false';
         home.style.setProperty('--look-tilt','0deg');animator.lookAt(0);scheduleBlink();
@@ -200,7 +203,8 @@
       const outfit=core.outfits.find(item=>item.id===state.outfit);
       body.dataset.blinking='false';body.dataset.cuddling='false';
       home.style.setProperty('--outfit-sprite','url("'+spriteURL(outfit)+'")');
-      body.style.setProperty('--blink-position',['0 0','100% 0','0 100%','100% 100%'][core.outfits.indexOf(outfit)]);
+      body.style.setProperty('--blink-sprite','url("'+blinkURL(outfit)+'")');
+      body.style.setProperty('--blink-position',outfit.blinkPosition);
       $('outfit-name').textContent=outfit.name;$('auto-outfit').checked=state.autoOutfit;
       for(const button of $('outfit-options').children)button.setAttribute('aria-pressed',String(button.dataset.outfit===state.outfit));
     }
