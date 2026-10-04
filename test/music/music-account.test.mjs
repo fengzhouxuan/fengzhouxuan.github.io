@@ -262,3 +262,40 @@ test('same-account OAuth re-login keeps unsaved favorites and playlists after an
   assert.deepEqual(a.account.state.items, edited); assert.deepEqual(f.records.get('12/music').items, edited);
   assert.equal(a.account.state.user.id, user.id); assert.equal(a.account.state.pending, false);
 });
+
+test('login absorbs delayed cross-tab additions and deletions for both guest and account libraries', async t => {
+  for (const guest of [true, false]) {
+    for (const deleting of [false, true]) {
+      const initial = deleting ? collection([song(1), song(2)], [song(1), song(2)]) : collection([song(1)], [song(1)]);
+      const f = fixture(t, initial); const shared = memory();
+      const key = musicLibraryStorageKey(guest ? null : user); shared.setItem(key, JSON.stringify(initial));
+      const a = f.client({ storage: shared, guest }); const b = f.client({ storage: shared, guest });
+      await a.account.initialize(); await b.account.initialize();
+      const edited = deleting ? cleanMusicLibrary({ favorites: [song(1)], playlists: [] }) : collection([song(1), song(2)], [song(1), song(2)]);
+      b.account.changed(edited);
+      // A has not received B's storage notification when the login click runs.
+      await a.account.login('https://site.example/music/', '#library');
+      assert.deepEqual(a.account.state.items, edited);
+      assert.deepEqual(JSON.parse(shared.getItem(key)), edited);
+    }
+  }
+});
+
+test('login merges delayed storage updates with this tab unsaved edits before blocking a destructive redirect', async t => {
+  for (const guest of [true, false]) {
+    const initial = collection([song(1)], [song(1)]); const f = fixture(t, initial); const shared = memory();
+    const key = musicLibraryStorageKey(guest ? null : user); shared.setItem(key, JSON.stringify(initial));
+    let blocked = false; const storage = { ...shared, setItem(key, value) { if (blocked) throw new Error('quota'); shared.setItem(key, value); } };
+    const a = f.client({ storage, guest }); const b = f.client({ storage: shared, guest });
+    await a.account.initialize(); await b.account.initialize(); blocked = true;
+    a.account.changed(collection([song(1), song(2)], [song(1), song(2)]));
+    b.account.changed(collection([song(1), song(3)], [song(1), song(3)]));
+    await assert.rejects(a.account.login('https://site.example/music/'), /恢复存储.*导出/);
+    assert.deepEqual(new Set(a.account.state.items.favorites.map(item => item.songid)), new Set(['1', '2', '3']));
+    assert.deepEqual(new Set(a.account.state.items.playlists[0].tracks.map(item => item.songid)), new Set(['1', '2', '3']));
+    assert.deepEqual(new Set(JSON.parse(shared.getItem(key)).favorites.map(item => item.songid)), new Set(['1', '3']));
+    assert.equal(f.calls.some(call => call.url.endsWith('/login')), false);
+    blocked = false; await a.account.login('https://site.example/music/');
+    assert.deepEqual(new Set(JSON.parse(shared.getItem(key)).favorites.map(item => item.songid)), new Set(['1', '2', '3']));
+  }
+});

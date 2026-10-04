@@ -132,6 +132,7 @@ export function createLibraryAccountClient({ library, base = '', storage = null,
   }
   async function login(returnTo, route = '#home') {
     if (!tabStorage) throw new Error('浏览器需要允许本页保存登录状态，才能使用 GitHub 登录。');
+    refreshLocal();
     const guestEdits = !state.user && !equal(state.items, persisted);
     if (!remember() && (state.user ? state.pending : guestEdits)) {
       throw new Error(`浏览器无法保存当前${label}。请先恢复存储或导出备份，再用 GitHub 登录，避免丢失本次修改。`);
