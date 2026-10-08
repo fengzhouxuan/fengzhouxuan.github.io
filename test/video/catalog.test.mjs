@@ -45,6 +45,32 @@ test('catalog source queues bound active requests while publishing fast results 
   assert.equal(catalogSummary(loader.state).phase, 'complete'); assert.equal(loader.state.items.length, 12);
 });
 
+test('automatic filtered fills stop queued pages at the result target without hiding remaining pages', async () => {
+  for (const concurrency of [1, 4]) {
+    const sources = Array.from({ length: 6 }, (_, index) => 'provider' + index);
+    const calls = [];
+    const loader = createCatalogLoader({ concurrency, minimumResults: 1, request: async (source, options) => {
+      calls.push([source, options.page]);
+      return { videos: [video(source, source + '-' + options.page, options.page === 1 ? '2026' : '2020')], pages: 4 };
+    } });
+    await loader.open({ ...query, sources }, { filters: { year: '2020' } });
+    assert.deepEqual(calls.slice(0, sources.length), sources.map(source => [source, 1]));
+    assert.equal(calls.length, sources.length + concurrency);
+    const summary = catalogSummary(loader.state);
+    assert.equal(summary.count, concurrency);
+    assert.equal(summary.queried, calls.length);
+    assert.equal(summary.total, sources.length * 4);
+    assert.equal(summary.phase, 'partial'); assert.equal(summary.hasMore, true);
+    assert.equal(loader.state.loading, false);
+    await loader.fill(); assert.equal(calls.length, sources.length + concurrency);
+    await loader.more();
+    assert.equal(calls.length, sources.length * 2 + concurrency);
+    assert.deepEqual(calls.slice(-sources.length), sources.map((source, index) => [source, index < concurrency ? 3 : 2]));
+    assert.equal(new Set(calls.map(call => JSON.stringify(call))).size, calls.length);
+    assert.equal(catalogSummary(loader.state).phase, 'partial');
+  }
+});
+
 test('stopping or replacing a catalog never starts queued requests from its old scope', async () => {
   for (const action of ['stop', 'replace']) {
     const waiting = deferred(); const calls = [];

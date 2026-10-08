@@ -51,6 +51,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
         let next = 0;
         async function worker() {
           while (current === version && !activeController.signal.aborted && next < jobs.length) {
+            if (!force && catalogSummary(state).count >= minimumResults) return;
             const { feed, page } = jobs[next++];
             try {
               const result = await request(feed.source, { ...state.query, sources: undefined, page, signal: activeController.signal, retrySources });
