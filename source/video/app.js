@@ -32,7 +32,7 @@ const state = {
   pendingResume: 0, resumeSeekTarget: null, lastSave: 0, playbackVersion: 0, resumeOverride: null, monitorTimer: null, playbackPhase: '', resolveController: null,
   discovering: false, autoBusy: false, autoPending: null, autoController: null, autoLoading: false, autoResume: false, localRecovery: false, autoplayBlocked: false, userPaused: false, requestedPlay: false,
   initialPlayback: false, frameCallback: null, frameCallbackSupported: false, lastExperienceRender: 0,
-  restorePlaybackIntent: false,
+  restorePlaybackIntent: false, manualRetryBusy: false,
 };
 const video = $('video');
 const catalogLoader = createCatalogLoader({ request, onChange: renderCatalog });
@@ -973,9 +973,31 @@ function resumePlaybackChecks() {
   }
 }
 
-function retryCurrentPlayback() {
+async function retryCurrentPlayback() {
+  if (state.manualRetryBusy || state.route.view !== 'watch') return;
   if (!state.current?.lines?.[state.line]?.episodes[state.episode]) { prepareVideo(state.route); return; }
-  const position = playbackPosition(); saveProgress(); startEpisode(state.episode, position);
+  const current = state.current; const line = state.line; const index = state.episode; const version = state.playbackVersion;
+  const episode = current.lines[line].episodes[index];
+  const active = () => state.route.view === 'watch' && state.current === current && state.line === line && state.episode === index && state.playbackVersion === version;
+  const unavailable = () => {
+    if (!active()) return;
+    const message = backendTransport.state.phase === 'limited' ? '查询服务今日额度已用完，观看位置已保留，请稍后再试或选择其他来源。' : '查询服务尚未恢复，观看位置已保留，可以再次重试。';
+    screenMessage(message); $('play-status').textContent = message; $('playback-feedback').hidden = false;
+  };
+  const position = playbackPosition(); saveProgress();
+  state.manualRetryBusy = true; $('retry-play').disabled = $('reload-play').disabled = true;
+  try {
+    if (episode.ref) {
+      if (backendTransport.state.phase === 'limited') { unavailable(); return; }
+      if (backendTransport.state.phase === 'unavailable') {
+        screenMessage('正在检查查询服务，观看位置已保留…');
+        if (!await backendTransport.retry()) { unavailable(); return; }
+      }
+      if (backendTransport.state.phase === 'limited') { unavailable(); return; }
+    }
+    if (active()) await startEpisode(index, position);
+  } catch { unavailable(); }
+  finally { state.manualRetryBusy = false; $('retry-play').disabled = $('reload-play').disabled = false; }
 }
 
 async function playbackError(reason = '线路播放失败', version = state.playbackVersion, manual = false) {
