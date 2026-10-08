@@ -21,7 +21,7 @@ test('backend quota pages pause queries until UTC reset and return bounded cache
   const fetchImpl = async () => { calls++; return broken ? new Response('<html>Error code: 1027 daily quota</html>', { status: 403 }) : Response.json(data); };
   const first = createBackendTransport({ base, storage, now: () => time, fetchImpl });
   assert.equal((await first.fetch(base + search)).headers.get('X-Video-Fallback'), null); assert.equal(first.state.phase, 'ready');
-  broken = true; const cached = await first.fetch(base + search); assert.deepEqual(await cached.json(), data); assert.equal(cached.headers.get('X-Video-Fallback'), 'cache');
+  broken = true; const cached = await first.fetch(base + search, { cache: 'reload' }); assert.deepEqual(await cached.json(), data); assert.equal(cached.headers.get('X-Video-Fallback'), 'cache');
   assert.equal(first.state.phase, 'limited'); assert.equal(first.state.retryAt, Date.UTC(2026, 9, 4) + 1000);
   const reloaded = createBackendTransport({ base, storage, now: () => time, fetchImpl }); await reloaded.fetch(base + search); assert.equal(calls, 2);
   const account = await reloaded.fetch(base + '/api/account/favorites', { headers: { Authorization: 'Bearer secret' } }); assert.equal(account.status, 503); assert.equal(calls, 2); assert.doesNotMatch(JSON.stringify([...storage.values]), /secret/);
@@ -45,7 +45,7 @@ test('failed direct requests use the matching cache without caching auth data or
   let failed = false; const storage = memory();
   const transport = createBackendTransport({ base, storage, fetchImpl: async () => { if (failed) throw new Error('offline'); return Response.json(data); } });
   const path = '/api/vod?source=liangzi&page=1&q=test'; await transport.fetch(base + path); failed = true;
-  assert.equal((await transport.fetch(base + path)).headers.get('X-Video-Fallback'), 'cache');
+  assert.equal((await transport.fetch(base + path, { cache: 'reload' })).headers.get('X-Video-Fallback'), 'cache');
   assert.equal((await transport.fetch(base + '/api/play?source=auete&id=12')).status, 503);
   assert.equal((await transport.fetch(base + '/api/vod?source=ruyi&page=1&q=new')).status, 503);
   assert.equal((await transport.fetch(base + '/api/account/exchange', { method: 'POST', body: 'secret-ticket' })).status, 503);
@@ -126,7 +126,7 @@ test('cancellation is preserved and errors never expose internal details or send
 test('cache is bounded, expires, ignores corrupted records, and browser storage failures still retain in-memory data', async () => {
   for (const storage of [null, { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('quota'); }, removeItem() { throw new Error('blocked'); } }, { getItem: () => '{bad' }, { getItem: () => JSON.stringify({ bad: true }) }]) {
     let failed = false; const transport = createBackendTransport({ base, storage, fetchImpl: async () => { if (failed) throw new Error('offline'); return Response.json(data); } });
-    await transport.fetch(base + search); failed = true; assert.equal((await transport.fetch(base + search)).headers.get('X-Video-Fallback'), 'cache');
+    await transport.fetch(base + search); failed = true; assert.equal((await transport.fetch(base + search, { cache: 'reload' })).headers.get('X-Video-Fallback'), 'cache');
   }
   const storage = memory(); let time = 1000000; let failed = false;
   const transport = createBackendTransport({ base, storage, now: () => time, fetchImpl: async () => { if (failed) throw new Error('offline'); return Response.json(data); } });
@@ -135,4 +135,41 @@ test('cache is bounded, expires, ignores corrupted records, and browser storage 
   failed = true; time += 86400001; assert.equal((await transport.fetch(base + search + 29)).status, 503);
   const corrupted = memory(); corrupted.setItem('video-query-cache-v1', JSON.stringify([{ key: search, text: '{}', at: time }]));
   const invalid = createBackendTransport({ base, storage: corrupted, now: () => time, fetchImpl: async () => { throw new Error('offline'); } }); assert.equal((await invalid.fetch(base + search)).status, 503);
+});
+
+test('fresh public search and browse pages avoid Worker calls across reloads and expire after one minute', async () => {
+  let time = 1000000; let calls = 0; const storage = memory();
+  const fetchImpl = async () => { calls++; return Response.json(data); };
+  const transport = createBackendTransport({ base, storage, now: () => time, fetchImpl });
+  const browse = '/api/vod?source=ruyi&mode=browse&category=anime&type=29&page=1';
+  for (const path of [search, browse]) {
+    await transport.fetch(base + path);
+    const fresh = await transport.fetch(base + path);
+    assert.deepEqual(await fresh.json(), data); assert.equal(fresh.headers.get('X-Video-Cache'), 'fresh');
+    assert.equal(fresh.headers.get('X-Video-Fallback'), null);
+  }
+  assert.equal(calls, 2); assert.equal(transport.state.phase, 'ready');
+  const reloaded = createBackendTransport({ base, storage, now: () => time, fetchImpl });
+  await reloaded.fetch(base + search); assert.equal(calls, 2);
+  const cancelled = new AbortController(); cancelled.abort();
+  await assert.rejects(reloaded.fetch(base + search, { signal: cancelled.signal }), { name: 'AbortError' });
+  time += 60000;
+  await reloaded.fetch(base + search); assert.equal(calls, 3);
+  await reloaded.fetch(base + search + '&page_extra=2'); assert.equal(calls, 4);
+});
+
+test('fresh cache excludes detail, playback, account and authenticated requests and honors cache bypass', async () => {
+  let calls = 0; const storage = memory();
+  const transport = createBackendTransport({ base, storage, fetchImpl: async () => { calls++; return Response.json({ ...data, url: 'https://cdn.example/video.m3u8' }); } });
+  await transport.fetch(base + search);
+  for (const cache of ['reload', 'no-cache', 'no-store']) await transport.fetch(base + search, { cache });
+  assert.equal(calls, 4);
+  for (const path of [search + '&id=12', '/api/play?source=pianku&id=12', '/api/account/favorites']) {
+    await transport.fetch(base + path); await transport.fetch(base + path);
+  }
+  for (let index = 0; index < 2; index++) await transport.fetch(base + search, { headers: { Authorization: 'Bearer private-token' } });
+  assert.equal(calls, 12); assert.doesNotMatch(JSON.stringify([...storage.values]), /private-token|api\/account|api\/play/);
+  const before = storage.getItem('video-query-cache-v1');
+  await transport.fetch(base + search + '&q_extra=new', { cache: 'no-store' });
+  assert.equal(storage.getItem('video-query-cache-v1'), before);
 });

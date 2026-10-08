@@ -3,6 +3,7 @@ import { SOURCES, CATEGORIES } from './core.js';
 const cacheKey = 'video-query-cache-v1';
 const pauseKey = 'video-backend-pause-v1';
 const lifetime = 24 * 60 * 60 * 1000;
+const freshLifetime = 60 * 1000;
 const jsonResponse = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 
 export function createBackendTransport({ base = '', storage = null, fetchImpl = fetch, now = Date.now, onChange = () => {} } = {}) {
@@ -78,6 +79,13 @@ export function createBackendTransport({ base = '', storage = null, fetchImpl = 
     if (url.origin !== new URL(endpoint || 'http://localhost').origin) throw new Error('服务地址不正确');
     if (options.signal?.aborted) throw options.signal.reason || new DOMException('Aborted', 'AbortError');
     if (state.retryAt > now()) return query ? fallback(url, options) : jsonResponse({ code: 'backend_unavailable', error: '云端暂时不可用，收藏已保留在本机，恢复后可继续同步' }, 503);
+    const key = url.pathname + url.search;
+    const publicRead = url.pathname === '/api/vod' && (options.method || 'GET').toUpperCase() === 'GET' && !new Headers(options.headers).has('Authorization');
+    // Reuse public catalog pages briefly; detail pages may contain expiring playback URLs.
+    const entry = publicRead && !url.searchParams.has('id') && !['no-store', 'reload', 'no-cache'].includes(options.cache) ? cache.get(key) : null;
+    if (entry && now() >= entry.at && now() - entry.at < freshLifetime) {
+      return new Response(entry.text, { headers: { 'Content-Type': 'application/json', 'X-Video-Cache': 'fresh' } });
+    }
     const current = generation;
     try {
       // Let a provider's deadline return its isolated 502 before declaring the service unavailable.
@@ -94,7 +102,7 @@ export function createBackendTransport({ base = '', storage = null, fetchImpl = 
         if (current === generation) pause(quota ? 'limited' : 'unavailable', Number(response.headers.get('Retry-After')) || 60);
         return query ? fallback(url, options) : jsonResponse({ code: 'backend_unavailable', error: '云端暂时不可用，收藏已保留在本机，恢复后可继续同步' }, 503);
       }
-      if (response.ok && query && url.pathname === '/api/vod') remember(url.pathname + url.search, text);
+      if (response.ok && publicRead && options.cache !== 'no-store') remember(key, text);
       if (response.ok && current === generation && state.retryAt <= now()) {
         Object.assign(state, { phase: 'ready', retryAt: 0 });
         try { storage?.removeItem(pauseKey); } catch { /* Recovery remains effective for this tab. */ }
