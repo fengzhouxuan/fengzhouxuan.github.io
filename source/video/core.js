@@ -36,6 +36,15 @@ export const SOURCES = [
   { id: 'hongniu', name: '红牛资源', api: 'https://www.hongniuzy2.com/api.php/provide/vod',
     browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
     browseTypeMap: { 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 18, 16: 15, 20: 19, 21: 16, 22: 14, 24: 17, 25: 39, 26: 41, 27: 40, 28: 42, 29: 36, 30: 37, 31: 38, 52: 51 } },
+  { id: 'baofeng', name: '暴风资源', api: 'https://bfzyapi.com/api.php/provide/vod/',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46, 52],
+    browseTypeMap: { 6: 21, 7: 22, 8: 25, 9: 24, 10: 23, 11: 26, 12: 27, 13: 31, 14: 33, 15: 34, 16: 32, 20: 28, 21: 35, 22: 36, 23: 37, 24: 38, 25: 46, 26: 47, 27: 48, 28: 49, 29: 40, 30: 41, 31: 42, 32: 43, 33: 44, 46: 58, 52: 74 } },
+  { id: 'haohua', name: '豪华资源', api: 'https://hhzyapi.com/api.php/provide/vod/',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 6: 9, 7: 11, 8: 10, 9: 12, 10: 13, 11: 14, 12: 15, 13: 20, 14: 4, 15: 5, 16: 3, 20: 16, 21: 28, 22: 6, 24: 7, 25: 30, 26: 32, 27: 31, 28: 33, 29: 24, 30: 25, 31: 26, 52: 53 } },
+  { id: 'wujin', name: '无尽资源', api: 'https://api.wujinapi.com/api.php/provide/vod/',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
+    browseTypeMap: { 15: 22, 20: 21, 21: 15, 22: 23, 23: 24, 24: 37, 26: 27, 27: 26, 32: 42, 33: 43, 46: 41 } },
 ];
 
 export function validVideoId(source, id) {
@@ -256,7 +265,7 @@ export function normalizeVideo(raw, source) {
   const title = plainText(raw.vod_name);
   const category = plainText(raw.type_name);
   if (!validVideoId(source, id) || !title || /伦理|色情|福利|写真|里番|成人|解说|预告/.test(category + title)) return null;
-  const aliases = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu' };
+  const aliases = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
   const upstream = id.split(':')[0];
   const origin = source === 'zip0' ? aliases[upstream] || (SOURCES.some(item => item.id === upstream && item.api) ? upstream : 'zip0:' + upstream) : source;
   const lines = Array.isArray(raw.vod_lines) && ['auete', 'pianku'].includes(source) ? raw.vod_lines.map(line => ({

@@ -9,7 +9,7 @@ const request = (path, options = {}) => new Request('https://video-api.example' 
 
 test('expanded source categories use their own verified IDs and reject unsupported scopes before making a request', async () => {
   const categories = CATEGORIES.flatMap(category => category.types.map(([type]) => ({ category: category.id, type })));
-  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu'];
+  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin'];
   const fixtures = [
     ['dyttzy', 29, 29, 46, 36, null], ['360zy', 29, 38, 46, 46, null],
     ['modu', 29, 1, 46, 38, 42], ['zuid', 29, 29, 46, 54, null],
@@ -17,6 +17,8 @@ test('expanded source categories use their own verified IDs and reject unsupport
     ['xinlang', 29, 38, null, null, 57], ['jinying', 29, 24, null, null, 48],
     ['guangsu', 29, 41, null, null, 52], ['ikun', 29, 35, 46, 45, null],
     ['hongniu', 29, 36, null, null, 51],
+    ['baofeng', 29, 40, 46, 58, 74], ['haohua', 29, 24, null, null, 53],
+    ['wujin', 29, 29, 46, 41, null],
   ];
   for (const [source, type, upstreamType, short, shortType, aiType] of fixtures) {
     const category = type === 13 ? 'tv' : 'anime';
@@ -42,7 +44,7 @@ test('expanded source categories use their own verified IDs and reject unsupport
 });
 
 test('expanded sources keep search and detail identity and deduplicate a matching ZIP0 upstream', async () => {
-  const ids = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu'];
+  const ids = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin'];
   for (const source of ids) {
     const calls = [];
     const query = createVideoQuery({ fetchImpl: async url => {
