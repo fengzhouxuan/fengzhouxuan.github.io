@@ -1,5 +1,5 @@
 import {
-  SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, supportsSource, sourceLabel, requestEpisode,
+  SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, supportsSource, sourceLabel, contentNotice, requestEpisode,
   safeURL, groupVideos, plainText, nextEpisode, requestVideos, releaseSchedule,
   loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation,
 } from './core.js';
@@ -374,6 +374,9 @@ function renderHome() {
 function renderSources() {
   $('source-info').replaceChildren(...SOURCES.map(source => {
     const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · ' + sourceSearchNotice(source) : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '本次尚未查询'));
+    const notice = contentNotice({ source: source.id });
+    const marker = el('small', notice.label === '推广情况未核验' ? '' : 'content-marker', notice.label);
+    marker.title = notice.text; item.append(marker);
     for (const [operation, label] of [['search', '搜索'], ['browse', '分类']]) {
       const value = sourceHealth.profile(source.id, operation);
       if (!value.observed) continue;
@@ -671,17 +674,26 @@ function renderVariants() {
       const active = variant.uid === state.current?.uid;
       const sameSource = variants.filter(item => item.source === variant.source);
       const label = sourceLabel(variant) + (variant.source !== 'zip0' && sameSource.length > 1 ? ' · 版本 ' + (sameSource.indexOf(variant) + 1) : '');
+      const notice = contentNotice(variant); const marked = notice.label !== '推广情况未核验';
       let b = buttons.get(variant.uid);
       if (!b) { b = button('', '', () => { if (b.dataset.uid !== state.current?.uid) switchVariant(state.group.variants.find(item => item.uid === b.dataset.uid)); }); b.dataset.uid = variant.uid; $(id).append(b); }
-      retained.add(b); b.textContent = label; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active));
+      retained.add(b); b.textContent = label + (marked ? ' · ' + notice.label : ''); b.title = notice.text; b.classList.toggle('content-marker', marked); b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active));
     }
     for (const b of [...$(id).children]) if (!retained.has(b)) { if (document.activeElement === b) [...retained].find(value => value.dataset.uid === state.current?.uid)?.focus({ preventScroll: true }); b.remove(); }
   }
   $('change-source').disabled = !(state.group?.variants.some(item => item.uid !== state.current?.uid));
 }
 
+function renderContentNotice(id, item, episodeName = '') {
+  const notice = contentNotice(item, episodeName);
+  const node = $(id); node.textContent = notice.label + '：' + notice.text;
+  node.classList.toggle('has-promotion', notice.label !== '推广情况未核验');
+  node.hidden = false;
+}
+
 function renderDetail() {
   const item = state.current; if (!item) return;
+  renderContentNotice('detail-content-notice', item);
   $('detail-title').textContent = item.title; addPoster($('detail-poster'), item, 'eager');
   $('detail-meta').textContent = [item.year, item.area, item.category].filter(Boolean).join(' / ');
   $('detail-remarks').textContent = item.remarks || '来源未提供更新状态';
@@ -751,6 +763,7 @@ function renderEpisodes() {
   $('episode-keyboard-hint').hidden = episodes.length < 2;
   $('episode-caption').textContent = summary.names[state.episode] || '';
   $('episode-status').textContent = summary.label + ' · ' + sourceName(state.current?.source || '');
+  renderContentNotice('watch-content-notice', state.current, episodes[state.episode]?.name || '');
   $('episode-note').textContent = summary.note; $('episode-note').hidden = !summary.note;
   $('episode-heading').textContent = episodes.length < 2 ? '播放来源' : '来源与剧集';
   $('open-episodes').textContent = episodes.length < 2 ? '播放来源 ↓' : '选集 / 来源 ↓';
@@ -1161,6 +1174,7 @@ async function prepareVideo(route) {
   $('detail-title').textContent = known?.title || '正在获取影片…'; $('playing-title').textContent = known?.title || '正在获取影片…';
   for (const id of ['detail-meta', 'detail-remarks', 'detail-schedule', 'detail-updated-at', 'detail-schedule-note', 'detail-progress', 'detail-actors', 'detail-director', 'detail-description', 'variant-status', 'episode-caption', 'episode-status', 'video-description']) $(id).textContent = '';
   $('detail-updates').hidden = true; $('detail-schedule-note').hidden = true;
+  $('detail-content-notice').hidden = true; $('watch-content-notice').hidden = true;
   $('detail-poster').replaceChildren(); $('detail-status').textContent = '正在获取影片信息…';
   $('play-status').textContent = '正在获取剧集…'; screenMessage('正在获取剧集…');
   try {
@@ -1500,7 +1514,9 @@ document.addEventListener('click', event => { if ($('account-panel').open && !$(
 sourcePicks.replaceChildren(...SOURCES.map(source => {
   const label = el('label'); const input = document.createElement('input');
   input.type = 'checkbox'; input.value = source.id; input.checked = true;
-  label.append(input, el('span', '', source.name)); return label;
+  const notice = contentNotice({ source: source.id });
+  const marker = notice.label !== '推广情况未核验' ? ' · 推广记录' : '';
+  label.append(input, el('span', '', source.name + marker)); return label;
 }), reloadCatalog);
 accountClient.initialize(location.hash); renderAccount(); renderServiceStatus(backendTransport.state);
 updateCounts(); renderSources(); handleRoute();

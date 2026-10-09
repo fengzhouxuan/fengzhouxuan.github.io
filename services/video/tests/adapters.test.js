@@ -52,10 +52,15 @@ test('Auete update time comes only from the detail status, without treating publ
 
 test('ZIP0 discovery validates watch URLs and reads quoted SSR values without evaluating scripts', () => {
   const data = parseZipSearch(zipSearch); assert.equal(data.list[0].vod_id, 'dyttzy:12'); assert.equal(data.pagecount, 2);
-  const rejected = ['subo', 'diyi', 'kuaiche', 'unknown'];
+  const rejected = ['kuaiche', 'unknown'];
   const mixed = { ...zipSearch, data: [...zipSearch.data, ...rejected.map(source => ({ title: '已淘汰影片', url: 'https://zip0.com/watch?source=' + source + '&id=12' }))] };
   assert.deepEqual(parseZipSearch(mixed).list.map(item => item.vod_id), ['dyttzy:12']);
   for (const source of rejected) assert.throws(() => parseZipDetail(zipDetail.replace('source:"dyttzy"', 'source:"' + source + '"'), source + ':12'), /未登记/);
+  for (const source of ['subo', 'diyi']) {
+    const restored = { ...zipSearch, data: [{ title: '保留来源', url: 'https://zip0.com/watch?source=' + source + '&id=12' }] };
+    assert.equal(parseZipSearch(restored).list[0].vod_id, source + ':12');
+    assert.equal(parseZipDetail(zipDetail.replace('source:"dyttzy"', 'source:"' + source + '"'), source + ':12').list[0].vod_id, source + ':12');
+  }
   assert.equal(parseZipSearch({ success: true, data: [{ url: 'bad' }, { url: 'https://evil.example/watch?source=a&id=1' }, { url: 'https://zip0.com/other?source=a&id=1' }, { url: 'https://zip0.com/watch?source=a&id=../1' }]}).list.length, 0);
   assert.throws(() => parseZipSearch({ success: false }));
   const detail = parseZipDetail(zipDetail, 'dyttzy:12').list[0]; assert.equal(detail.vod_name, '测试剧'); assert.match(detail.vod_content, /包含"引号"/); assert.match(detail.vod_play_url, /第1集\$https:/);

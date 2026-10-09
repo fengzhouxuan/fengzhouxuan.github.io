@@ -87,7 +87,7 @@
             <div class="detail-heading"><p class="eyebrow">THE STORY</p><h1 id="detail-title"></h1><p id="detail-meta" class="detail-meta"></p><p id="detail-remarks" class="detail-remarks"></p></div>
             <div class="detail-body">
               <dl id="detail-updates" class="detail-updates" hidden><div><dt>更新安排</dt><dd id="detail-schedule"></dd></div><div id="detail-updated-row" hidden><dt>来源更新时间</dt><dd id="detail-updated-at"></dd></div></dl><p id="detail-schedule-note" class="schedule-note" hidden></p>
-              <div class="detail-actions"><button id="detail-play" class="button" disabled>▶ 开始观看</button><button id="detail-favorite" class="button ghost">＋ 收藏影片</button></div><p id="detail-progress" class="secondary"></p>
+              <p id="detail-content-notice" class="content-notice" hidden></p><div class="detail-actions"><button id="detail-play" class="button" disabled>▶ 开始观看</button><button id="detail-favorite" class="button ghost">＋ 收藏影片</button></div><p id="detail-progress" class="secondary"></p>
               <dl class="detail-facts"><div><dt>主演</dt><dd id="detail-actors"></dd></div><div><dt>导演</dt><dd id="detail-director"></dd></div></dl><p id="detail-status" class="status" role="status"></p><p id="detail-entry-note" class="secondary" hidden></p>
             </div>
           </div>
@@ -97,6 +97,7 @@
       </section>
       <section id="watch-page" class="page watch-page" aria-labelledby="playing-title" hidden>
         <div class="player-heading"><div><div class="watch-breadcrumbs"><a id="watch-back" class="back-link" href="#home">← 影片详情</a><a id="watch-list-back" class="back-link" href="#home">返回影片列表</a></div><h1 id="playing-title"></h1></div><button id="favorite-current" class="button ghost small">收藏</button></div>
+        <p id="watch-content-notice" class="content-notice" hidden></p>
         <div id="watch-layout" class="watch-layout"><div class="screen-column"><div id="screen" class="screen" tabindex="-1"><video id="video" controls playsinline preload="metadata"></video><button id="exit-fullscreen" class="fullscreen-exit" aria-label="退出全屏">退出全屏 ↙</button><div id="screen-message" class="screen-message" role="status"></div></div>
           <div class="playback-tools"><strong id="episode-caption"></strong><button id="previous-episode" class="button small ghost" disabled>上一集</button><button id="next-episode" class="button small" disabled>下一集</button><label id="quality-label" hidden>清晰度 <select id="quality-select" aria-label="视频清晰度" aria-describedby="quality-note" disabled></select></label><label>倍速 <select id="speed" aria-label="播放倍速"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><button id="fullscreen" class="button small ghost">全屏</button><button id="open-episodes" class="button small ghost mobile-player-action">选集 / 来源 ↓</button></div>
           <div class="quality-status"><span id="quality-current">画面分辨率尚未取得</span><span id="quality-note" role="status">正在读取可用清晰度…</span><button id="quality-source" class="text-button" hidden>换源看看</button></div>

@@ -17,6 +17,17 @@ test('source capability notices distinguish validation from an unavailable publi
   assert.equal(harness.run('sourceSearchNotice({id:"diyi"})'), '源站未开放搜索');
 });
 
+test('content notice updates when changing episode or source and never blocks playback controls', () => {
+  const node = { hidden: true, textContent: '', classList: { toggle: (name, value) => { node[name] = value; } } };
+  const harness = appHarness(source, { ...core, $: () => node }); harness.include('renderContentNotice', 'renderDetail');
+  harness.run('renderContentNotice("notice", { source: "diyi", id: "104" }, "第02集")');
+  assert.equal(node.hidden, false); assert.match(node.textContent, /^已发现博彩推广/); assert.equal(node['has-promotion'], true);
+  harness.run('renderContentNotice("notice", { source: "diyi", id: "104" }, "第01集")');
+  assert.match(node.textContent, /^来源有推广记录/); assert.match(node.textContent, /当前视频未逐一检查/);
+  harness.run('renderContentNotice("notice", { source: "liangzi", id: "12" })');
+  assert.match(node.textContent, /^推广情况未核验/); assert.equal(node['has-promotion'], false);
+});
+
 test('page navigation cancels home requests and returning home opens a fresh queue', async () => {
   const requests = []; const nodes = new Map(); const location = { hash: '#library' };
   const homeLoader = createHomeLoader({ request: options => new Promise((resolve, reject) => {

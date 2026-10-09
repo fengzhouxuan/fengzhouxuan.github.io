@@ -45,9 +45,42 @@ export const SOURCES = [
   { id: 'wujin', name: '无尽资源', api: 'https://api.wujinapi.com/api.php/provide/vod/',
     browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
     browseTypeMap: { 15: 22, 20: 21, 21: 15, 22: 23, 23: 24, 24: 37, 26: 27, 27: 26, 32: 42, 33: 43, 46: 41 } },
+  { id: 'subo', name: '速播资源', api: 'https://subocaiji.com/api.php/provide/vod/',
+    browseTypes: [13, 16, 15, 22, 24, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 7: 12, 8: 7, 9: 8, 10: 11, 11: 10, 12: 9, 13: 14, 15: 16, 16: 17, 20: 5, 21: 15, 22: 20, 24: 21, 25: 33, 26: 35, 27: 34, 28: 36, 29: 24, 30: 25, 31: 26, 46: null, 52: 45 } },
+  { id: 'diyi', name: '第一资源', api: 'https://caiji.diyizy.net/api.php/provide/vod/', search: false,
+    browseTypes: [13, 16, 15, 22, 24, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28],
+    browseTypeMap: { 16: 14, 22: 16, 24: 19, 21: 18, 26: 27, 27: 26, 32: 44, 33: 45, 46: null, 52: null } },
 ];
 
 const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
+
+// Manual observations describe the inspected sample, never an entire catalogue.
+const CONTENT_OBSERVATIONS = [
+  { source: 'subo', id: '161094', title: '初尝玫瑰：上司竟是闺蜜大哥第二季', episode: '', note: '单条视频开头', checkedAt: '2026-10-09' },
+  { source: 'diyi', id: '104', title: '凡人修仙传（2020）', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-09' },
+  { source: 'kuaiche', id: '132088', title: '雪王来了', episode: '', note: '抽查画面，另有内容错配', checkedAt: '2026-10-09' },
+  { source: 'dbzy', id: '152475', title: '婆媳联盟', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-09' },
+];
+
+export function contentNotice(item, episodeName = '') {
+  const upstream = item?.source === 'zip0' ? String(item.id || '').split(':')[0] : item?.source;
+  const source = ZIP_SOURCE_ALIASES[upstream] || upstream;
+  const id = item?.source === 'zip0' ? String(item.id || '').split(':')[1] : String(item?.id || '');
+  const records = CONTENT_OBSERVATIONS.filter(record => record.source === source);
+  const film = records.find(record => record.id === id);
+  const single = !film?.episode && item?.lines?.length > 0 && item.lines.every(line => line.episodes?.length === 1 && line.episodes[0].name === episodeName);
+  const observed = film && (!episodeName || single || sameEpisodeName(film.episode, episodeName));
+  if (observed) return {
+    label: '已发现博彩推广', observed: true,
+    text: film.note + ' · 人工记录于 ' + film.checkedAt + '。可继续观看或换源；其他片段未逐一检查。',
+  };
+  if (records.length) return {
+    label: '来源有推广记录', observed: false,
+    text: (film ? '本片' + film.note : '此来源《' + records[0].title + '》' + records[0].note) + '曾发现博彩推广。' + (episodeName ? '当前视频' : '本片') + '未逐一检查，可继续观看或换源。',
+  };
+  return { label: '推广情况未核验', observed: false, text: '尚无此来源的人工推广记录，不代表视频没有推广。' };
+}
 
 export function validVideoId(source, id) {
   if (!SOURCES.some(item => item.id === source)) return false;

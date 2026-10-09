@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allowedVideoId } from '../core.js';
+import { allowedVideoId, contentNotice } from '../core.js';
 import { SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, validVideoId, supportsSource, sourceLabel, requestEpisode, sameEpisodeName, safeURL, plainText, parseUpdateSchedule, releaseSchedule, parseLines, normalizeVideo, normalizeResponse, groupVideos, matchEpisode, nextEpisode, requestVideos, loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation } from '../core.js';
 
 const raw = {
@@ -372,7 +372,11 @@ test('site identities, capabilities, lazy episodes and duplicate upstreams are s
   assert.equal(allowedVideoId('liangzi', '12'), true);
   assert.equal(allowedVideoId('unknown', '12'), false);
   assert.equal(allowedVideoId('zip0', 'dyttzy:../1'), false);
-  for (const upstream of ['subo', 'diyi', 'kuaiche', 'unknown', 'pianku', 'zip0']) {
+  for (const upstream of ['subo', 'diyi']) {
+    assert.equal(allowedVideoId('zip0', upstream + ':12'), true);
+    assert.ok(normalizeVideo({ vod_id: upstream + ':12', vod_name: '测试影片' }, 'zip0'));
+  }
+  for (const upstream of ['kuaiche', 'unknown', 'pianku', 'zip0']) {
     assert.equal(validVideoId('zip0', upstream + ':12'), true);
     assert.equal(allowedVideoId('zip0', upstream + ':12'), false);
     assert.equal(normalizeVideo({ vod_id: upstream + ':12', vod_name: '测试影片' }, 'zip0'), null);
@@ -416,6 +420,28 @@ test('site identities, capabilities, lazy episodes and duplicate upstreams are s
   for (const response of [new Response('bad'), new Response('{"url":"http://unsafe/a.m3u8"}'), new Response('{"url":"https://cdn.example/a.html"}'), new Response('{"url":"https://cdn.example/player.php?url=a.m3u8"}'), new Response('{"url":"https://cdn.example/a.m3u8"}', { status: 502 })]) await assert.rejects(requestEpisode('pianku', '12', '2-1', '第01集', { fetchImpl: async () => response }));
 });
 
+test('manual promotion observations preserve sources and distinguish specific episodes from uninspected content', () => {
+  assert.equal(contentNotice({ source: 'diyi', id: '104' }).observed, true);
+  assert.equal(contentNotice({ source: 'diyi', id: '104' }, '第2集').observed, true);
+  const otherEpisode = contentNotice({ source: 'diyi', id: '104' }, '第01集');
+  assert.equal(otherEpisode.observed, false); assert.equal(otherEpisode.label, '来源有推广记录');
+  assert.match(otherEpisode.text, /第02集开头/); assert.match(otherEpisode.text, /当前视频未逐一检查/);
+  assert.deepEqual(contentNotice({ source: 'zip0', id: 'diyi:104' }, '第2集'), contentNotice({ source: 'diyi', id: '104' }, '第2集'));
+  assert.equal(contentNotice({ source: 'diyi', id: '999' }).observed, false);
+  assert.match(contentNotice({ source: 'diyi', id: '999' }).text, /凡人修仙传/);
+  const single = { source: 'subo', id: '161094', lines: [{ episodes: [{ name: '完整视频' }] }] };
+  assert.equal(contentNotice(single, '完整视频').observed, true);
+  assert.equal(contentNotice(single, '第2集').observed, false);
+  assert.equal(contentNotice({ ...single, lines: [] }, '第2集').observed, false);
+  assert.equal(contentNotice({ ...single, lines: undefined }, '第2集').observed, false);
+  for (const item of [undefined, { source: 'unknown' }, { source: 'liangzi', id: '12' }, { source: 'zip0', id: 'ffzy:12' }]) {
+    assert.equal(contentNotice(item).label, '推广情况未核验'); assert.match(contentNotice(item).text, /不代表/);
+  }
+  assert.equal(contentNotice({ source: 'kuaiche', id: '132088' }).label, '已发现博彩推广');
+  assert.equal(contentNotice({ source: 'dbzy', id: '152475' }, '第1集').observed, true);
+  assert.equal(allowedVideoId('subo', '161094'), true); assert.equal(allowedVideoId('diyi', '104'), true);
+});
+
 test('named playback routes and episode comparison preserve specials and regular numbers without inventing identities', () => {
   assert.equal(parseRoute('#watch?source=liangzi&id=12&episode=2&name=' + encodeURIComponent('第3集')).episodeName, '第3集');
   assert.equal(parseRoute('#watch?source=liangzi&id=12&name=' + 'x'.repeat(121)).episodeName, undefined);
@@ -454,7 +480,7 @@ test('short drama routes expose separate AI catalogs and source capabilities sta
   assert.equal(parseRoute('#browse?category=short&type=36').type, 46);
   assert.equal(parseRoute('#browse?category=anime&type=52').type, 29);
   assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin']);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo']);
   assert.equal(supportsSource(SOURCES[1], { view: 'search', type: 52 }), true);
   assert.equal(supportsSource(SOURCES[2], { view: 'browse', type: 13 }), true);
   const ai = normalizeVideo({ ...raw, vod_name: '测试 AI 漫剧', type_name: 'AI漫剧', vod_remarks: '已完结', vod_play_url: '全集$https://example.com/all.m3u8' }, 'liangzi');

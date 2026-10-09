@@ -77,13 +77,17 @@ test('browse-only JSON sources reject search without spending an upstream reques
     SOURCES.splice(SOURCES.indexOf(fixture), 1);
   }
   const before = calls.length;
-  assert.equal((await query(request('/api/vod?source=diyi&id=104'))).status, 400);
-  assert.equal((await query(request('/api/vod?source=subo&id=161094'))).status, 400);
+  for (const source of ['subo', 'diyi']) {
+    assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source, id: source === 'subo' ? '161094' : '104' })))).status, 200);
+  }
+  assert.equal(calls.length, before + 2);
+  const restoredCalls = calls.length;
+  assert.equal((await query(request('/api/vod?source=diyi&q=凡人'))).status, 400);
   assert.equal((await query(request('/api/vod?source=kuaiche&id=132088'))).status, 400);
-  for (const upstream of ['subo', 'diyi', 'kuaiche', 'unknown']) {
+  for (const upstream of ['kuaiche', 'unknown']) {
     assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'zip0', id: upstream + ':12' })))).status, 400);
   }
-  assert.equal(calls.length, before);
+  assert.equal(calls.length, restoredCalls);
 });
 
 test('portable query handler permits exact configured origins on success, errors and preflight', async () => {
