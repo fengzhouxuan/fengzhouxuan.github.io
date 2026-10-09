@@ -20,7 +20,10 @@ export function buildUpstream(params) {
     if (!category || !category.types.some(item => item[0] === type)) throw new Error('影片分类不正确');
     if (!supportsSource(source, { view: 'browse', type })) throw new Error('这个来源不支持当前细分类别，可使用其他来源');
     url.searchParams.set('t', String(source.browseTypeMap?.[type] ?? type));
-  } else url.searchParams.set('wd', query);
+  } else {
+    if (source.search === false) throw new Error('这个来源未开放搜索，可从分类浏览进入');
+    url.searchParams.set('wd', query);
+  }
   url.searchParams.set('pg', String(page));
   return url;
 }

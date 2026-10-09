@@ -158,6 +158,10 @@ function renderAccount(value = accountClient?.state) {
   $('library-sync-note').textContent = loggedIn ? status + ' 观看记录仅保存在本机。' : '收藏目前保存在本机；登录后可以同步，观看记录仍留在本机。';
 }
 
+function sourceSearchNotice(source) {
+  return source.id === 'auete' ? '搜索要求验证' : '源站未开放搜索';
+}
+
 function renderServiceStatus(value) {
   $('service-notice').hidden = value.phase === 'ready';
   $('service-message').textContent = value.phase === 'limited' ? '查询服务今日额度已用完。正在尝试直连部分来源，并保留缓存目录与本地收藏；云端收藏同步恢复后再继续。'
@@ -369,7 +373,7 @@ function renderHome() {
 
 function renderSources() {
   $('source-info').replaceChildren(...SOURCES.map(source => {
-    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · 搜索要求验证' : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '本次尚未查询'));
+    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · ' + sourceSearchNotice(source) : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '本次尚未查询'));
     for (const [operation, label] of [['search', '搜索'], ['browse', '分类']]) {
       const value = sourceHealth.profile(source.id, operation);
       if (!value.observed) continue;
@@ -470,7 +474,7 @@ function renderCatalog() {
     const source = SOURCES.find(item => item.id === input.value);
     input.disabled = !supportsSource(source, route);
     input.parentElement.classList.toggle('unavailable-source', input.disabled);
-    input.parentElement.title = input.disabled ? (source.search === false && route.view === 'search' ? '搜索要求验证，可从分类浏览进入' : '不支持当前细分类别，可在搜索中使用') : '';
+    input.parentElement.title = input.disabled ? (source.search === false && route.view === 'search' ? sourceSearchNotice(source) + '，可从分类浏览进入' : source.search === false ? '不支持当前细分类别，可选择其他分类或来源' : '不支持当前细分类别，可在搜索中使用') : '';
   });
   $('library-title').textContent = route.view === 'search' ? '“' + route.query + '”的搜索结果' : route.category === 'short' && route.type === 52 ? 'AI漫剧' : cat.name;
   $('category-note').hidden = route.view !== 'browse' || route.category !== 'short';

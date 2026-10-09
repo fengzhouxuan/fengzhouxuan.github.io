@@ -11,6 +11,12 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('source capability notices distinguish validation from an unavailable public search', () => {
+  const harness = appHarness(source, {}); harness.include('sourceSearchNotice', 'renderServiceStatus');
+  assert.equal(harness.run('sourceSearchNotice({id:"auete"})'), '搜索要求验证');
+  assert.equal(harness.run('sourceSearchNotice({id:"diyi"})'), '源站未开放搜索');
+});
+
 test('page navigation cancels home requests and returning home opens a fresh queue', async () => {
   const requests = []; const nodes = new Map(); const location = { hash: '#library' };
   const homeLoader = createHomeLoader({ request: options => new Promise((resolve, reject) => {

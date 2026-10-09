@@ -45,6 +45,9 @@ export const SOURCES = [
   { id: 'wujin', name: '无尽资源', api: 'https://api.wujinapi.com/api.php/provide/vod/',
     browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
     browseTypeMap: { 15: 22, 20: 21, 21: 15, 22: 23, 23: 24, 24: 37, 26: 27, 27: 26, 32: 42, 33: 43, 46: 41 } },
+  { id: 'diyi', name: '第一资源', api: 'https://caiji.diyizy.net/api.php/provide/vod/', search: false,
+    browseTypes: [13, 16, 15, 22, 24, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28],
+    browseTypeMap: { 16: 14, 22: 16, 24: 19, 21: 18, 26: 27, 27: 26, 32: 44, 33: 45, 46: null, 52: null } },
 ];
 
 export function validVideoId(source, id) {
