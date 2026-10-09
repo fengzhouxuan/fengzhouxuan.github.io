@@ -23,3 +23,11 @@ test('cloud favorites reject bad identities and oversized documents instead of s
   assert.equal(favoriteStorageKey(), 'video-favorites'); assert.equal(favoriteStorageKey({ id: '123' }), 'video-favorites:123');
   assert.equal(favoriteStorageKey({ id: '../private' }), 'video-favorites');
 });
+
+test('cloud favorites keep the first saved source and tracking when reviewed aliases coincide', () => {
+  const first = { ...film, title: '凡人修仙传2020', year: '2020', category: '国漫', tracking: { latest: 12, acknowledged: 8, count: 12, checkedAt: 100 } };
+  const duplicate = { ...first, title: '凡人修仙传', source: 'ruyi', uid: 'ruyi:13', id: '13' };
+  const saved = cleanFavorites([first, duplicate, { ...duplicate, title: '凡人修仙传重制版' }]);
+  assert.equal(saved.length, 2); assert.equal(saved[0].uid, first.uid); assert.deepEqual(saved[0].tracking, first.tracking);
+  assert.equal(saved[1].title, '凡人修仙传重制版');
+});

@@ -12,7 +12,8 @@ function trackingFor(item) {
 }
 
 export function sameFavorite(saved, item) {
-  return saved.uid === item.uid && videoKey({ ...saved, year: '' }) === videoKey({ ...item, year: '' }) && (!saved.year || !item.year || saved.year === item.year);
+  const year = saved.year || item.year || '';
+  return saved.uid === item.uid && videoKey({ ...saved, year }) === videoKey({ ...item, year }) && (!saved.year || !item.year || saved.year === item.year);
 }
 
 export function snapshotFavorite(item, previous = null, now = Date.now()) {

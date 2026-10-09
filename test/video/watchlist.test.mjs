@@ -17,6 +17,16 @@ test('favorite snapshots store metadata and episode availability without retaini
   assert.throws(() => snapshotFavorite(film(), null, NaN), /不正确/);
 });
 
+test('reviewed aliases keep acknowledged episodes when a source updates its title', () => {
+  const original = snapshotFavorite(film(3, { title: '凡人修仙传2020', year: '2020', category: '国漫' }), null, 100);
+  const current = film(5, { title: '凡人修仙传', year: '2020', category: '国产动漫' });
+  assert.equal(sameFavorite(original, current), true);
+  const refreshed = snapshotFavorite(current, original, 200);
+  assert.equal(refreshed.tracking.acknowledged, 3); assert.equal(favoriteSummary(refreshed).hasNew, true);
+  assert.equal(sameFavorite(original, { ...current, title: '凡人修仙传重制版' }), false);
+  assert.equal(sameFavorite({ ...original, year: '' }, current), true);
+});
+
 test('new episode flags survive repeat refreshes until acknowledged or watched, without using timestamps', () => {
   const original = snapshotFavorite(film(3), null, 100);
   let updated = snapshotFavorite(film(5), original, 200);

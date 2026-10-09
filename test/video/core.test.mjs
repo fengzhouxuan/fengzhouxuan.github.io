@@ -198,6 +198,42 @@ test('grouping preserves source identity and does not merge different years', ()
   assert.deepEqual(groupVideos([]), []);
 });
 
+test('reviewed title aliases group the 2020 animation while preserving editions and source identities', () => {
+  const item = { ...fixture(), title: '凡人修仙传', year: '2020', category: '国产动漫' };
+  const variants = ['凡人修仙传2020', '凡人修仙传（2020）', '凡人修仙传(2020)'].map((title, index) => ({ ...item, title, source: 'ruyi', id: String(30 + index), uid: 'ruyi:' + (30 + index) }));
+  const grouped = groupVideos([item, ...variants]);
+  assert.equal(grouped.length, 1); assert.equal(grouped[0].variants.length, 4);
+  assert.deepEqual(grouped[0].variants.map(value => value.title), [item.title, ...variants.map(value => value.title)]);
+  for (const changed of [{ title: '凡人修仙传重制版' }, { title: '凡人修仙传第一季' }, { title: '凡人修仙传2020', year: '2025' }, { title: '凡人修仙传2020', year: '' }, { title: '凡人修仙传2020', category: '国产剧' }]) {
+    assert.notEqual(videoKey({ ...item, ...changed }), videoKey(item));
+  }
+  assert.notEqual(videoKey({ title: '2001', year: '2001' }), videoKey({ title: '', year: '2001' }));
+  assert.notEqual(videoKey({ title: '1917', year: '2019' }), videoKey({ title: '191', year: '2019' }));
+  assert.notEqual(videoKey({ title: '影片2020', year: '2020' }), videoKey({ title: '影片', year: '2020' }));
+});
+
+test('legacy aliases retain the most recent saved progress and honor removals across tabs', () => {
+  const old = { ...fixture(), title: '凡人修仙传2020', year: '2020', category: '国漫', episode: '第10集', position: 45 };
+  const latest = { ...old, title: '凡人修仙传', episode: '第12集', position: 120 };
+  const older = { ...old, uid: 'ruyi:13', source: 'ruyi', id: '13', position: 30 };
+  const storage = { getItem: () => JSON.stringify([latest, older]) };
+  assert.deepEqual(loadSaved(storage, 'history'), [latest, older]);
+  assert.deepEqual(mergeSavedItems([old], [old], [latest, older]), [latest]);
+  assert.deepEqual(mergeSavedItems([old, older], [], [latest, older]), []);
+  assert.deepEqual(mergeSavedItems([old], [latest], []), []);
+  assert.deepEqual(rememberProgress([old, older], latest, '第13集', 25, 100).map(value => value.episode), ['第13集']);
+});
+
+test('legacy catalog and home anchors follow reviewed aliases after a reload', () => {
+  const anchor = { key: '凡人修仙传2020|2020', offset: 94, focus: 'poster' };
+  const storage = { getItem: key => key === 'video-catalog-context' ? JSON.stringify({ hash: '#search?q=凡人', anchor })
+    : key === 'video-home-context' ? JSON.stringify({ hero: anchor.key, anchor: { ...anchor, section: 'picks' } }) : null };
+  const navigation = createListNavigation(storage);
+  assert.deepEqual(navigation.catalog('#search?q=凡人').anchor, { ...anchor, key: '凡人修仙传|2020' });
+  assert.equal(navigation.home().hero, '凡人修仙传|2020');
+  assert.equal(navigation.home().anchor.key, '凡人修仙传|2020');
+});
+
 test('update schedules accept explicit release text and named weekdays, never infer a schedule from dates', () => {
   assert.equal(parseUpdateSchedule('首播3集，每周三 09:00 更新1集，会员抢先看2集'), '每周三 09:00 更新1集');
   assert.equal(parseUpdateSchedule('<b>每星期一、四晚上8点更新2集</b>'), '每星期一、四晚上8点更新2集');

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import * as core from '../../source/video/core.js';
 import * as playback from '../../source/video/playback.js';
 import { createHomeLoader } from '../../source/video/home.js';
+import { catalogSummary } from '../../source/video/catalog.js';
 import { appHarness } from './fixtures/app-harness.cjs';
 
 const source = await readFile(new URL('../../source/video/app.js', import.meta.url), 'utf8');
@@ -26,6 +27,54 @@ test('content notice updates when changing episode or source and never blocks pl
   assert.match(node.textContent, /^来源有推广记录/); assert.match(node.textContent, /当前视频未逐一检查/);
   harness.run('renderContentNotice("notice", { source: "liangzi", id: "12" })');
   assert.match(node.textContent, /^推广情况未核验/); assert.equal(node['has-promotion'], false);
+});
+
+test('top search continuation preserves results and keyboard focus through loading, pause and completion', () => {
+  const nodes = new Map(); const document = { activeElement: null, querySelectorAll: () => [] };
+  const node = id => {
+    if (!nodes.has(id)) nodes.set(id, { id, hidden: false, disabled: false, classList: { toggle() {} }, parentElement: { classList: { toggle() {} } }, setAttribute() {}, replaceChildren() {}, focus() { document.activeElement = this; } });
+    return nodes.get(id);
+  };
+  const state = { route: { view: 'search', category: 'anime', query: '凡人' }, catalog: { items: [film], filters: {}, loading: false, feeds: [{ source: 'liangzi', page: 1, pages: 1 }, { source: 'ruyi', page: 0, pages: 1 }] } };
+  const rendered = [];
+  const harness = appHarness(source, { ...core, catalogSummary, state, document, $: node, sourceName: name => name, renderFilters() {}, renderGrid: (_id, items) => rendered.push(items), skeletonCards: () => [], button: () => ({ setAttribute() {} }) });
+  harness.include('renderCatalog', 'visibleCardAnchor');
+  harness.run('renderCatalog()');
+  assert.equal(node('continue-search').hidden, false); assert.equal(node('continue-search').disabled, false);
+  assert.match(node('catalog-scope').textContent, /1 个来源尚未查询/); assert.deepEqual(rendered.at(-1), [film]);
+  document.activeElement = node('continue-search'); state.catalog.loading = true; harness.run('renderCatalog()');
+  assert.equal(node('continue-search').hidden, true); assert.equal(node('continue-search').disabled, true); assert.equal(document.activeElement.id, 'pause-catalog');
+  assert.deepEqual(rendered.at(-1), [film]);
+  state.catalog.loading = false; state.catalog.stopped = true; harness.run('renderCatalog()');
+  assert.equal(document.activeElement.id, 'continue-search'); assert.equal(node('continue-search').disabled, false);
+  state.catalog.feeds[1].page = 1; harness.run('renderCatalog()');
+  assert.equal(node('continue-search').hidden, true); assert.equal(document.activeElement.id, 'filter-toggle');
+  state.catalog.feeds[1].failed = true; state.catalog.feeds[0].failed = true; state.catalog.feeds[0].page = 0; state.catalog.feeds[1].page = 0;
+  harness.run('renderCatalog()'); assert.equal(node('continue-search').textContent, '重试搜索'); assert.equal(node('continue-search').hidden, false);
+  state.route.view = 'browse'; harness.run('renderCatalog()'); assert.equal(node('continue-search').hidden, true); assert.equal(node('load-more').hidden, false);
+});
+
+test('both continuation controls invoke the same existing catalog action once per click', () => {
+  const handlers = new Map(); const calls = [];
+  const harness = appHarness(source, { $: id => ({ addEventListener: (_type, handler) => handlers.set(id, handler) }), loadCatalog: options => calls.push(clone(options)) });
+  const start = source.indexOf("$('load-more').addEventListener");
+  const end = source.indexOf("$('reload-catalog').addEventListener", start);
+  harness.run(source.slice(start, end));
+  handlers.get('continue-search')(); handlers.get('load-more')();
+  assert.deepEqual(calls, [{ more: true }, { more: true }]);
+});
+
+test('reviewed aliases share favorite state and progress and unfavoriting removes all legacy copies', () => {
+  const alias = { ...film, title: '凡人修仙传2020', year: '2020', category: '国漫' };
+  const current = { ...alias, title: '凡人修仙传', uid: 'ruyi:13', source: 'ruyi', id: '13' };
+  const state = { favorites: [alias, current], history: [{ ...alias, episode: '第12集', position: 90 }], route: { view: 'search' } };
+  const nodes = new Map();
+  const harness = appHarness(source, { ...core, state, current, $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); }, syncSavedRecords() {}, save() {}, toast() {}, renderCatalog() {}, updateFavoriteButtons() {} });
+  harness.include('favoriteFor', 'renderAccount'); harness.include('progressFor', 'minuteLabel'); harness.include('toggleFavorite', 'updateCounts');
+  harness.include('updateCounts', 'updateFavoriteButtons'); harness.run('updateCounts()');
+  assert.equal(nodes.get('favorite-count').textContent, '1'); assert.equal(nodes.get('history-count').textContent, '1');
+  assert.equal(harness.run('favoriteFor(current)'), true); assert.equal(harness.run('progressFor(current).position'), 90);
+  harness.run('toggleFavorite(current)'); assert.equal(state.favorites.length, 0); assert.equal(nodes.get('favorite-count').textContent, '0');
 });
 
 test('page navigation cancels home requests and returning home opens a fresh queue', async () => {

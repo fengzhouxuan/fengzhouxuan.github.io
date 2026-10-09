@@ -35,6 +35,21 @@ test('first account sync keeps guest favorites separate and imports them only af
   assert.equal(f.client.importLocal(), false);
 });
 
+test('local alias counts and account imports use the same reviewed identity at the collection limit', async t => {
+  const alias = { ...film(), title: '凡人修仙传2020', year: '2020', category: '国漫' };
+  const canonical = { ...film('13'), title: '凡人修仙传', year: '2020', category: '国产动漫' };
+  const f = fixture(t, { remote: [canonical] });
+  f.storage.setItem('video-favorites', JSON.stringify([alias, canonical]));
+  assert.equal(f.client.localCount(), 1);
+  const unique = Array.from({ length: 99 }, (_value, index) => film(String(100 + index)));
+  f.storage.setItem('video-favorites', JSON.stringify([alias, ...unique]));
+  await f.client.initialize(); assert.equal(f.client.importLocal(), true);
+  assert.equal(f.client.state.items.length, 100); assert.equal(f.client.state.pending, true);
+  await f.client.sync(); assert.equal(f.remote().length, 100);
+  assert.equal(f.remote().filter(item => /凡人修仙传/.test(item.title)).length, 1);
+  assert.equal(JSON.parse(f.storage.getItem('video-favorites')).length, 100);
+});
+
 test('failed sync retains additions and deletions across reloads and merges cloud edits on recovery', async t => {
   let offline = false;
   const first = fixture(t, { remote: [film()], fetchImpl: async () => offline ? new Response('<html>quota</html>', { status: 503 }) : null });

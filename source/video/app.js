@@ -207,7 +207,7 @@ function toggleFavorite(item) {
 }
 
 function updateCounts() {
-  $('favorite-count').textContent = String(state.favorites.length);
+  $('favorite-count').textContent = String(groupVideos(state.favorites).length);
   $('history-count').textContent = String(groupVideos(state.history).length);
 }
 
@@ -471,7 +471,7 @@ function renderFilters() {
 
 function renderCatalog() {
   if (!['browse', 'search'].includes(state.route.view)) return;
-  const focusedControl = ['pause-catalog', 'load-more'].includes(document.activeElement?.id) ? document.activeElement : null;
+  const focusedControl = ['pause-catalog', 'continue-search', 'load-more'].includes(document.activeElement?.id) ? document.activeElement : null;
   const route = state.route; const cat = CATEGORIES.find(item => item.id === route.category);
   document.querySelectorAll('.source-picks input').forEach(input => {
     const source = SOURCES.find(item => item.id === input.value);
@@ -521,8 +521,11 @@ function renderCatalog() {
   $('load-more').hidden = !progress.hasMore;
   $('load-more').disabled = state.catalog.loading;
   $('load-more').textContent = state.catalog.loading ? '正在查询…' : unavailable ? '重试查询' : route.view === 'search' || progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
+  $('continue-search').hidden = route.view !== 'search' || !progress.hasMore || state.catalog.loading;
+  $('continue-search').disabled = state.catalog.loading;
+  $('continue-search').textContent = unavailable ? '重试搜索' : '继续查询';
   if (focusedControl && (focusedControl.hidden || focusedControl.disabled)) {
-    const target = state.catalog.loading ? $('pause-catalog') : !progress.hasMore ? $('filter-toggle') : $('load-more');
+    const target = state.catalog.loading ? $('pause-catalog') : !progress.hasMore ? $('filter-toggle') : route.view === 'search' ? $('continue-search') : $('load-more');
     target.focus({ preventScroll: true });
   }
 }
@@ -585,8 +588,8 @@ async function loadCatalog({ more = false, force = false, restore = null, retryS
 function renderLibrary() {
   const history = state.route.tab === 'history';
   $('favorites-tab').classList.toggle('active', !history); $('history-tab').classList.toggle('active', history);
-  const items = history ? state.history : state.favorites;
-  const updates = state.favorites.filter(item => favoriteSummary(item, state.history).hasNew);
+  const items = history ? state.history : groupVideos(state.favorites);
+  const updates = items.filter(item => !history && favoriteSummary(item, state.history).hasNew);
   $('favorite-tools').hidden = history;
   $('favorites-new').textContent = '有新集 ' + updates.length;
   for (const filter of ['all', 'new']) {
@@ -1416,6 +1419,7 @@ $('detail-play').addEventListener('click', () => {
 $('detail-favorite').addEventListener('click', () => toggleFavorite(state.current));
 $('favorite-current').addEventListener('click', () => toggleFavorite(state.current));
 $('load-more').addEventListener('click', () => loadCatalog({ more: true }));
+$('continue-search').addEventListener('click', () => loadCatalog({ more: true }));
 $('reload-catalog').addEventListener('click', () => loadCatalog({ force: true }));
 $('pause-catalog').addEventListener('click', () => { clearTimeout(filterTimer); catalogLoader.stop(); });
 $('reset-filters').addEventListener('click', () => { resetFilters(); $('filter-toggle').focus({ preventScroll: true }); });

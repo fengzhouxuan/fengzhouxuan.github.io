@@ -117,7 +117,12 @@ export const CATEGORIES = [
 const FILTER_AREAS = { mainland: /大陆|内地|中国$/, hk: /香港|台湾|港台/, japan: /日本/, korea: /韩国/, west: /美国|英国|加拿大|法国|德国|欧美/ };
 
 export function videoKey(video) {
-  return `${String(video.title || '').replace(/\s+/g, '').toLowerCase()}|${video.year || ''}`;
+  let title = String(video.title || '').replace(/\s+/g, '').toLowerCase();
+  const year = String(video.year || '');
+  // Reviewed aliases only: year suffixes can be part of an unrelated film's title.
+  if (year === '2020' && (!video.category || /动漫|动画|国漫/.test(video.category))
+    && ['凡人修仙传2020', '凡人修仙传（2020）', '凡人修仙传(2020)'].includes(title)) title = '凡人修仙传';
+  return `${title}|${year}`;
 }
 
 export function parseRoute(hash) {
@@ -156,9 +161,13 @@ export function createListNavigation(storage = null) {
   let lastList = '#home';
   try { lastList = normalize(storage?.getItem(key)); } catch { /* Returning to a list remains available without storage. */ }
   const validKey = value => typeof value === 'string' && /^[^\s]{1,300}\|(?:\d{4})?$/.test(value);
+  const canonicalKey = value => {
+    const divider = value.lastIndexOf('|');
+    return videoKey({ title: value.slice(0, divider), year: value.slice(divider + 1) });
+  };
   const cleanTop = value => Number.isFinite(value) && value >= 0 && value <= 1000000 ? value : 0;
   const cleanAnchor = (anchor, controls) => validKey(anchor?.key) && Number.isFinite(anchor.offset) && Math.abs(anchor.offset) <= 10000
-    ? { key: anchor.key, offset: anchor.offset, focus: controls.includes(anchor.focus) ? anchor.focus : '' } : null;
+    ? { key: canonicalKey(anchor.key), offset: anchor.offset, focus: controls.includes(anchor.focus) ? anchor.focus : '' } : null;
   const cleanCatalog = value => {
     if (!value || typeof value !== 'object') return null;
     const hash = normalize(value.hash);
@@ -196,7 +205,7 @@ export function createListNavigation(storage = null) {
     const anchor = cleanAnchor(value.anchor, ['poster', 'title', 'favorite', 'continue']);
     const section = value.anchor?.section;
     return {
-      top: cleanTop(value.top), hero: validKey(value.hero) ? value.hero : '',
+      top: cleanTop(value.top), hero: validKey(value.hero) ? canonicalKey(value.hero) : '',
       control: ['hero-play', 'hero-detail'].includes(value.control) ? value.control : '',
       anchor: anchor && ['picks', 'short', 'tv', 'movie', 'continue'].includes(section) ? { ...anchor, section } : null,
     };
@@ -431,7 +440,16 @@ export function saveItems(storage, key, items) {
 
 export function mergeSavedItems(previous = [], next = [], latest = []) {
   if (![previous, next, latest].every(Array.isArray)) throw new Error('记录列表格式不正确');
-  const index = items => new Map(items.slice(0, 100).filter(item => item && typeof item.title === 'string' && typeof item.uid === 'string' && validVideoId(item.source, item.id)).map(item => [videoKey(item), item]));
+  const index = items => {
+    const saved = new Map();
+    for (const item of items.slice(0, 100)) {
+      if (!item || typeof item.title !== 'string' || typeof item.uid !== 'string' || !validVideoId(item.source, item.id)) continue;
+      const key = videoKey(item);
+      // Saved lists put the latest record first; aliases must not restore older progress.
+      if (!saved.has(key)) saved.set(key, item);
+    }
+    return saved;
+  };
   const before = index(previous); const local = index(next); const current = index(latest);
   const byUID = entries => new Map([...entries.values()].map(item => [item.uid, item]));
   const beforeUID = byUID(before); const localUID = byUID(local); const currentUID = byUID(current);
