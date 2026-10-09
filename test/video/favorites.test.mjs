@@ -17,6 +17,8 @@ test('cloud favorites accept bounded display metadata and exclude playback, hist
 });
 
 test('cloud favorites reject bad identities and oversized documents instead of silently losing saved films', () => {
+  const retired = { ...film, uid: 'zip0:diyi:104', source: 'zip0', id: 'diyi:104' };
+  assert.equal(cleanFavorites([retired])[0].uid, retired.uid);
   for (const items of [null, {}, [null], [{ ...film, uid: 'fake' }], [{ ...film, source: 'unknown' }], [{ ...film, title: '' }], Array.from({ length: 101 }, () => film)]) assert.throws(() => cleanFavorites(items));
   assert.equal(favoriteStorageKey(), 'video-favorites'); assert.equal(favoriteStorageKey({ id: '123' }), 'video-favorites:123');
   assert.equal(favoriteStorageKey({ id: '../private' }), 'video-favorites');

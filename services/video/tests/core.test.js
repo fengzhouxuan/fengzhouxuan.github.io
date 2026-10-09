@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { allowedVideoId } from '../core.js';
 import { SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, validVideoId, supportsSource, sourceLabel, requestEpisode, sameEpisodeName, safeURL, plainText, parseUpdateSchedule, releaseSchedule, parseLines, normalizeVideo, normalizeResponse, groupVideos, matchEpisode, nextEpisode, requestVideos, loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation } from '../core.js';
 
 const raw = {
@@ -367,10 +368,16 @@ test('metadata corrections use stable source identity without reviving deleted r
 test('site identities, capabilities, lazy episodes and duplicate upstreams are safe', async () => {
   assert.equal(validVideoId('auete', 'Tv/neidi/lanxiangrugu'), true);
   assert.equal(validVideoId('zip0', 'dyttzy:12'), true);
-  for (const upstream of ['ffzy', 'lzi', 'lzzy', 'zy360', 'jisu', 'mdzy', 'bfzy', 'haohua']) assert.equal(validVideoId('zip0', upstream + ':12'), true);
+  for (const upstream of ['ffzy', 'lzi', 'lzzy', 'zy360', 'jisu', 'mdzy', 'bfzy', 'haohua']) assert.equal(allowedVideoId('zip0', upstream + ':12'), true);
+  assert.equal(allowedVideoId('liangzi', '12'), true);
+  assert.equal(allowedVideoId('unknown', '12'), false);
+  assert.equal(allowedVideoId('zip0', 'dyttzy:../1'), false);
   for (const upstream of ['subo', 'diyi', 'kuaiche', 'unknown', 'pianku', 'zip0']) {
-    assert.equal(validVideoId('zip0', upstream + ':12'), false);
+    assert.equal(validVideoId('zip0', upstream + ':12'), true);
+    assert.equal(allowedVideoId('zip0', upstream + ':12'), false);
     assert.equal(normalizeVideo({ vod_id: upstream + ':12', vod_name: '测试影片' }, 'zip0'), null);
+    const saved = { uid: 'zip0:' + upstream + ':12', source: 'zip0', id: upstream + ':12', title: '原有收藏' };
+    assert.deepEqual(loadSaved({ getItem: () => JSON.stringify([saved]) }, 'favorites'), [saved]);
   }
   for (const [source, id] of [['auete', '../secret'], ['auete', 'https://evil/1'], ['zip0', 'a:../1'], ['pianku', 'x'], ['unknown', '1']]) assert.equal(validVideoId(source, id), false);
   assert.equal(parseRoute('#watch?source=auete&id=Tv%2Fneidi%2Flanxiangrugu').view, 'watch');

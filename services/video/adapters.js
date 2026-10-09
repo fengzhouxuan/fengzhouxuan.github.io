@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { SOURCES, CATEGORIES, validVideoId, safeURL, plainText } from './core.js';
+import { SOURCES, CATEGORIES, validVideoId, allowedVideoId, safeURL, plainText } from './core.js';
 
 const piankuTypes = { 6: 21, 7: 22, 8: 23, 9: 24, 10: 25, 11: 26, 12: 27, 20: 35, 13: 38, 16: 40 };
 const aueteTypes = { 6: 'Movie/dzp', 7: 'Movie/xjp', 8: 'Movie/aqp', 9: 'Movie/khp', 10: 'Movie/kbp', 11: 'Movie/jqp', 12: 'Movie/zzp', 13: 'Tv/neidi', 14: 'Tv/tvbgj', 15: 'Tv/hanju', 16: 'Tv/oumei', 21: 'Tv/taiju', 22: 'Tv/riju', 23: 'Tv/waiju', 24: 'Tv/yataiju', 25: 'Zy/guozong', 27: 'Zy/hanzong', 28: 'Zy/meizong', 29: 'Dm/guoman', 30: 'Dm/riman', 31: 'Dm/meiman' };
@@ -40,7 +40,7 @@ export function buildAdapterRequest(params) {
   const page = Number(params.get('page') || 1); const browse = params.get('mode') === 'browse';
   if (!Number.isInteger(page) || page < 1 || page > 20) throw new Error('页码不正确');
   if (id) {
-    if (!validVideoId(source.id, id)) throw new Error('影片编号不正确');
+    if (!allowedVideoId(source.id, id)) throw new Error('影片编号不正确');
     if (source.id === 'pianku') return { source: source.id, id, url: new URL('/voddetail/' + id + '.html', source.site) };
     if (source.id === 'auete') return { source: source.id, id, url: new URL('/' + id + '/', source.site) };
     const [upstream, number] = id.split(':');
@@ -113,7 +113,7 @@ export function parseZipSearch(data) {
   const list = data.data.flatMap(item => {
     let url; try { url = new URL(item.url); } catch { return []; }
     const id = url.searchParams.get('source') + ':' + url.searchParams.get('id');
-    if (url.origin !== 'https://zip0.com' || url.pathname !== '/watch' || !validVideoId('zip0', id)) return [];
+    if (url.origin !== 'https://zip0.com' || url.pathname !== '/watch' || !allowedVideoId('zip0', id)) return [];
     return [{ vod_id: id, vod_name: item.title, vod_year: item.year, vod_area: item.area, type_name: item.category, vod_remarks: item.remarks, vod_time: item.updatedAt }];
   });
   return { list, pagecount: data.pagination?.pages || 1 };
@@ -125,7 +125,7 @@ function scriptString(script, key) {
 }
 
 export function parseZipDetail(html, id) {
-  if (!validVideoId('zip0', id)) throw new Error('ZIP0 影片来源未登记');
+  if (!allowedVideoId('zip0', id)) throw new Error('ZIP0 影片来源未登记');
   // Read only quoted values from the SSR payload; never execute remote JavaScript.
   const payload = html.match(/l:\$R\[\d+\]=\{id:"[\s\S]*?\},ssr:!0/)?.[0] || '';
   const upstream = scriptString(payload, 'source'); const number = scriptString(payload, 'id');
