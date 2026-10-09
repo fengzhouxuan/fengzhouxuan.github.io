@@ -9,7 +9,7 @@ const request = (path, options = {}) => new Request('https://video-api.example' 
 
 test('expanded source categories use their own verified IDs and reject unsupported scopes before making a request', async () => {
   const categories = CATEGORIES.flatMap(category => category.types.map(([type]) => ({ category: category.id, type })));
-  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'diyi'];
+  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin'];
   const fixtures = [
     ['dyttzy', 29, 29, 46, 36, null], ['360zy', 29, 38, 46, 46, null],
     ['modu', 29, 1, 46, 38, 42], ['zuid', 29, 29, 46, 54, null],
@@ -19,7 +19,6 @@ test('expanded source categories use their own verified IDs and reject unsupport
     ['hongniu', 29, 36, null, null, 51],
     ['baofeng', 29, 40, 46, 58, 74], ['haohua', 29, 24, null, null, 53],
     ['wujin', 29, 29, 46, 41, null],
-    ['diyi', 29, 29, null, null, null],
   ];
   for (const [source, type, upstreamType, short, shortType, aiType] of fixtures) {
     const category = type === 13 ? 'tv' : 'anime';
@@ -65,14 +64,20 @@ test('expanded sources keep search and detail identity and deduplicate a matchin
 
 test('browse-only JSON sources reject search without spending an upstream request and preserve normal detail access', async () => {
   const calls = []; const query = createVideoQuery({ fetchImpl: async url => { calls.push(url); return Response.json({ list: [{ vod_id: 104, vod_name: '测试影片' }], pagecount: 1 }); } });
-  for (const source of ['diyi']) {
+  const fixture = { id: 'test-browse-only', api: 'https://example.com/api', search: false };
+  SOURCES.push(fixture);
+  try {
+    const source = fixture.id;
     const before = calls.length;
     const response = await query(request('/api/vod?' + new URLSearchParams({ source, q: '凡人' })));
     assert.equal(response.status, 400); assert.match((await response.json()).error, /未开放搜索/); assert.equal(calls.length, before);
     assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source, id: '104' })))).status, 200);
     assert.equal(calls.at(-1).searchParams.get('ids'), '104'); assert.equal(calls.at(-1).searchParams.has('wd'), false);
+  } finally {
+    SOURCES.splice(SOURCES.indexOf(fixture), 1);
   }
   const before = calls.length;
+  assert.equal((await query(request('/api/vod?source=diyi&id=104'))).status, 400);
   assert.equal((await query(request('/api/vod?source=subo&id=161094'))).status, 400);
   assert.equal((await query(request('/api/vod?source=kuaiche&id=132088'))).status, 400);
   assert.equal(calls.length, before);
