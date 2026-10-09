@@ -79,6 +79,20 @@ test('playback selection respects manual episodes, overrides, movies and empty d
   assert.equal(resolvePlaybackSelection(repeated, { automatic: false, priority: (_item, line) => -line }).line, 0);
 });
 
+test('first viewing starts at the earliest regular episode across partial lines without changing saved or explicit choices', () => {
+  const current = film('liangzi', { lines: [{ name: '近期', episodes: [episode('第177集', 'https://example.com/177.mp4')] }, { name: '早期', episodes: [episode('预告', 'https://example.com/preview.mp4'), episode('第02集', 'https://example.com/2.mp4'), episode('第01集', 'https://example.com/1.mp4')] }] });
+  for (const automatic of [true, false]) {
+    assert.deepEqual(resolvePlaybackSelection(current, { automatic }), { line: 1, episode: 2, name: '第01集', position: 0, missing: false });
+    assert.equal(resolvePlaybackSelection(current, { automatic, saved: { episode: '第177集', position: 45 } }).position, 45);
+    assert.equal(resolvePlaybackSelection(current, { automatic, episode: 0 }).name, '第177集');
+  }
+  assert.equal(resolvePlaybackSelection(current, { episodeName: '第2集' }).name, '第02集');
+  assert.equal(resolvePlaybackSelection(current, { override: { episode: '第177集', position: 30 } }).position, 30);
+  assert.equal(resolvePlaybackSelection({ ...current, category: '' }).name, '第177集');
+  assert.equal(resolvePlaybackSelection({ ...current, category: '剧情片' }).name, '第177集');
+  assert.equal(resolvePlaybackSelection(film('liangzi', { lines: [{ episodes: [episode('全集', 'https://example.com/all.mp4')] }] })).name, '全集');
+});
+
 test('available alternatives never consume the fallback budget, and duplicate media are not alternatives', () => {
   const main = film(); const fallback = createPlaybackFallback();
   assert.equal(fallback.available(null), false); assert.equal(fallback.available(main), false);

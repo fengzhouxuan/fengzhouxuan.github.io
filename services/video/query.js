@@ -96,11 +96,13 @@ export function createVideoQuery({ fetchImpl = fetch, upstreamTimeout = 10000 } 
         try { upstream = buildUpstream(url.searchParams); } catch (error) { return send(400, { error: error.message }); }
         try {
           const data = await cached(upstream.href, 300000, async () => {
-            const result = JSON.parse(await readUpstream(upstream));
+            const text = await readUpstream(upstream);
+            const result = JSON.parse(text);
             if (!Array.isArray(result.list)) throw new Error('upstream format error');
-            return result;
+            // Compact once on a cache miss; reuse the JSON body on subsequent reads.
+            return JSON.stringify(result);
           });
-          return send(200, data);
+          return new Response(data, { status: 200, headers });
         } catch { return send(502, { error: '这个来源暂时无法连接，请切换来源或稍后重试' }); }
       }
       return send(404, { error: '页面不存在' });

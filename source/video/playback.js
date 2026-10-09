@@ -177,7 +177,14 @@ export function resolvePlaybackSelection(item, { episode = null, episodeName = '
   const movie = /电影|片$/.test(item?.category || '');
   const resume = override || saved;
   const requested = plainText(override?.episode || episodeName || (episode !== null ? lines[0]?.episodes[episode]?.name || '第' + (episode + 1) + '集' : saved?.episode || ''));
-  const name = requested || lines[0]?.episodes[0]?.name || '';
+  let name = requested || lines[0]?.episodes[0]?.name || '';
+  if (!requested && !movie && /动漫|动画|国漫|日漫|剧/.test(item?.category || '')) {
+    let earliest = Infinity;
+    for (const line of lines) for (const candidate of line.episodes || []) {
+      const number = episodeNumber(candidate.name);
+      if (number !== null && number < earliest) { earliest = number; name = candidate.name; }
+    }
+  }
   const target = name ? matchingLine(item, name, movie, new Set(), automatic ? priority : (_item, line) => line) : null;
   const position = resume && (sameEpisodeName(resume.episode, name) || movie && target && lines[target.line].episodes.length === 1) && Number.isFinite(resume.position) ? Math.max(0, resume.position) : 0;
   if (!target) return { line: -1, episode: -1, name, position, missing: true };

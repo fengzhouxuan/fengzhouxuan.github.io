@@ -1221,7 +1221,7 @@ async function prepareVideo(route) {
       renderWatch();
       const paused = Boolean(override?.paused || (state.restorePlaybackIntent && playbackIntent.paused(current, index, selection.name)));
       startEpisode(index, position || 0, false, false, paused);
-      if (state.line !== 0) fallbackMessage('已按近期观看表现选择 ' + lines[state.line].name + '；仍可手动选择其他线路。');
+      if (state.line !== 0) fallbackMessage('已选择 ' + lines[state.line].name + ' · ' + selection.name + '；仍可手动选择其他线路。');
     }
   } catch (error) {
     if (version !== state.detailVersion) return;

@@ -115,6 +115,39 @@ test('portable query handler permits exact configured origins on success, errors
   assert.equal(calls, 1);
 });
 
+test('additional public sources keep exact categories, closed searches and the budget-limited search-only scope', async () => {
+  const calls = [];
+  const query = createVideoQuery({ fetchImpl: async url => { calls.push(url); return Response.json({ pagecount: 1, list: [{ vod_id: 12, vod_name: '测试影片' }] }); } });
+  const categories = CATEGORIES.flatMap(category => category.types.map(([type]) => ({ category: category.id, type })));
+  for (const source of ['shandian', 'suoni']) {
+    const item = SOURCES.find(value => value.id === source);
+    assert.equal(item.search, false); assert.equal(new URL(item.api).protocol, 'https:');
+    const before = calls.length; assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source, q: '凡人' })))).status, 400); assert.equal(calls.length, before);
+    for (const scope of categories) {
+      const before = calls.length; const response = await query(request('/api/vod?' + new URLSearchParams({ source, mode: 'browse', ...scope })));
+      assert.equal(response.status, scope.type === 52 ? 400 : 200); assert.equal(calls.length, before + (scope.type === 52 ? 0 : 1));
+      if (scope.type !== 52) assert.equal(calls.at(-1).searchParams.get('t'), String(item.browseTypeMap[scope.type] ?? scope.type));
+    }
+  }
+  const source = SOURCES.find(item => item.id === 'dazhong'); assert.deepEqual(source.browseTypes, []);
+  assert.equal((await query(request('/api/vod?source=dazhong&q=凡人'))).status, 200);
+  assert.equal((await query(request('/api/vod?source=dazhong&id=12267'))).status, 200);
+  for (const scope of categories) { const before = calls.length; assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'dazhong', mode: 'browse', ...scope })))).status, 400); assert.equal(calls.length, before); }
+});
+
+test('JSON catalog caching preserves unicode, signed media delimiters and per-request CORS without another upstream read', async () => {
+  const data = { pagecount: '2', list: [{ vod_id: 12, vod_name: '测试剧 ✨', vod_year: '2026', type_name: '国产剧', vod_play_from: 'hls', vod_play_url: '第01集$https://example.com/1.m3u8?public=a$b&x=1', vod_content: '<p>中文简介 &amp; 特别篇</p>' }] };
+  let calls = 0;
+  const query = createVideoQuery({ fetchImpl: async () => { calls++; return new Response(JSON.stringify(data)); } });
+  const path = '/api/vod?source=liangzi&q=test';
+  const first = await query(request(path, { headers: { Origin: 'https://blog.example' } }), { allowedOrigins: ['https://blog.example'] });
+  assert.equal(first.headers.get('Access-Control-Allow-Origin'), 'https://blog.example'); assert.deepEqual(await first.json(), data);
+  const cached = await query(request(path, { headers: { Origin: 'https://other.example' } }), { allowedOrigins: ['https://blog.example'] });
+  assert.equal(cached.headers.get('Access-Control-Allow-Origin'), null); assert.deepEqual(await cached.json(), data); assert.equal(calls, 1);
+  const videos = await requestVideos('liangzi', { query: 'test', base: 'https://video-api.example', fetchImpl: input => query(request(new URL(input).pathname + new URL(input).search)) });
+  assert.equal(videos.videos[0].title, '测试剧 ✨'); assert.equal(videos.videos[0].lines[0].episodes[0].url, data.list[0].vod_play_url.split('$').slice(1).join('$')); assert.equal(calls, 1);
+});
+
 test('query cache expires, stays bounded and never caches upstream failures', async t => {
   let now = Date.now(); t.mock.method(Date, 'now', () => now);
   let calls = 0; let fail = true;

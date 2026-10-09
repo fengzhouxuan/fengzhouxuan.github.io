@@ -51,6 +51,13 @@ export const SOURCES = [
   { id: 'diyi', name: '第一资源', api: 'https://caiji.diyizy.net/api.php/provide/vod/', search: false,
     browseTypes: [13, 16, 15, 22, 24, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28],
     browseTypeMap: { 16: 14, 22: 16, 24: 19, 21: 18, 26: 27, 27: 26, 32: 44, 33: 45, 46: null, 52: null } },
+  { id: 'shandian', name: '闪电资源', api: 'https://sdzyapi.com/api.php/provide/vod/', search: false,
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
+    browseTypeMap: { 16: 14, 14: 17, 21: 18, 22: 16, 24: 19, 26: 27, 27: 26, 32: 44, 33: 45, 46: 54, 52: null } },
+  { id: 'suoni', name: '索尼资源', api: 'https://suoniapi.com/api.php/provide/vod/', search: false,
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
+    browseTypeMap: { 16: 14, 14: 17, 21: 18, 22: 16, 24: 19, 26: 27, 27: 26, 32: 44, 33: 45, 46: 54, 52: null } },
+  { id: 'dazhong', name: '大众资源', api: 'https://cdn.dzzyapi.com/api.php/provide/vod/', browseTypes: [] },
 ];
 
 const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
@@ -61,6 +68,8 @@ const CONTENT_OBSERVATIONS = [
   { source: 'diyi', id: '104', title: '凡人修仙传（2020）', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-09' },
   { source: 'kuaiche', id: '132088', title: '雪王来了', episode: '', note: '抽查画面，另有内容错配', checkedAt: '2026-10-09' },
   { source: 'dbzy', id: '152475', title: '婆媳联盟', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-09' },
+  { source: 'suoni', id: '35419', title: '斗罗大陆2：绝世唐门2023', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-09' },
+  { source: 'dazhong', id: '12267', title: '凡人修仙传', episode: '第01集', note: 'dzyun 线路第01集开头', checkedAt: '2026-10-09' },
 ];
 
 export function contentNotice(item, episodeName = '') {

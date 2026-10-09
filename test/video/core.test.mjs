@@ -198,6 +198,17 @@ test('grouping preserves source identity and does not merge different years', ()
   assert.deepEqual(groupVideos([]), []);
 });
 
+test('new source promotion observations remain scoped to inspected movies and episodes', () => {
+  for (const [source, id] of [['suoni', '35419'], ['dazhong', '12267']]) {
+    assert.equal(contentNotice({ source, id }, '第1集').observed, true);
+    assert.equal(contentNotice({ source, id }, '第2集').observed, false);
+    assert.equal(contentNotice({ source, id: '99' }).label, '来源有推广记录');
+    assert.equal(allowedVideoId(source, id), true);
+  }
+  assert.equal(contentNotice({ source: 'shandian', id: '35419' }).label, '推广情况未核验');
+  assert.equal(allowedVideoId('dbzy', '152475'), false);
+});
+
 test('reviewed title aliases group the 2020 animation while preserving editions and source identities', () => {
   const item = { ...fixture(), title: '凡人修仙传', year: '2020', category: '国产动漫' };
   const variants = ['凡人修仙传2020', '凡人修仙传（2020）', '凡人修仙传(2020)'].map((title, index) => ({ ...item, title, source: 'ruyi', id: String(30 + index), uid: 'ruyi:' + (30 + index) }));
@@ -515,7 +526,7 @@ test('short drama routes expose separate AI catalogs and source capabilities sta
   assert.equal(parseRoute('#browse?category=short&type=52').type, 52);
   assert.equal(parseRoute('#browse?category=short&type=36').type, 46);
   assert.equal(parseRoute('#browse?category=anime&type=52').type, 29);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni']);
   assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo']);
   assert.equal(supportsSource(SOURCES[1], { view: 'search', type: 52 }), true);
   assert.equal(supportsSource(SOURCES[2], { view: 'browse', type: 13 }), true);
