@@ -125,6 +125,7 @@ function scriptString(script, key) {
 }
 
 export function parseZipDetail(html, id) {
+  if (!validVideoId('zip0', id)) throw new Error('ZIP0 影片来源未登记');
   // Read only quoted values from the SSR payload; never execute remote JavaScript.
   const payload = html.match(/l:\$R\[\d+\]=\{id:"[\s\S]*?\},ssr:!0/)?.[0] || '';
   const upstream = scriptString(payload, 'source'); const number = scriptString(payload, 'id');

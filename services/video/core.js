@@ -47,10 +47,17 @@ export const SOURCES = [
     browseTypeMap: { 15: 22, 20: 21, 21: 15, 22: 23, 23: 24, 24: 37, 26: 27, 27: 26, 32: 42, 33: 43, 46: 41 } },
 ];
 
+const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
+
 export function validVideoId(source, id) {
   if (!SOURCES.some(item => item.id === source)) return false;
   if (source === 'auete') return /^(?:Movie|Tv|Dm|Zy)\/[A-Za-z0-9_-]{1,30}\/[A-Za-z0-9_-]{1,180}$/.test(String(id));
-  if (source === 'zip0') return /^[a-z0-9_-]{1,30}:\d{1,12}$/.test(String(id));
+  if (source === 'zip0') {
+    const value = String(id);
+    if (!/^[a-z0-9_-]{1,30}:\d{1,12}$/.test(value)) return false;
+    const upstream = value.split(':')[0];
+    return SOURCES.some(item => item.api && item.id === (ZIP_SOURCE_ALIASES[upstream] || upstream));
+  }
   return /^\d{1,12}$/.test(String(id));
 }
 
@@ -265,9 +272,8 @@ export function normalizeVideo(raw, source) {
   const title = plainText(raw.vod_name);
   const category = plainText(raw.type_name);
   if (!validVideoId(source, id) || !title || /伦理|色情|福利|写真|里番|成人|解说|预告/.test(category + title)) return null;
-  const aliases = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
   const upstream = id.split(':')[0];
-  const origin = source === 'zip0' ? aliases[upstream] || (SOURCES.some(item => item.id === upstream && item.api) ? upstream : 'zip0:' + upstream) : source;
+  const origin = source === 'zip0' ? ZIP_SOURCE_ALIASES[upstream] || upstream : source;
   const lines = Array.isArray(raw.vod_lines) && ['auete', 'pianku'].includes(source) ? raw.vod_lines.map(line => ({
     name: plainText(line.name), episodes: (Array.isArray(line.episodes) ? line.episodes : []).filter(item => /^\d{1,4}-\d{1,4}$/.test(item.ref || '')).map(item => ({ name: plainText(item.name), ref: item.ref })),
   })).filter(line => line.episodes.length) : parseLines(raw.vod_play_from, raw.vod_play_url);

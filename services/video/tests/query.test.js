@@ -80,6 +80,9 @@ test('browse-only JSON sources reject search without spending an upstream reques
   assert.equal((await query(request('/api/vod?source=diyi&id=104'))).status, 400);
   assert.equal((await query(request('/api/vod?source=subo&id=161094'))).status, 400);
   assert.equal((await query(request('/api/vod?source=kuaiche&id=132088'))).status, 400);
+  for (const upstream of ['subo', 'diyi', 'kuaiche', 'unknown']) {
+    assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'zip0', id: upstream + ':12' })))).status, 400);
+  }
   assert.equal(calls.length, before);
 });
 

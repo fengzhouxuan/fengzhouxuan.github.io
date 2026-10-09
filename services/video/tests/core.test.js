@@ -367,6 +367,11 @@ test('metadata corrections use stable source identity without reviving deleted r
 test('site identities, capabilities, lazy episodes and duplicate upstreams are safe', async () => {
   assert.equal(validVideoId('auete', 'Tv/neidi/lanxiangrugu'), true);
   assert.equal(validVideoId('zip0', 'dyttzy:12'), true);
+  for (const upstream of ['ffzy', 'lzi', 'lzzy', 'zy360', 'jisu', 'mdzy', 'bfzy', 'haohua']) assert.equal(validVideoId('zip0', upstream + ':12'), true);
+  for (const upstream of ['subo', 'diyi', 'kuaiche', 'unknown', 'pianku', 'zip0']) {
+    assert.equal(validVideoId('zip0', upstream + ':12'), false);
+    assert.equal(normalizeVideo({ vod_id: upstream + ':12', vod_name: '测试影片' }, 'zip0'), null);
+  }
   for (const [source, id] of [['auete', '../secret'], ['auete', 'https://evil/1'], ['zip0', 'a:../1'], ['pianku', 'x'], ['unknown', '1']]) assert.equal(validVideoId(source, id), false);
   assert.equal(parseRoute('#watch?source=auete&id=Tv%2Fneidi%2Flanxiangrugu').view, 'watch');
   assert.equal(supportsSource(SOURCES[4], { view: 'search' }), false);
@@ -389,7 +394,7 @@ test('site identities, capabilities, lazy episodes and duplicate upstreams are s
     assert.equal(groupVideos([item, aggregated])[0].variants.length, 1);
     assert.equal(groupVideos([aggregated, item])[0].variants[0].source, source);
   }
-  assert.equal(normalizeVideo({ ...raw, vod_id: 'unknown:12' }, 'zip0').origin, 'zip0:unknown');
+  assert.equal(normalizeVideo({ ...raw, vod_id: 'unknown:12' }, 'zip0'), null);
   const lazy = normalizeVideo({ ...raw, vod_lines: [{ name: '<b>A</b>', episodes: [{ name: '1', ref: '2-1' }, { name: 'bad', ref: '//evil' }] }, { episodes: null }] }, 'pianku');
   assert.deepEqual(lazy.lines, [{ name: 'A', episodes: [{ name: '1', ref: '2-1' }] }]);
   const storage = { getItem: () => JSON.stringify([{ ...lazy }, { ...lazy, id: '../bad' }]) };
