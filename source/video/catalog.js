@@ -36,7 +36,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
     onChange();
   }
 
-  async function scan(force = false, initial = false, targets = null, retrySources = false) {
+  async function scan(force = false, initial = false, targets = null, retrySources = false, stopAtTarget = false) {
     const eligible = feed => available(feed) && (!targets || feed.page < targets[feed.source]);
     if (state.loading || !state.feeds.some(eligible) || (!force && (state.stopped || !hasFilters(state.filters) || catalogSummary(state).count >= minimumResults))) return;
     const current = version; const activeController = new AbortController(); controller = activeController;
@@ -51,7 +51,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
         let next = 0;
         async function worker() {
           while (current === version && !activeController.signal.aborted && next < jobs.length) {
-            if (!force && catalogSummary(state).count >= minimumResults) return;
+            if ((!force || stopAtTarget) && catalogSummary(state).count >= minimumResults) return;
             const { feed, page } = jobs[next++];
             try {
               const result = await request(feed.source, { ...state.query, sources: undefined, page, signal: activeController.signal, retrySources });
@@ -85,8 +85,9 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
     }
   }
 
-  async function open(query, { force = false, filters = {}, pages = {}, retrySources = false } = {}) {
+  async function open(query, { force = false, filters = {}, pages = {}, retrySources = false, progressive = false } = {}) {
     if (!query || !Array.isArray(query.sources) || !query.sources.length) throw new Error('至少选择一个查询来源');
+    if (typeof progressive !== 'boolean') throw new Error('查询策略不正确');
     const next = { ...query, sources: [...new Set(query.sources)] };
     const key = JSON.stringify({ ...next, sources: [...next.sources].sort() });
     const targets = Object.fromEntries(next.sources.map(source => [source, Number.isInteger(pages?.[source]) && pages[source] > 0 && pages[source] <= 20 ? pages[source] : 0]));
@@ -101,7 +102,7 @@ export function createCatalogLoader({ request, onChange = () => {}, batchPages =
     Object.assign(state, { items: [], feeds: next.sources.map(source => ({ source, page: 0, pages: 1, restorePage: targets[source], failed: false, deferred: false, serviceFailed: false, limited: false })), filters: { year: filters?.year || '', area: filters?.area || '', status: filters?.status || '' }, query: next, key, loading: false, scanning: false, restoring, stopped: false });
     const current = version;
     try {
-      await scan(true, true, null, retrySources);
+      await scan(true, true, progressive && restoring ? targets : null, retrySources, progressive && !restoring);
       await restorePages(current);
     } finally {
       if (current === version) { state.restoring = false; onChange(); }

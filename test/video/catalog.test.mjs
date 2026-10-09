@@ -12,8 +12,49 @@ test('catalog loaders validate dependencies and query scope', async () => {
   for (const options of [{ batchPages: 0 }, { batchPages: 21 }, { batchPages: 1.5 }, { minimumResults: 0 }, { minimumResults: 1.5 }, ...[0, 6, 1.5, NaN, Infinity, '4', null].map(concurrency => ({ concurrency }))]) assert.throws(() => createCatalogLoader({ request: async () => {}, ...options }), /范围/);
   const loader = createCatalogLoader({ request: async () => ({ videos: [], pages: 1 }) });
   for (const invalid of [null, {}, { sources: [] }]) await assert.rejects(loader.open(invalid), /来源/);
+  for (const progressive of [null, 'true', 1]) await assert.rejects(loader.open(query, { progressive }), /策略/);
   await loader.fill(); await loader.more(); loader.stop();
   assert.equal(loader.state.items.length, 0);
+});
+
+test('progressive initial searches stop queued sources after enough grouped results and explicit continuation expands scope', async () => {
+  for (const concurrency of [1, 4]) {
+    const sources = Array.from({ length: 8 }, (_, index) => 'provider' + index); const calls = [];
+    const loader = createCatalogLoader({ concurrency, minimumResults: 2, request: async (source, options) => {
+      calls.push([source, options.page]);
+      return { videos: [video(source, source + '-' + options.page + '-1'), video(source, source + '-' + options.page + '-2')], pages: 2 };
+    } });
+    const search = { sources, query: '凡人' };
+    await loader.open(search, { progressive: true });
+    assert.equal(calls.length, concurrency); assert.ok(catalogSummary(loader.state).count >= 2);
+    assert.equal(loader.state.feeds.filter(feed => feed.page === 0).length, sources.length - concurrency);
+    assert.equal(catalogSummary(loader.state).phase, 'partial'); assert.equal(catalogSummary(loader.state).hasMore, true);
+    await loader.open(search, { progressive: true }); assert.equal(calls.length, concurrency);
+    await loader.more(); assert.equal(calls.length, concurrency + sources.length);
+    assert.equal(loader.state.feeds.filter(feed => feed.page === 0).length, 0);
+    assert.deepEqual(calls.slice(-sources.length).map(call => call[0]), sources);
+  }
+});
+
+test('progressive searches keep querying through source failures, empty replies and duplicate titles', async () => {
+  const sources = ['broken', 'empty', 'first', 'duplicate', 'last']; const calls = [];
+  const loader = createCatalogLoader({ concurrency: 1, minimumResults: 2, request: async source => {
+    calls.push(source); if (source === 'broken') throw new Error('source failed');
+    return { videos: source === 'empty' ? [] : [{ ...video(source, source), title: source === 'last' ? '另一部影片' : '同一部影片' }], pages: 1 };
+  } });
+  await loader.open({ sources, query: '凡人' }, { progressive: true });
+  assert.deepEqual(calls, sources); assert.equal(catalogSummary(loader.state).count, 2);
+  assert.deepEqual(catalogSummary(loader.state).failed, ['broken']);
+});
+
+test('progressive search restores explicitly loaded pages without re-querying unseen sources', async () => {
+  const calls = []; const sources = ['unseen', 'first', 'second'];
+  const loader = createCatalogLoader({ concurrency: 1, minimumResults: 1, request: async (source, options) => {
+    calls.push([source, options.page]); return { videos: [video(source, source + '-' + options.page)], pages: 4 };
+  } });
+  await loader.open({ sources, query: '凡人' }, { progressive: true, pages: { first: 2, second: 1 } });
+  assert.deepEqual(calls, [['first', 1], ['second', 1], ['first', 2]]);
+  assert.equal(loader.state.feeds.find(feed => feed.source === 'unseen').page, 0);
 });
 
 test('catalog source queues bound active requests while publishing fast results and advancing past failures', async () => {

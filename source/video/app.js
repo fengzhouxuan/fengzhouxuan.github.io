@@ -507,6 +507,8 @@ function renderCatalog() {
   $('search-status').textContent = messages[progress.phase];
   $('search-status').classList.toggle('error', Boolean(progress.failed.length));
   const scope = ['查询进度 ' + progress.queried + ' / ' + progress.total + ' 页'];
+  const unqueried = state.catalog.feeds.filter(feed => !feed.page && !feed.failed && !feed.deferred).length;
+  if (route.view === 'search' && !state.catalog.loading && unqueried) scope.push('还有 ' + unqueried + ' 个来源尚未查询，点击“继续查询”扩展范围');
   if (progress.limited) scope.push('每个来源最多查询 20 页');
   if (progress.missingMetadata) scope.push('部分影片缺少筛选信息，结果可能不完整');
   if (progress.deferred.length && progress.phase !== 'deferred') scope.push(progress.deferred.map(sourceName).join('、') + '暂时避开，可继续查询重试');
@@ -518,7 +520,7 @@ function renderCatalog() {
   $('catalog-empty-hint').textContent = unavailable ? '暂时无法判断有没有资源，请重试查询。' : progress.hasMore ? '继续查询剩余目录，或调整筛选条件。' : '试试调整筛选或搜索片名；这不代表其他来源也没有资源。';
   $('load-more').hidden = !progress.hasMore;
   $('load-more').disabled = state.catalog.loading;
-  $('load-more').textContent = state.catalog.loading ? '正在查询…' : unavailable ? '重试查询' : progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
+  $('load-more').textContent = state.catalog.loading ? '正在查询…' : unavailable ? '重试查询' : route.view === 'search' || progress.filtered || progress.failed.length || progress.deferred.length ? '继续查询' : '加载更多影片';
   if (focusedControl && (focusedControl.hidden || focusedControl.disabled)) {
     const target = state.catalog.loading ? $('pause-catalog') : !progress.hasMore ? $('filter-toggle') : $('load-more');
     target.focus({ preventScroll: true });
@@ -575,7 +577,7 @@ async function loadCatalog({ more = false, force = false, restore = null, retryS
   if (route.view === 'search' && !route.query) { $('query').focus(); return; }
   if (more) return catalogLoader.more();
   const previousKey = state.catalog.key;
-  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages, retrySources: force || retrySources });
+  const pending = catalogLoader.open({ sources, mode: route.view === 'browse' ? 'browse' : '', category: route.category, type: route.type, query: route.query }, { force, filters: restore?.filters || (force ? state.catalog.filters : undefined), pages: restore?.pages, retrySources: force || retrySources, progressive: route.view === 'search' });
   if (force || previousKey !== state.catalog.key) for (const key of ['year', 'area', 'status']) $(key + '-filter').scrollLeft = 0;
   return pending;
 }
