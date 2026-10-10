@@ -107,13 +107,20 @@ export function createVideoQuery({ fetchImpl = fetch, upstreamTimeout = 10000 } 
               if (Array.isArray(result.class)) result.class = result.class.filter(permitted);
             }
             const lines = source?.allowedPlayFrom;
+            const metadataOnly = source?.listMetadataOnly === true && !url.searchParams.get('id');
             if (lines) result.list = result.list.flatMap(item => {
               if (typeof item?.vod_play_from !== 'string' || typeof item?.vod_play_url !== 'string') return [];
               const names = item.vod_play_from.split('$$$');
+              if (metadataOnly) return names.some(name => Object.hasOwn(lines, name)) ? [item] : [];
               const addresses = item.vod_play_url.split('$$$');
               const selected = names.flatMap((name, index) => Object.hasOwn(lines, name) && addresses[index] ? [{ name: lines[name], address: addresses[index] }] : []);
               return selected.length ? [{ ...item, vod_play_from: selected.map(line => line.name).join('$$$'), vod_play_url: selected.map(line => line.address).join('$$$') }] : [];
             });
+            if (metadataOnly) result.list = result.list.filter(item => item && typeof item === 'object' && !Array.isArray(item)).map(item => ({
+              vod_id: item.vod_id, vod_name: item.vod_name, type_id: item.type_id, type_name: item.type_name,
+              vod_year: item.vod_year, vod_area: item.vod_area, vod_pic: item.vod_pic, vod_remarks: item.vod_remarks,
+              vod_time: item.vod_time, vod_isend: item.vod_isend, vod_weekday: item.vod_weekday,
+            }));
             // Compact once on a cache miss; reuse the JSON body on subsequent reads.
             return JSON.stringify(result);
           });

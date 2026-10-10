@@ -79,6 +79,10 @@ export const SOURCES = [
     allowedPlayFrom: { wjm3u8: '无尽资源', sdm3u8: '闪电资源', jinyingm3u8: '金鹰资源', ffm3u8: '非凡资源', lzm3u8: '量子资源' },
     browseTypes: [16, 23, 11, 6, 7, 8, 9, 10, 12, 20, 30, 31, 33, 27, 28, 46],
     browseTypeMap: { 13: null, 11: 21, 20: 22, 14: null, 15: null, 21: null, 22: null, 23: 30, 24: null, 25: null, 26: null, 27: 23, 28: 25, 29: null, 30: 27, 31: 28, 32: null, 33: 29, 46: 63, 52: null } },
+  { id: 'xigua', name: '西瓜资源', api: 'https://backup.xigua-api.com/api.php/provide/vod/', listMetadataOnly: true,
+    allowedTypeIds: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45],
+    allowedPlayFrom: { xiguam3u8: '西瓜直链' },
+    browseTypes: [13, 46], browseTypeMap: { 29: null, 46: 36, 52: null } },
 ];
 
 const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
