@@ -9,7 +9,7 @@ const request = (path, options = {}) => new Request('https://video-api.example' 
 
 test('expanded source categories use their own verified IDs and reject unsupported scopes before making a request', async () => {
   const categories = CATEGORIES.flatMap(category => category.types.map(([type]) => ({ category: category.id, type })));
-  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'huya', 'maotai', 'maoyan'];
+  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'huya', 'maotai', 'maoyan', 'yaya'];
   const fixtures = [
     ['dyttzy', 29, 29, 46, 36, null], ['360zy', 29, 38, 46, 46, null],
     ['modu', 29, 1, 46, 38, 42], ['zuid', 29, 29, 46, 54, null],
@@ -21,6 +21,7 @@ test('expanded source categories use their own verified IDs and reject unsupport
     ['wujin', 29, 29, 46, 41, null],
     ['huya', 29, 24, null, null, 50], ['maotai', 29, 30, 46, 37, 56],
     ['maoyan', 30, 40, null, null, null],
+    ['yaya', 30, 30, 46, 54, null],
   ];
   for (const [source, type, upstreamType, short, shortType, aiType] of fixtures) {
     const category = type === 13 ? 'tv' : 'anime';
@@ -126,6 +127,33 @@ test('maoyan rejects oversized catalogs, empty parents and unverified upstream a
   assert.equal((await query(request('/api/vod?source=maoyan&q=凡人'))).status, 200);
   assert.equal((await query(request('/api/vod?source=maoyan&id=134235'))).status, 200);
   assert.equal(calls.length, 2); assert.equal(calls[0].searchParams.get('wd'), '凡人'); assert.equal(calls[1].searchParams.get('ids'), '134235');
+});
+
+test('yaya preserves browsing and detail identity while rejecting closed search, expensive scopes and unverified aliases before egress', async () => {
+  const source = SOURCES.find(item => item.id === 'yaya');
+  assert.equal(source.search, false); assert.equal(source.browseTypes.length, 23);
+  const calls = [];
+  const query = createVideoQuery({ fetchImpl: async url => {
+    calls.push(url); return Response.json({ list: [{ vod_id: 102532, vod_name: '全民诡异：开局掌握零元购·动态漫画', vod_year: '2025', type_name: '国产动漫', vod_play_from: 'yym3u8', vod_play_url: '第01集$https://media.example/1.m3u8#第02集$https://media.example/2.m3u8' }], pagecount: 2 });
+  } });
+  assert.equal((await query(request('/api/vod?source=yaya&q=凡人'))).status, 400);
+  for (const [category, type] of [['anime', 29], ['variety', 25], ['variety', 26], ['short', 52]]) {
+    assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'yaya', mode: 'browse', category, type })))).status, 400);
+  }
+  for (const id of ['https://evil.example', '../102532', '102532&wd=private']) {
+    assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'yaya', id })))).status, 400);
+  }
+  assert.equal((await query(request('/api/vod?source=zip0&id=yyzy:102532'))).status, 400);
+  assert.equal(calls.length, 0);
+  const detail = await requestVideos('yaya', { id: '102532', base: 'https://video-api.example', fetchImpl: input => query(request(new URL(input).pathname + new URL(input).search)) });
+  assert.equal(detail.videos[0].uid, 'yaya:102532');
+  assert.equal(detail.videos[0].category, '国产动漫'); assert.equal(detail.videos[0].lines[0].episodes[1].name, '第02集');
+  assert.equal(calls[0].origin, 'https://cj.yayazy.net'); assert.equal(calls[0].searchParams.get('ids'), '102532');
+  assert.equal(calls[0].searchParams.has('wd'), false);
+  for (const [category, type, upstream] of [['short', 46, 54], ['anime', 32, 44], ['variety', 27, 26]]) {
+    assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'yaya', mode: 'browse', category, type })))).status, 200);
+    assert.equal(calls.at(-1).searchParams.get('t'), String(upstream));
+  }
 });
 
 test('portable query handler permits exact configured origins on success, errors and preflight', async () => {

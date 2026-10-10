@@ -541,7 +541,7 @@ test('short drama routes expose separate AI catalogs and source capabilities sta
   assert.equal(parseRoute('#browse?category=short&type=52').type, 52);
   assert.equal(parseRoute('#browse?category=short&type=36').type, 46);
   assert.equal(parseRoute('#browse?category=anime&type=52').type, 29);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni', 'maotai']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni', 'maotai', 'yaya']);
   assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo', 'huya', 'maotai']);
   assert.equal(supportsSource(SOURCES[1], { view: 'search', type: 52 }), true);
   assert.equal(supportsSource(SOURCES[2], { view: 'browse', type: 13 }), true);

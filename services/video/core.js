@@ -67,6 +67,9 @@ export const SOURCES = [
   { id: 'maoyan', name: '猫眼资源', api: 'https://api.maoyanapi.top/api.php/provide/vod',
     browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 30, 31, 26, 27],
     browseTypeMap: { 20: 27, 21: 30, 22: 31, 24: 33, 25: null, 26: 36, 27: 35, 29: null, 30: 40, 31: 39, 46: null, 52: null } },
+  { id: 'yaya', name: '鸭鸭资源', api: 'https://cj.yayazy.net/api.php/provide/vod/', search: false,
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 30, 31, 32, 33, 27, 28, 46],
+    browseTypeMap: { 16: 14, 14: 17, 21: 18, 22: 16, 24: 19, 25: null, 26: null, 27: 26, 29: null, 32: 44, 33: 45, 46: 54, 52: null } },
 ];
 
 const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
