@@ -9,7 +9,7 @@ const request = (path, options = {}) => new Request('https://video-api.example' 
 
 test('expanded source categories use their own verified IDs and reject unsupported scopes before making a request', async () => {
   const categories = CATEGORIES.flatMap(category => category.types.map(([type]) => ({ category: category.id, type })));
-  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'huya', 'maotai'];
+  const sources = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'huya', 'maotai', 'maoyan'];
   const fixtures = [
     ['dyttzy', 29, 29, 46, 36, null], ['360zy', 29, 38, 46, 46, null],
     ['modu', 29, 1, 46, 38, 42], ['zuid', 29, 29, 46, 54, null],
@@ -20,6 +20,7 @@ test('expanded source categories use their own verified IDs and reject unsupport
     ['baofeng', 29, 40, 46, 58, 74], ['haohua', 29, 24, null, null, 53],
     ['wujin', 29, 29, 46, 41, null],
     ['huya', 29, 24, null, null, 50], ['maotai', 29, 30, 46, 37, 56],
+    ['maoyan', 30, 40, null, null, null],
   ];
   for (const [source, type, upstreamType, short, shortType, aiType] of fixtures) {
     const category = type === 13 ? 'tv' : 'anime';
@@ -45,7 +46,7 @@ test('expanded source categories use their own verified IDs and reject unsupport
 });
 
 test('expanded sources keep search and detail identity and deduplicate a matching ZIP0 upstream', async () => {
-  const ids = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'huya'];
+  const ids = ['dyttzy', '360zy', 'modu', 'zuid', 'uku', 'jszy', 'xinlang', 'jinying', 'guangsu', 'ikun', 'hongniu', 'baofeng', 'haohua', 'wujin', 'huya', 'maoyan'];
   for (const source of ids) {
     const calls = [];
     const query = createVideoQuery({ fetchImpl: async url => {
@@ -111,6 +112,20 @@ test('new source restrictions reject unavailable search and expensive categories
   assert.match(calls.at(-1).pathname, /from\/hym3u8\/at\/json$/);
   assert.equal(SOURCES.find(source => source.id === 'maotai').search, false);
   assert.equal(SOURCES.find(source => source.id === 'huya').search, undefined);
+});
+
+test('maoyan rejects oversized catalogs, empty parents and unverified upstream aliases before egress', async () => {
+  const calls = [];
+  const query = createVideoQuery({ fetchImpl: async url => { calls.push(url); return Response.json({ list: [] }); } });
+  for (const [category, type] of [['anime', 29], ['anime', 32], ['anime', 33], ['variety', 25], ['variety', 28], ['tv', 23], ['short', 46], ['short', 52]]) {
+    const before = calls.length;
+    assert.equal((await query(request('/api/vod?' + new URLSearchParams({ source: 'maoyan', mode: 'browse', category, type })))).status, 400);
+    assert.equal(calls.length, before);
+  }
+  assert.equal((await query(request('/api/vod?source=zip0&id=myzy:134235'))).status, 400); assert.equal(calls.length, 0);
+  assert.equal((await query(request('/api/vod?source=maoyan&q=凡人'))).status, 200);
+  assert.equal((await query(request('/api/vod?source=maoyan&id=134235'))).status, 200);
+  assert.equal(calls.length, 2); assert.equal(calls[0].searchParams.get('wd'), '凡人'); assert.equal(calls[1].searchParams.get('ids'), '134235');
 });
 
 test('portable query handler permits exact configured origins on success, errors and preflight', async () => {
