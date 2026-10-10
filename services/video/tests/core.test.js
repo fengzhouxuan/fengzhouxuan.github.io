@@ -442,6 +442,21 @@ test('manual promotion observations preserve sources and distinguish specific ep
   assert.equal(allowedVideoId('subo', '161094'), true); assert.equal(allowedVideoId('diyi', '104'), true);
 });
 
+test('multiple observations on one film mark each checked episode without marking the remaining episodes', () => {
+  for (const [source, id] of [['huya', '9480'], ['maotai', '153014'], ['maotai', '70360']]) {
+    const item = { source, id };
+    for (const [name, note] of [['第1集', '第01集'], ['EP2', '第02集']]) {
+      const notice = contentNotice(item, name); assert.equal(notice.observed, true); assert.match(notice.text, new RegExp(note + '开头'));
+    }
+    assert.equal(contentNotice(item).observed, true);
+    assert.equal(contentNotice(item, '第03集').observed, false);
+    assert.match(contentNotice(item, '第03集').text, /当前视频未逐一检查/);
+    assert.equal(contentNotice({ source, id: 'other' }, '第02集').observed, false);
+  }
+  const item = { source: 'huya', id: '158723', lines: [{ episodes: [{ name: '全集完结' }] }] };
+  assert.equal(contentNotice(item, '全集完结').observed, true); assert.equal(contentNotice(item, '第01集').observed, false);
+});
+
 test('named playback routes and episode comparison preserve specials and regular numbers without inventing identities', () => {
   assert.equal(parseRoute('#watch?source=liangzi&id=12&episode=2&name=' + encodeURIComponent('第3集')).episodeName, '第3集');
   assert.equal(parseRoute('#watch?source=liangzi&id=12&name=' + 'x'.repeat(121)).episodeName, undefined);
@@ -479,8 +494,8 @@ test('short drama routes expose separate AI catalogs and source capabilities sta
   assert.equal(parseRoute('#browse?category=short&type=52').type, 52);
   assert.equal(parseRoute('#browse?category=short&type=36').type, 46);
   assert.equal(parseRoute('#browse?category=anime&type=52').type, 29);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni']);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni', 'maotai']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo', 'huya', 'maotai']);
   assert.equal(supportsSource(SOURCES[1], { view: 'search', type: 52 }), true);
   assert.equal(supportsSource(SOURCES[2], { view: 'browse', type: 13 }), true);
   const ai = normalizeVideo({ ...raw, vod_name: '测试 AI 漫剧', type_name: 'AI漫剧', vod_remarks: '已完结', vod_play_url: '全集$https://example.com/all.m3u8' }, 'liangzi');

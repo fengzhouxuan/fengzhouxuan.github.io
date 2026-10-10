@@ -1487,14 +1487,19 @@ $('change-source').addEventListener('click', () => {
   const variants = state.group?.variants || []; const index = variants.findIndex(item => item.uid === state.current?.uid);
   if (variants.length > 1) switchVariant(variants[(index + 1) % variants.length]);
 });
-document.addEventListener('keydown', event => {
-  if (state.route.view !== 'watch' || state.detailLoading || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName) || event.target.isContentEditable || event.altKey || event.metaKey || event.ctrlKey) return;
-  if (['Space', 'ArrowLeft', 'ArrowRight'].includes(event.code) && /BUTTON|A|SUMMARY|VIDEO/.test(event.target.tagName)) return;
+function handlePlaybackKey(event) {
+  if (event.defaultPrevented || state.route.view !== 'watch' || state.detailLoading || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName) || event.target.isContentEditable || event.altKey || event.metaKey || event.ctrlKey) return;
+  if (['Space', 'ArrowLeft', 'ArrowRight'].includes(event.code) && /BUTTON|A|SUMMARY/.test(event.target.tagName)) return;
+  if (event.code === 'Space' && event.target.tagName === 'VIDEO') return;
   if (event.code === 'Space') { event.preventDefault(); if (video.paused) video.play().catch(() => toast('请点击播放器开始观看')); else video.pause(); }
   else if (['ArrowLeft', 'ArrowRight'].includes(event.code) && Number.isFinite(video.duration)) { event.preventDefault(); video.currentTime = Math.min(video.duration, Math.max(0, video.currentTime + (event.code === 'ArrowRight' ? 10 : -10))); }
   else if (event.code === 'KeyN') playNext();
   else if (event.code === 'KeyF') toggleFullscreen();
-});
+}
+video.addEventListener('keydown', event => {
+  if (['ArrowLeft', 'ArrowRight'].includes(event.code)) handlePlaybackKey(event);
+}, { capture: true });
+document.addEventListener('keydown', handlePlaybackKey);
 document.querySelectorAll('[data-blog-link]').forEach(link => {
   link.href = String(config.blogHome || '').replace(/\/$/, '') + link.dataset.blogLink;
 });

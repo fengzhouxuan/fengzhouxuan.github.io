@@ -58,6 +58,12 @@ export const SOURCES = [
     browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 32, 33, 25, 26, 27, 28, 46],
     browseTypeMap: { 16: 14, 14: 17, 21: 18, 22: 16, 24: 19, 26: 27, 27: 26, 32: 44, 33: 45, 46: 54, 52: null } },
   { id: 'dazhong', name: '大众资源', api: 'https://cdn.dzzyapi.com/api.php/provide/vod/', browseTypes: [] },
+  { id: 'huya', name: '虎牙资源', api: 'https://www.huyaapi.com/api.php/provide/vod/from/hym3u8/at/json',
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 25, 26, 27, 28, 52],
+    browseTypeMap: { 13: 20, 16: 3, 15: 5, 22: 6, 24: 7, 14: 4, 21: 28, 11: 14, 6: 9, 7: 11, 8: 10, 9: 12, 10: 13, 12: 15, 20: 16, 29: 24, 30: 25, 31: 26, 25: 38, 26: 39, 27: 40, 28: 41, 46: null, 52: 50 } },
+  { id: 'maotai', name: '茅台资源', api: 'https://caiji.maotai999.vip/api.php/provide/vod/from/mtm3u8/at/josn/', search: false,
+    browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 29, 30, 31, 33, 26, 27, 28, 46, 52],
+    browseTypeMap: { 16: 15, 15: 16, 24: 21, 21: 23, 23: 24, 7: 8, 8: 7, 20: 5, 25: null, 29: 30, 30: 31, 31: 32, 32: null, 46: 37, 52: 56 } },
 ];
 
 const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
@@ -70,6 +76,13 @@ const CONTENT_OBSERVATIONS = [
   { source: 'dbzy', id: '152475', title: '婆媳联盟', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-09' },
   { source: 'suoni', id: '35419', title: '斗罗大陆2：绝世唐门2023', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-09' },
   { source: 'dazhong', id: '12267', title: '凡人修仙传', episode: '第01集', note: 'dzyun 线路第01集开头', checkedAt: '2026-10-09' },
+  { source: 'huya', id: '9480', title: '凡人修仙传', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-10' },
+  { source: 'huya', id: '9480', title: '凡人修仙传', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-10' },
+  { source: 'huya', id: '158723', title: '镇国驸马之观棋传第二季', episode: '', note: '单条合集开头及约29分41秒处', checkedAt: '2026-10-10' },
+  { source: 'maotai', id: '153014', title: '婆媳联盟', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-10' },
+  { source: 'maotai', id: '153014', title: '婆媳联盟', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-10' },
+  { source: 'maotai', id: '70360', title: '斗罗大陆2：绝世唐门', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-10' },
+  { source: 'maotai', id: '70360', title: '斗罗大陆2：绝世唐门', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-10' },
 ];
 
 export function contentNotice(item, episodeName = '') {
@@ -77,7 +90,8 @@ export function contentNotice(item, episodeName = '') {
   const source = ZIP_SOURCE_ALIASES[upstream] || upstream;
   const id = item?.source === 'zip0' ? String(item.id || '').split(':')[1] : String(item?.id || '');
   const records = CONTENT_OBSERVATIONS.filter(record => record.source === source);
-  const film = records.find(record => record.id === id);
+  const films = records.filter(record => record.id === id);
+  const film = films.find(record => episodeName && sameEpisodeName(record.episode, episodeName)) || films[0];
   const single = !film?.episode && item?.lines?.length > 0 && item.lines.every(line => line.episodes?.length === 1 && line.episodes[0].name === episodeName);
   const observed = film && (!episodeName || single || sameEpisodeName(film.episode, episodeName));
   if (observed) return {

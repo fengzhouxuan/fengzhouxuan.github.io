@@ -12,6 +12,46 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('focused native video seeks exactly ten seconds and keeps control navigation and modified keys intact', () => {
+  let capture; let bubble; let plays = 0; let pauses = 0; let next = 0; let fullscreen = 0;
+  const state = { route: { view: 'watch' }, detailLoading: false };
+  const video = { tagName: 'VIDEO', currentTime: 120, duration: 8640, paused: true,
+    addEventListener(type, handler, options) { assert.equal(type, 'keydown'); assert.equal(options.capture, true); capture = handler; },
+    play() { plays++; this.paused = false; return Promise.resolve(); }, pause() { pauses++; this.paused = true; } };
+  const harness = appHarness(source, { state, video, document: { addEventListener: (type, handler) => { assert.equal(type, 'keydown'); bubble = handler; } }, playNext: () => next++, toggleFullscreen: () => fullscreen++, toast() {} });
+  const start = source.indexOf('function handlePlaybackKey('); const end = source.indexOf("document.querySelectorAll('[data-blog-link]')", start);
+  assert.ok(start >= 0 && end > start); harness.run(source.slice(start, end));
+  function dispatch(code, target = video, extra = {}) {
+    const event = { code, target, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...extra };
+    if (target === video) {
+      capture(event);
+      // Native controls seek by a percentage before a document bubble handler.
+      if (!event.defaultPrevented && code === 'ArrowRight') video.currentTime += video.duration / 100;
+      if (!event.defaultPrevented && code === 'ArrowLeft') video.currentTime -= video.duration / 100;
+    }
+    bubble(event); return event;
+  }
+  assert.equal(dispatch('ArrowRight').defaultPrevented, true); assert.equal(video.currentTime, 130);
+  dispatch('ArrowLeft'); assert.equal(video.currentTime, 120);
+  video.currentTime = 3; dispatch('ArrowLeft'); assert.equal(video.currentTime, 0);
+  video.currentTime = 8635; dispatch('ArrowRight'); assert.equal(video.currentTime, 8640);
+  video.currentTime = 120; dispatch('ArrowRight', { tagName: 'DIV' }); assert.equal(video.currentTime, 130);
+  for (const tagName of ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'A', 'SUMMARY']) {
+    assert.equal(dispatch('ArrowRight', { tagName }).defaultPrevented, false); assert.equal(video.currentTime, 130);
+  }
+  assert.equal(dispatch('ArrowLeft', { tagName: 'DIV', isContentEditable: true }).defaultPrevented, false);
+  for (const modifier of ['altKey', 'ctrlKey', 'metaKey']) assert.equal(dispatch('ArrowLeft', { tagName: 'DIV' }, { [modifier]: true }).defaultPrevented, false);
+  assert.equal(dispatch('Space').defaultPrevented, false); assert.equal(plays, 0); assert.equal(pauses, 0);
+  dispatch('Space', { tagName: 'DIV' }); assert.equal(plays, 1);
+  dispatch('Space', { tagName: 'DIV' }); assert.equal(pauses, 1);
+  dispatch('KeyN'); dispatch('KeyF'); assert.equal(next, 1); assert.equal(fullscreen, 1);
+  assert.equal(dispatch('ArrowUp').defaultPrevented, false);
+  dispatch('ArrowRight', { tagName: 'DIV' }, { defaultPrevented: true }); assert.equal(video.currentTime, 130);
+  state.detailLoading = true; assert.equal(dispatch('ArrowRight', { tagName: 'DIV' }).defaultPrevented, false);
+  state.detailLoading = false; state.route.view = 'home'; assert.equal(dispatch('ArrowRight', { tagName: 'DIV' }).defaultPrevented, false);
+  state.route.view = 'watch'; video.duration = Infinity; assert.equal(dispatch('ArrowRight', { tagName: 'DIV' }).defaultPrevented, false);
+});
+
 test('source capability notices distinguish validation from an unavailable public search', () => {
   const harness = appHarness(source, {}); harness.include('sourceSearchNotice', 'renderServiceStatus');
   assert.equal(harness.run('sourceSearchNotice({id:"auete"})'), '搜索要求验证');
