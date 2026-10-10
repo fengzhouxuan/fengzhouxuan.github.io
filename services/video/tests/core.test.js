@@ -494,8 +494,8 @@ test('short drama routes expose separate AI catalogs and source capabilities sta
   assert.equal(parseRoute('#browse?category=short&type=52').type, 52);
   assert.equal(parseRoute('#browse?category=short&type=36').type, 46);
   assert.equal(parseRoute('#browse?category=anime&type=52').type, 29);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni', 'maotai', 'yaya']);
-  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo', 'huya', 'maotai']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 46 })).map(source => source.id), ['liangzi', 'ruyi', 'feifan', 'dyttzy', '360zy', 'modu', 'zuid', 'uku', 'ikun', 'baofeng', 'wujin', 'shandian', 'suoni', 'maotai', 'yaya', 'lovedan']);
+  assert.deepEqual(SOURCES.filter(source => supportsSource(source, { view: 'browse', type: 52 })).map(source => source.id), ['liangzi', 'modu', 'jszy', 'xinlang', 'jinying', 'guangsu', 'hongniu', 'baofeng', 'haohua', 'subo', 'huya', 'maotai', 'iqiyi']);
   assert.equal(supportsSource(SOURCES[1], { view: 'search', type: 52 }), true);
   assert.equal(supportsSource(SOURCES[2], { view: 'browse', type: 13 }), true);
   const ai = normalizeVideo({ ...raw, vod_name: '测试 AI 漫剧', type_name: 'AI漫剧', vod_remarks: '已完结', vod_play_url: '全集$https://example.com/all.m3u8' }, 'liangzi');

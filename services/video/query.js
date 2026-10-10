@@ -21,7 +21,7 @@ export function buildUpstream(params) {
     if (!supportsSource(source, { view: 'browse', type })) throw new Error('这个来源不支持当前细分类别，可使用其他来源');
     url.searchParams.set('t', String(source.browseTypeMap?.[type] ?? type));
   } else {
-    if (source.search === false) throw new Error('这个来源未开放搜索，可从分类浏览进入');
+    if (source.search === false) throw new Error(source.searchNotice || '这个来源未开放搜索，可从分类浏览进入');
     url.searchParams.set('wd', query);
   }
   url.searchParams.set('pg', String(page));
@@ -99,6 +99,21 @@ export function createVideoQuery({ fetchImpl = fetch, upstreamTimeout = 10000 } 
             const text = await readUpstream(upstream);
             const result = JSON.parse(text);
             if (!Array.isArray(result.list)) throw new Error('upstream format error');
+            const source = SOURCES.find(item => item.id === url.searchParams.get('source'));
+            const allowed = source?.allowedTypeIds;
+            if (Array.isArray(allowed)) {
+              const permitted = item => ['string', 'number'].includes(typeof item?.type_id) && allowed.includes(Number(item.type_id));
+              result.list = result.list.filter(permitted);
+              if (Array.isArray(result.class)) result.class = result.class.filter(permitted);
+            }
+            const lines = source?.allowedPlayFrom;
+            if (lines) result.list = result.list.flatMap(item => {
+              if (typeof item?.vod_play_from !== 'string' || typeof item?.vod_play_url !== 'string') return [];
+              const names = item.vod_play_from.split('$$$');
+              const addresses = item.vod_play_url.split('$$$');
+              const selected = names.flatMap((name, index) => Object.hasOwn(lines, name) && addresses[index] ? [{ name: lines[name], address: addresses[index] }] : []);
+              return selected.length ? [{ ...item, vod_play_from: selected.map(line => line.name).join('$$$'), vod_play_url: selected.map(line => line.address).join('$$$') }] : [];
+            });
             // Compact once on a cache miss; reuse the JSON body on subsequent reads.
             return JSON.stringify(result);
           });

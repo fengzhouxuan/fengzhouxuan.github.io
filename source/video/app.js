@@ -159,7 +159,7 @@ function renderAccount(value = accountClient?.state) {
 }
 
 function sourceSearchNotice(source) {
-  return source.id === 'auete' ? '搜索要求验证' : '源站未开放搜索';
+  return source.searchNotice || (source.id === 'auete' ? '搜索要求验证' : '源站未开放搜索');
 }
 
 function renderServiceStatus(value) {

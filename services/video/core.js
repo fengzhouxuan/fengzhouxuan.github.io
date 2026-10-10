@@ -70,12 +70,22 @@ export const SOURCES = [
   { id: 'yaya', name: '鸭鸭资源', api: 'https://cj.yayazy.net/api.php/provide/vod/', search: false,
     browseTypes: [13, 16, 15, 22, 24, 14, 21, 23, 11, 6, 7, 8, 9, 10, 12, 20, 30, 31, 32, 33, 27, 28, 46],
     browseTypeMap: { 16: 14, 14: 17, 21: 18, 22: 16, 24: 19, 25: null, 26: null, 27: 26, 29: null, 32: 44, 33: 45, 46: 54, 52: null } },
+  { id: 'iqiyi', name: '爱奇艺资源（第三方）', api: 'https://iqiyizyapi.com/api.php/provide/vod/', search: false, searchNotice: '本站暂未启用此来源搜索，可从分类浏览进入',
+    allowedTypeIds: [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 41, 42, 43],
+    browseTypes: [13, 16, 22, 24, 23, 11, 8, 9, 10, 12, 20, 30, 31, 32, 28, 52],
+    browseTypeMap: { 6: null, 7: null, 8: 12, 9: 13, 10: 14, 11: 15, 12: 16, 13: 26, 14: null, 15: null, 16: 29, 20: 24, 21: null, 22: 31, 23: 32, 24: 33, 25: null, 26: null, 27: null, 28: 37, 29: null, 30: 2, 31: 3, 32: 4, 33: null, 46: null, 52: 43 } },
+  { id: 'lovedan', name: '艾旦聚合', api: 'https://lovedan.net/api.php/provide/vod/?limit=3',
+    allowedTypeIds: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 63, 64, 69, 70, 71],
+    allowedPlayFrom: { wjm3u8: '无尽资源', sdm3u8: '闪电资源', jinyingm3u8: '金鹰资源', ffm3u8: '非凡资源', lzm3u8: '量子资源' },
+    browseTypes: [16, 23, 11, 6, 7, 8, 9, 10, 12, 20, 30, 31, 33, 27, 28, 46],
+    browseTypeMap: { 13: null, 11: 21, 20: 22, 14: null, 15: null, 21: null, 22: null, 23: 30, 24: null, 25: null, 26: null, 27: 23, 28: 25, 29: null, 30: 27, 31: 28, 32: null, 33: 29, 46: 63, 52: null } },
 ];
 
 const ZIP_SOURCE_ALIASES = { ruyi: 'ruyi', ffzy: 'feifan', lzi: 'liangzi', lzzy: 'liangzi', zy360: '360zy', jisu: 'jszy', mdzy: 'modu', bfzy: 'baofeng' };
 
 // Manual observations describe the inspected sample, never an entire catalogue.
 const CONTENT_OBSERVATIONS = [
+  { source: 'iqiyi', id: '4538', title: '凡人修仙传（2020）', episode: '第01集', note: '第01集约50秒及5分30秒处', checkedAt: '2026-10-10' },
   { source: 'subo', id: '161094', title: '初尝玫瑰：上司竟是闺蜜大哥第二季', episode: '', note: '单条视频开头', checkedAt: '2026-10-09' },
   { source: 'diyi', id: '104', title: '凡人修仙传（2020）', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-09' },
   { source: 'kuaiche', id: '132088', title: '雪王来了', episode: '', note: '抽查画面，另有内容错配', checkedAt: '2026-10-09' },
