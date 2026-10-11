@@ -33,7 +33,7 @@ test('all inherited accent themes keep small text readable on paper, filled acti
       const alias = value.match(/^var\((--[\w-]+)\)$/);
       return alias ? color(alias[1]) : value;
     };
-    for (const [text, surface] of [['--button-ink', '--accent'], ['--muted', '--paper'], ['--muted', '--paper-warm'], ['--muted', '--accent-soft'], ['--accent', '--accent-soft'], ['--promo-ink', '--paper']]) {
+    for (const [text, surface] of [['--button-ink', '--accent'], ['--muted', '--paper'], ['--muted', '--paper-warm'], ['--muted', '--accent-soft'], ['--accent', '--accent-soft'], ['--promo-ink', '--paper'], ['--error-ink', '--paper'], ['--error-ink', '--paper-warm']]) {
       assert.ok(contrast(color(text), color(surface)) >= 4.5, accent + ' ' + (dark ? 'dark' : 'light') + ' ' + text + ' on ' + surface);
     }
   }
