@@ -12,6 +12,55 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('episode arrows follow the rendered rows across responsive layouts and descending order without playing', () => {
+  for (const columns of [3, 4, 6]) for (const reverse of [false, true]) {
+    let focused; let prevented = 0;
+    const children = Array.from({ length: columns * 2 + 2 }, (_, index) => ({
+      number: reverse ? columns * 2 + 2 - index : index + 1, tabIndex: -1,
+      getClientRects: () => [{}],
+      getBoundingClientRect: () => ({ top: Math.floor(index / columns) * 46, left: index % columns * 50, width: 42 }),
+      focus() { focused = this; }, click() { assert.fail('Moving focus must not play an episode'); },
+    }));
+    const group = { id: 'episodes', children };
+    const event = { key: 'ArrowDown', currentTarget: group, target: children[columns - 1], preventDefault() { prevented++; } };
+    const harness = appHarness(source, { event }); harness.include('handleChoiceKey', 'handleAccountFocusOut');
+    harness.run('handleChoiceKey(event)'); assert.equal(focused, children[columns * 2 - 1]);
+    assert.equal(children.filter(item => item.tabIndex === 0).length, 1);
+    event.target = focused; harness.run('handleChoiceKey(event)'); assert.equal(focused, children.at(-1));
+    event.target = focused; harness.run('handleChoiceKey(event)'); assert.equal(focused, children.at(-1));
+    event.key = 'ArrowUp'; event.target = focused; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[columns + 1]);
+    event.target = focused; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[1]);
+    event.target = focused; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[1]);
+    assert.equal(prevented, 6);
+  }
+});
+
+test('choice navigation skips hidden and disabled choices and preserves native keys and handled events', () => {
+  let focused; let prevented = 0;
+  const children = Array.from({ length: 7 }, (_, index) => ({
+    disabled: index === 4, tabIndex: -1,
+    getClientRects: () => index === 3 ? [] : [{}],
+    getBoundingClientRect: () => ({ top: Math.floor(index / 3) * 46, left: index % 3 * 50, width: 42 }),
+    focus() { focused = this; },
+  }));
+  const group = { id: 'episodes', children };
+  const event = { key: 'ArrowDown', currentTarget: group, target: children[1], preventDefault() { prevented++; } };
+  const harness = appHarness(source, { event }); harness.include('handleChoiceKey', 'handleAccountFocusOut');
+  harness.run('handleChoiceKey(event)'); assert.equal(focused, children[5]);
+  event.target = children[0]; event.key = 'ArrowLeft'; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[6]);
+  event.target = children[2]; event.key = 'ArrowRight'; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[5]);
+  event.target = focused; event.key = 'Home'; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[0]);
+  event.target = focused; event.key = 'End'; harness.run('handleChoiceKey(event)'); assert.equal(focused, children[6]);
+  assert.equal(prevented, 5);
+  for (const flag of ['defaultPrevented', 'isComposing', 'altKey', 'ctrlKey', 'metaKey', 'shiftKey']) {
+    event.key = 'ArrowLeft'; event[flag] = true; harness.run('handleChoiceKey(event)'); event[flag] = false;
+  }
+  for (const key of ['Tab', 'Enter', ' ', 'Escape', 'PageDown']) { event.key = key; harness.run('handleChoiceKey(event)'); }
+  event.key = 'ArrowDown'; group.id = 'year-filter'; harness.run('handleChoiceKey(event)');
+  event.key = 'ArrowRight'; event.target = {}; harness.run('handleChoiceKey(event)');
+  assert.equal(prevented, 5); assert.equal(focused, children[6]);
+});
+
 test('Escape closes only the nearest disclosure and returns focus without scrolling', () => {
   const outer = { open: true }; const account = { open: false }; const focus = [];
   let nearest; let prevented;

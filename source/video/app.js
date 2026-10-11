@@ -1441,13 +1441,7 @@ $('continue-search').addEventListener('click', () => loadCatalog({ more: true })
 $('reload-catalog').addEventListener('click', () => loadCatalog({ force: true }));
 $('pause-catalog').addEventListener('click', () => { clearTimeout(filterTimer); catalogLoader.stop(); });
 $('reset-filters').addEventListener('click', () => { resetFilters(); $('filter-toggle').focus({ preventScroll: true }); });
-document.querySelectorAll('.filter-options, #episode-ranges, #episodes, #hero-picks').forEach(group => group.addEventListener('keydown', event => {
-  if (event.altKey || event.ctrlKey || event.metaKey || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-  const options = [...group.children].filter(option => option.getClientRects().length && !option.disabled); const index = options.indexOf(event.target); if (index < 0) return;
-  event.preventDefault();
-  const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + options.length) % options.length;
-  options.forEach((option, value) => { option.tabIndex = value === next ? 0 : -1; }); options[next].focus();
-}));
+document.querySelectorAll('.filter-options, #episode-ranges, #episodes, #hero-picks').forEach(group => group.addEventListener('keydown', handleChoiceKey));
 for (const section of ['picks', 'short', 'tv', 'movie']) $(section + '-retry').addEventListener('click', () => homeLoader.retry(section));
 $('refresh-favorites').addEventListener('click', () => watchlistRefresher.refresh(state.favorites));
 $('stop-favorites').addEventListener('click', () => watchlistRefresher.stop());
@@ -1508,6 +1502,32 @@ $('change-source').addEventListener('click', () => {
   const variants = state.group?.variants || []; const index = variants.findIndex(item => item.uid === state.current?.uid);
   if (variants.length > 1) switchVariant(variants[(index + 1) % variants.length]);
 });
+function handleChoiceKey(event) {
+  if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  const group = event.currentTarget;
+  const vertical = ['ArrowUp', 'ArrowDown'].includes(event.key);
+  if (vertical ? group.id !== 'episodes' : !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const options = [...group.children].filter(option => option.getClientRects().length && !option.disabled);
+  const index = options.indexOf(event.target); if (index < 0) return;
+  let next = index;
+  if (vertical) {
+    const current = options[index].getBoundingClientRect();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    let rowDistance = Infinity; let columnDistance = Infinity;
+    options.forEach((option, value) => {
+      const rect = option.getBoundingClientRect();
+      const row = (rect.top - current.top) * direction;
+      const column = Math.abs(rect.left + rect.width / 2 - current.left - current.width / 2);
+      if (row > 1 && (row < rowDistance - 1 || (Math.abs(row - rowDistance) <= 1 && column < columnDistance))) {
+        next = value; rowDistance = row; columnDistance = column;
+      }
+    });
+  } else next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + options.length) % options.length;
+  event.preventDefault();
+  options.forEach((option, value) => { option.tabIndex = value === next ? 0 : -1; });
+  options[next].focus();
+}
+
 function handleAccountFocusOut(event) {
   const panel = $('account-panel');
   if (panel.open && event.relatedTarget && !panel.contains(event.relatedTarget)) panel.open = false;
