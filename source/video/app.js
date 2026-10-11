@@ -1508,8 +1508,22 @@ $('change-source').addEventListener('click', () => {
   const variants = state.group?.variants || []; const index = variants.findIndex(item => item.uid === state.current?.uid);
   if (variants.length > 1) switchVariant(variants[(index + 1) % variants.length]);
 });
+function handleAccountFocusOut(event) {
+  const panel = $('account-panel');
+  if (panel.open && event.relatedTarget && !panel.contains(event.relatedTarget)) panel.open = false;
+}
+
+function handlePanelEscape(event) {
+  if (event.defaultPrevented || event.isComposing || event.key !== 'Escape' || event.target.tagName === 'SELECT') return;
+  const panel = event.target.closest?.('details[open]') || ($('account-panel').open ? $('account-panel') : null);
+  if (!panel) return;
+  panel.open = false;
+  panel.querySelector(':scope > summary')?.focus({ preventScroll: true });
+  event.preventDefault();
+}
+
 function handlePlaybackKey(event) {
-  if (event.target.closest?.('.source-settings')) return;
+  if (event.target.closest?.('.source-settings, .account-panel')) return;
   if (event.defaultPrevented || state.route.view !== 'watch' || state.detailLoading || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName) || event.target.isContentEditable || event.altKey || event.metaKey || event.ctrlKey) return;
   if (['Space', 'ArrowLeft', 'ArrowRight'].includes(event.code) && /BUTTON|A|SUMMARY/.test(event.target.tagName)) return;
   if (event.code === 'Space' && event.target.tagName === 'VIDEO') return;
@@ -1542,7 +1556,8 @@ $('service-retry').addEventListener('click', async () => {
   try { if (await backendTransport.retry()) { accountClient.sync(); toast('查询服务已恢复，可以继续搜索或刷新栏目。'); } else toast('查询服务尚未恢复，缓存目录和本地收藏仍保留。'); }
   finally { $('service-retry').disabled = false; }
 });
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && $('account-panel').open) { $('account-panel').open = false; $('account-summary').focus(); } });
+document.addEventListener('keydown', handlePanelEscape);
+$('account-panel').addEventListener('focusout', handleAccountFocusOut);
 document.addEventListener('click', event => { if ($('account-panel').open && !$('account-panel').contains(event.target)) $('account-panel').open = false; });
 sourcePicks.replaceChildren(...SOURCES.map(source => {
   const label = el('label'); const input = document.createElement('input');

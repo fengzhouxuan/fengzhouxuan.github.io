@@ -12,6 +12,46 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('Escape closes only the nearest disclosure and returns focus without scrolling', () => {
+  const outer = { open: true }; const account = { open: false }; const focus = [];
+  let nearest; let prevented;
+  const event = { key: 'Escape', target: { closest: selector => { assert.equal(selector, 'details[open]'); return nearest; } }, preventDefault: () => { prevented = true; } };
+  const harness = appHarness(source, { $: () => account, event }); harness.include('handlePanelEscape', 'handlePlaybackKey');
+  for (const name of ['filter', 'source-picker', 'source-card', 'source-status', 'account', 'settings']) {
+    const summary = { focus: options => focus.push([name, clone(options)]) };
+    nearest = { open: true, querySelector: selector => { assert.equal(selector, ':scope > summary'); return summary; } };
+    prevented = false; harness.run('handlePanelEscape(event)');
+    assert.equal(nearest.open, false); assert.equal(outer.open, true); assert.equal(prevented, true);
+    assert.deepEqual(focus.at(-1), [name, { preventScroll: true }]);
+  }
+});
+
+test('Escape preserves handled events, composition, native selects and ordinary keys and dismisses an unfocused account menu safely', () => {
+  let focused = 0; let prevented = 0; let nearest = null;
+  const account = { open: true, querySelector: () => ({ focus: () => { focused++; } }) };
+  const event = { key: 'Escape', target: { closest: () => nearest }, preventDefault: () => { prevented++; } };
+  const harness = appHarness(source, { $: () => account, event }); harness.include('handlePanelEscape', 'handlePlaybackKey');
+  for (const flag of ['defaultPrevented', 'isComposing']) {
+    event[flag] = true; harness.run('handlePanelEscape(event)'); assert.equal(account.open, true); event[flag] = false;
+  }
+  event.key = 'Tab'; harness.run('handlePanelEscape(event)'); assert.equal(account.open, true);
+  event.key = 'Escape'; event.target.tagName = 'SELECT'; harness.run('handlePanelEscape(event)'); assert.equal(account.open, true);
+  event.target.tagName = 'BUTTON'; harness.run('handlePanelEscape(event)'); assert.equal(account.open, false); assert.equal(focused, 1); assert.equal(prevented, 1);
+  harness.run('handlePanelEscape(event)'); assert.equal(prevented, 1);
+  nearest = { open: true, querySelector: () => null }; harness.run('handlePanelEscape(event)'); assert.equal(nearest.open, false); assert.equal(prevented, 2);
+});
+
+test('tabbing outside the account menu closes it without stealing focus or closing on window blur', () => {
+  const inside = {}; const outside = {};
+  const panel = { open: true, contains: target => target === inside };
+  const event = { relatedTarget: inside };
+  const harness = appHarness(source, { $: () => panel, event }); harness.include('handleAccountFocusOut', 'handlePanelEscape');
+  harness.run('handleAccountFocusOut(event)'); assert.equal(panel.open, true);
+  event.relatedTarget = null; harness.run('handleAccountFocusOut(event)'); assert.equal(panel.open, true);
+  event.relatedTarget = outside; harness.run('handleAccountFocusOut(event)'); assert.equal(panel.open, false);
+  harness.run('handleAccountFocusOut(event)'); assert.equal(panel.open, false);
+});
+
 test('year choices merge premiere-year ranges, retain loaded films and clear malformed restored filters', () => {
   const nodes = new Map();
   const node = id => {
@@ -125,9 +165,9 @@ test('focused native video seeks exactly ten seconds and keeps control navigatio
   dispatch('Space', { tagName: 'DIV' }); assert.equal(pauses, 1);
   dispatch('KeyN'); dispatch('KeyF'); assert.equal(next, 1); assert.equal(fullscreen, 1);
   assert.equal(dispatch('ArrowUp').defaultPrevented, false);
-  for (const code of ['Space', 'ArrowRight', 'KeyN', 'KeyF']) {
+  for (const context of ['.source-settings', '.account-panel']) for (const code of ['Space', 'ArrowRight', 'KeyN', 'KeyF']) {
     const before = { time: video.currentTime, plays, pauses, next, fullscreen };
-    assert.equal(dispatch(code, { tagName: 'DIV', closest: selector => selector === '.source-settings' ? {} : null }).defaultPrevented, false);
+    assert.equal(dispatch(code, { tagName: 'DIV', closest: selector => selector.split(',').some(value => value.trim() === context) ? {} : null }).defaultPrevented, false);
     assert.deepEqual({ time: video.currentTime, plays, pauses, next, fullscreen }, before);
   }
   dispatch('ArrowRight', { tagName: 'DIV' }, { defaultPrevented: true }); assert.equal(video.currentTime, 130);
