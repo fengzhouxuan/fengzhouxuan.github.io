@@ -6,6 +6,40 @@ import { runInNewContext } from 'node:vm';
 const html = await readFile(new URL('../../source/video/index.html', import.meta.url), 'utf8');
 const script = html.match(/<script data-video-theme>([\s\S]*?)<\/script>/)[1];
 
+test('all inherited accent themes keep small text readable on paper, filled actions and selected chips', async () => {
+  const css = await readFile(new URL('../../source/video/theme.css', import.meta.url), 'utf8');
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  function luminance(hex) {
+    assert.match(hex, /^#[\da-f]{6}$/i);
+    return hex.slice(1).match(/../g).map(value => parseInt(value, 16) / 255)
+      .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+      .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  }
+  function contrast(first, second) {
+    const values = [luminance(first), luminance(second)];
+    return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05);
+  }
+  for (const accent of ['green', 'orange', 'purple', 'sakura', 'blue', 'pink', 'black']) for (const dark of [false, true]) {
+    const selectors = new Set([':root', 'html[data-accent="' + accent + '"]']);
+    if (dark) { selectors.add('html.dark-mode'); selectors.add('html.dark-mode[data-accent="' + accent + '"]'); }
+    const tokens = new Map();
+    for (const [, selector, body] of rules) {
+      if (!selectors.has(selector.replace(/\/\*[\s\S]*?\*\//g, '').trim())) continue;
+      for (const [, key, value] of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) tokens.set(key, value.trim());
+    }
+    const color = key => {
+      const value = tokens.get(key);
+      assert.ok(value, 'Missing color ' + key);
+      const alias = value.match(/^var\((--[\w-]+)\)$/);
+      return alias ? color(alias[1]) : value;
+    };
+    for (const [text, surface] of [['--button-ink', '--accent'], ['--muted', '--paper'], ['--muted', '--paper-warm'], ['--muted', '--accent-soft'], ['--accent', '--accent-soft'], ['--promo-ink', '--paper']]) {
+      assert.ok(contrast(color(text), color(surface)) >= 4.5, accent + ' ' + (dark ? 'dark' : 'light') + ' ' + text + ' on ' + surface);
+    }
+  }
+});
+
+
 function preview({ cookie = '', mode = null, blocked = false, readOnly = false, cookieBlocked = false, control = true } = {}) {
   const attributes = new Map(), classes = new Set(), handlers = new Map(), clicks = new Map();
   const values = new Map([['flatpaper-mode', mode], ['video-favorites', 'keep-favorites'], ['video-history', 'keep-history']]);
