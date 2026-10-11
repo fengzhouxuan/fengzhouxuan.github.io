@@ -12,6 +12,28 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('year choices merge premiere-year ranges, retain loaded films and clear malformed restored filters', () => {
+  const nodes = new Map();
+  const node = id => {
+    if (!nodes.has(id)) nodes.set(id, { id, children: [], replaceChildren(...children) { this.children = children; } });
+    return nodes.get(id);
+  };
+  const films = [{ year: '2024' }, { year: '2024–' }, { year: '2024–2026' }, { year: '20024' }, { year: '' }, { year: '2015' }];
+  const state = { catalog: { filters: { year: '2024–', area: '', status: '' }, items: films } };
+  const harness = appHarness(source, { ...core, state, $: node, document: { activeElement: null }, Date: class { getFullYear() { return 2026; } },
+    button: (textContent, className) => ({ textContent, className, dataset: {}, attributes: new Map(), setAttribute(key, value) { this.attributes.set(key, value); } }) });
+  harness.include('renderFilters', 'renderCatalog'); harness.run('renderFilters()');
+  const years = node('year-filter').children.map(chip => chip.dataset.value);
+  assert.equal(state.catalog.filters.year, '2024');
+  assert.equal(years.filter(year => year === '2024').length, 1);
+  assert.equal(years.includes('2024–'), false); assert.equal(years.includes('20024'), false); assert.equal(years.includes('2015'), true);
+  assert.equal(node('year-filter').children.find(chip => chip.dataset.value === '2024').attributes.get('aria-pressed'), 'true');
+  assert.equal(node('selected-filters').children[0].textContent, '2024 ×'); assert.equal(state.catalog.items, films);
+  state.catalog.filters.year = '20024'; harness.run('renderFilters()');
+  assert.equal(state.catalog.filters.year, ''); assert.equal(node('filter-summary').hidden, true);
+  assert.equal(node('year-filter').children[0].attributes.get('aria-pressed'), 'true'); assert.equal(state.catalog.items.length, 6);
+});
+
 test('source status refresh preserves expanded cards, focus and scroll while updating query details', () => {
   function node(tag, className = '', textContent = '') {
     const classes = new Set(className.split(' ').filter(Boolean));

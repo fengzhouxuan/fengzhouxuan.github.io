@@ -1,5 +1,5 @@
 import {
-  SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, supportsSource, sourceLabel, contentNotice, requestEpisode,
+  SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, premiereYear, episodeRanges, supportsSource, sourceLabel, contentNotice, requestEpisode,
   safeURL, groupVideos, plainText, nextEpisode, requestVideos, releaseSchedule,
   loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation,
 } from './core.js';
@@ -449,11 +449,12 @@ function clearFilter(key) {
 
 function renderFilters() {
   const filters = state.catalog.filters;
+  filters.year = premiereYear(filters.year);
   const focus = document.activeElement;
   const focusedFilter = focus?.parentElement?.classList.contains('filter-options') ? { id: focus.parentElement.id, value: focus.dataset.value } : null;
   const focusedSelected = focus?.classList.contains('selected-filter') ? focus.dataset.filter : '';
   const recentYears = Array.from({ length: 10 }, (_, index) => String(new Date().getFullYear() - index));
-  const years = [...new Set([...recentYears, ...state.catalog.items.map(item => item.year).filter(Boolean)])].sort().reverse();
+  const years = [...new Set([...recentYears, ...state.catalog.items.map(item => premiereYear(item.year)).filter(Boolean)])].sort().reverse();
   if (filters.year && !years.includes(filters.year)) years.unshift(filters.year);
   const groups = [
     ['year', '年份', years.map(year => [year, year])],

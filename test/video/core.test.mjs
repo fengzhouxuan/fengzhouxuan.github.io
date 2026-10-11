@@ -1,7 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allowedVideoId, contentNotice } from '../../source/video/core.js';
-import { SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, episodeRanges, validVideoId, supportsSource, sourceLabel, requestEpisode, sameEpisodeName, safeURL, plainText, parseUpdateSchedule, releaseSchedule, parseLines, normalizeVideo, normalizeResponse, groupVideos, matchEpisode, nextEpisode, requestVideos, loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation } from '../../source/video/core.js';
+import { SOURCES, CATEGORIES, videoKey, parseRoute, filterVideos, premiereYear, episodeRanges, validVideoId, supportsSource, sourceLabel, requestEpisode, sameEpisodeName, safeURL, plainText, parseUpdateSchedule, releaseSchedule, parseLines, normalizeVideo, normalizeResponse, groupVideos, matchEpisode, nextEpisode, requestVideos, loadSaved, saveItems, mergeSavedItems, rememberProgress, createListNavigation } from '../../source/video/core.js';
+test('premiere years accept source year ranges and reject malformed or reversed values', () => {
+  for (const [input, expected] of [['2024', '2024'], [2024, '2024'], [' 2024年 ', '2024'], ['2024–', '2024'], ['2022—', '2022'], ['2000–2005', '2000'], ['2000年 - 2005年', '2000'], ['2020/2021', '2020'], ['2024～2026', '2024'], ['1888', '1888']]) assert.equal(premiereYear(input), expected);
+  for (const input of [null, undefined, {}, [], false, 0, NaN, Infinity, 2024.5, '20024', '24', '0', '未知', '2024-20024', '2026–2020', '2024–待定', '2024-01-01', '2024' + 'x'.repeat(40)]) assert.equal(premiereYear(input), '');
+});
+
+test('year filtering includes ongoing and multi-year series without changing source metadata or dropping unknown years from all results', () => {
+  const videos = [{ year: '2024', area: '中国大陆', remarks: '更新至10集' }, { year: '2024–', area: '中国大陆', remarks: '更新至20集' }, { year: '2024–2026', area: '日本', remarks: '已完结' }, { year: '2025', area: '中国大陆', remarks: '已完结' }, { year: '20024', area: '中国大陆', remarks: '已完结' }, { year: '', area: '中国大陆', remarks: '已完结' }];
+  const snapshot = JSON.stringify(videos);
+  assert.deepEqual(filterVideos(videos, { year: '2024' }), videos.slice(0, 3));
+  assert.deepEqual(filterVideos(videos, { year: '2024–' }), videos.slice(0, 3));
+  assert.deepEqual(filterVideos(videos, { year: '2024', area: 'mainland', status: 'updating' }), videos.slice(0, 2));
+  assert.deepEqual(filterVideos(videos, { year: '2024', status: 'complete' }), [videos[2]]);
+  assert.deepEqual(filterVideos(videos, { year: '20024' }), []);
+  assert.deepEqual(filterVideos(videos, {}), videos);
+  assert.equal(JSON.stringify(videos), snapshot);
+});
+
+
 
 const raw = {
   vod_id: 12, vod_name: '<b>琅琊榜</b>', vod_year: '2015', type_name: '国产剧',

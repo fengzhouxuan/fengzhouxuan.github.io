@@ -283,9 +283,19 @@ export function createListNavigation(storage = null) {
   };
 }
 
+export function premiereYear(value) {
+  if (typeof value !== 'string' && typeof value !== 'number') return '';
+  const text = String(value).trim();
+  if (text.length > 30) return '';
+  const match = text.match(/^((?:18|19|20|21)\d{2})(?:年)?(?:\s*[-–—~～/]\s*(?:((?:18|19|20|21)\d{2})(?:年)?)?)?$/);
+  if (!match || (match[2] && match[2] < match[1])) return '';
+  return match[1];
+}
+
 export function filterVideos(videos, { year = '', area = '', status = '' } = {}) {
+  const selectedYear = premiereYear(year);
   return videos.filter(item => {
-    if (year && item.year !== year) return false;
+    if (year && (!selectedYear || premiereYear(item.year) !== selectedYear)) return false;
     if (area && (!Object.hasOwn(FILTER_AREAS, area) || !FILTER_AREAS[area].test(item.area || ''))) return false;
     const complete = item.isComplete === true || /已完结|全\d+|\d+集全|完结|全集|全剧集|HD|高清|正片|蓝光/i.test(item.remarks || '');
     if (status === 'complete' && !complete) return false;
