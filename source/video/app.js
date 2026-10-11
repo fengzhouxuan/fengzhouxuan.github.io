@@ -1450,7 +1450,10 @@ $('quality-select').addEventListener('change', () => {
   catch { qualitySelection = previous; toast('清晰度暂时无法切换，已保留播放状态。'); }
   renderQuality();
 });
-$('quality-source').addEventListener('click', () => focusPlayerArea('episode-heading'));
+$('quality-source').addEventListener('click', () => {
+  $('watch-sources').open = true;
+  focusPlayerArea('watch-sources-toggle');
+});
 $('screen-mode').addEventListener('change', adaptScreen);
 $('fullscreen').addEventListener('click', toggleFullscreen);
 $('exit-fullscreen').addEventListener('click', toggleFullscreen);

@@ -12,6 +12,24 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('quality alternative reveals source choices before focusing and scrolling without restarting playback', () => {
+  for (const reducedMotion of [false, true]) for (const alreadyOpen of [false, true]) {
+    let click; const actions = []; const picker = { open: alreadyOpen };
+    const video = { paused: true, currentTime: 120 }; const state = { episode: 1 };
+    const target = {
+      scrollIntoView(options) { assert.equal(picker.open, true); actions.push(['scroll', clone(options)]); },
+      focus(options) { assert.equal(picker.open, true); actions.push(['focus', clone(options)]); },
+    };
+    const nodes = { 'quality-source': { addEventListener: (_type, handler) => { click = handler; } }, 'watch-sources': picker, 'watch-sources-toggle': target };
+    const harness = appHarness(source, { $: id => nodes[id], video, state, window: { matchMedia: () => ({ matches: reducedMotion }) } });
+    harness.include('focusPlayerArea', 'automaticPlaybackAllowed');
+    const start = source.indexOf("$('quality-source').addEventListener"); const end = source.indexOf("$('screen-mode').addEventListener", start);
+    assert.ok(start >= 0 && end > start); harness.run(source.slice(start, end)); click();
+    assert.deepEqual(actions, [['scroll', { block: 'start', behavior: reducedMotion ? 'instant' : 'smooth' }], ['focus', { preventScroll: true }]]);
+    assert.deepEqual(video, { paused: true, currentTime: 120 }); assert.equal(state.episode, 1);
+  }
+});
+
 test('focused native video seeks exactly ten seconds and keeps control navigation and modified keys intact', () => {
   let capture; let bubble; let plays = 0; let pauses = 0; let next = 0; let fullscreen = 0;
   const state = { route: { view: 'watch' }, detailLoading: false };
