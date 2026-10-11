@@ -507,6 +507,20 @@ test('manual promotion observations preserve sources and distinguish specific ep
   assert.equal(allowedVideoId('subo', '161094'), true); assert.equal(allowedVideoId('diyi', '104'), true);
 });
 
+test('the inspected episode 27 retains playback access and marks only its own observation across source aliases', () => {
+  const item = { source: 'jszy', id: '1189' };
+  const notice = contentNotice(item, '第27集');
+  assert.equal(notice.label, '已发现博彩推广'); assert.equal(notice.observed, true);
+  assert.match(notice.text, /第27集片头抽查画面/); assert.match(notice.text, /2026-10-11/);
+  assert.deepEqual(contentNotice({ source: 'zip0', id: 'jisu:1189' }, 'EP27'), notice);
+  for (const episode of ['第01集', '第26集', '第28集']) {
+    const other = contentNotice(item, episode); assert.equal(other.observed, false); assert.equal(other.label, '来源有推广记录');
+    assert.match(other.text, /当前视频未逐一检查/);
+  }
+  assert.equal(contentNotice({ source: 'jszy', id: '99' }, '第27集').observed, false);
+  assert.equal(allowedVideoId('jszy', '1189'), true);
+});
+
 test('multiple observations on one film mark each checked episode without marking the remaining episodes', () => {
   for (const [source, id] of [['huya', '9480'], ['maotai', '153014'], ['maotai', '70360']]) {
     const item = { source, id };

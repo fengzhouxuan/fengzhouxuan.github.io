@@ -103,6 +103,7 @@ const CONTENT_OBSERVATIONS = [
   { source: 'maotai', id: '153014', title: '婆媳联盟', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-10' },
   { source: 'maotai', id: '70360', title: '斗罗大陆2：绝世唐门', episode: '第01集', note: '第01集开头', checkedAt: '2026-10-10' },
   { source: 'maotai', id: '70360', title: '斗罗大陆2：绝世唐门', episode: '第02集', note: '第02集开头', checkedAt: '2026-10-10' },
+  { source: 'jszy', id: '1189', title: '凡人修仙传（2020）', episode: '第27集', note: '第27集片头抽查画面', checkedAt: '2026-10-11' },
 ];
 
 export function contentNotice(item, episodeName = '') {
