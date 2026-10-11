@@ -1486,6 +1486,7 @@ $('auto-source').addEventListener('change', () => {
 });
 for (const filter of ['all', 'new']) $('favorites-' + filter).addEventListener('click', () => { state.favoriteFilter = filter; renderLibrary(); $('favorites-' + filter).focus(); });
 $('speed').addEventListener('change', () => { video.playbackRate = Number($('speed').value); });
+video.addEventListener('ratechange', () => { $('speed').value = String(video.playbackRate); });
 $('quality-select').addEventListener('change', () => {
   const hls = state.hls; const selected = Number($('quality-select').value);
   const summary = playbackQuality(hls?.levels, { selected, ready: qualityReady });
@@ -1505,7 +1506,7 @@ $('exit-fullscreen').addEventListener('click', toggleFullscreen);
 $('open-episodes').addEventListener('click', () => focusPlayerArea('episode-heading'));
 $('return-screen').addEventListener('click', () => focusPlayerArea('screen'));
 document.addEventListener('fullscreenchange', () => {
-  $('fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
+  $('fullscreen-label').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
   if (document.fullscreenElement === $('screen')) $('screen').focus({ preventScroll: true });
   else if (!document.fullscreenElement) restoreFullscreenFocus();
 });
@@ -1619,5 +1620,8 @@ sourcePicks.replaceChildren(...SOURCES.map(source => {
   const marker = notice.label !== '推广情况未核验' ? ' · 推广记录' : '';
   label.append(input, el('span', '', source.name + marker)); return label;
 }), reloadCatalog);
+import('./player-controls.js').then(({ createPlayerControls }) => {
+  createPlayerControls(video, { screen: $('screen'), controls: $('player-controls'), onFullscreen: toggleFullscreen, onError: toast });
+}).catch(() => { video.controls = true; $('player-controls').hidden = true; });
 accountClient.initialize(location.hash); renderAccount(); renderServiceStatus(backendTransport.state);
 updateCounts(); renderSources(); handleRoute();
