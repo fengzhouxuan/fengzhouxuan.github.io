@@ -521,6 +521,21 @@ test('the inspected episode 27 retains playback access and marks only its own ob
   assert.equal(allowedVideoId('jszy', '1189'), true);
 });
 
+test('the inspected Auete episode is marked while other episodes remain uninspected and playable', () => {
+  const item = { source: 'auete', id: 'Dm/guoman/qiyundantian_kaijuqiandaozhizundantian' };
+  const notice = contentNotice(item, '第1集');
+  assert.equal(notice.label, '已发现博彩推广'); assert.equal(notice.observed, true);
+  assert.match(notice.text, /第1集片头抽查画面/); assert.match(notice.text, /2026-10-11/);
+  assert.deepEqual(contentNotice(item, 'EP01'), notice);
+  for (const episode of ['第2集', '第33集']) {
+    const other = contentNotice(item, episode);
+    assert.equal(other.observed, false); assert.equal(other.label, '来源有推广记录');
+    assert.match(other.text, /当前视频未逐一检查/);
+  }
+  assert.equal(contentNotice({ source: 'auete', id: 'Dm/guoman/another' }, '第1集').observed, false);
+  assert.equal(allowedVideoId(item.source, item.id), true);
+});
+
 test('multiple observations on one film mark each checked episode without marking the remaining episodes', () => {
   for (const [source, id] of [['huya', '9480'], ['maotai', '153014'], ['maotai', '70360']]) {
     const item = { source, id };
