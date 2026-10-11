@@ -776,7 +776,7 @@ function renderDetail() {
   updateFavoriteButtons(); renderVariants();
 }
 
-function renderEpisodes() {
+function renderEpisodes({ resetScroll = false, revealCurrent = false } = {}) {
   const focused = document.activeElement;
   const focusedGroup = ['episode-ranges', 'episodes'].includes(focused?.parentElement?.id) ? focused.parentElement.id : '';
   const focusedIndex = focused?.dataset.index;
@@ -785,7 +785,7 @@ function renderEpisodes() {
   const ranges = episodeRanges(episodes.length); state.range = Math.min(state.range, Math.max(0, ranges.length - 1));
   $('episode-ranges').hidden = ranges.length < 2;
   $('episode-ranges').replaceChildren(...ranges.map((range, index) => {
-    const b = button((range.start + 1) + '–' + range.end, index === state.range ? 'active' : '', () => { state.range = index; renderEpisodes(); });
+    const b = button((range.start + 1) + '–' + range.end, index === state.range ? 'active' : '', () => { state.range = index; renderEpisodes({ resetScroll: true }); });
     b.dataset.index = String(index);
     b.tabIndex = index === (focusedGroup === 'episode-ranges' ? Number(focusedIndex) : state.range) ? 0 : -1;
     b.setAttribute('aria-pressed', String(index === state.range)); return b;
@@ -800,6 +800,8 @@ function renderEpisodes() {
     b.tabIndex = index === focusIndex ? 0 : -1;
     b.setAttribute('aria-pressed', String(index === state.episode)); return b;
   }));
+  if (resetScroll) $('episodes').scrollTop = 0;
+  if (revealCurrent) revealCurrentEpisode();
   $('next-episode').disabled = state.episode < 0 || nextEpisode(state.episode, episodes.length) < 0;
   $('previous-episode').disabled = state.episode <= 0;
   $('next-episode').hidden = $('previous-episode').hidden = episodes.length < 2;
@@ -817,6 +819,16 @@ function renderEpisodes() {
     const group = $(focusedGroup); const target = !group.hidden && [...group.children].find(item => item.dataset.index === focusedIndex);
     (target || $('episode-heading')).focus({ preventScroll: true });
   } else if (['next-episode', 'previous-episode'].includes(focused?.id) && (focused.hidden || focused.disabled)) $('screen').focus({ preventScroll: true });
+}
+
+function revealCurrentEpisode() {
+  const group = $('episodes');
+  const choice = [...group.children].find(option => Number(option.dataset.index) === state.episode);
+  if (!choice || !group.clientHeight || !choice.getClientRects().length) return;
+  const bounds = group.getBoundingClientRect(); const rect = choice.getBoundingClientRect();
+  const top = bounds.top + group.clientTop; const bottom = top + group.clientHeight;
+  if (rect.top < top) group.scrollTop += rect.top - top;
+  else if (rect.bottom > bottom) group.scrollTop += rect.bottom - bottom;
 }
 
 function destroyPlayback() {
@@ -1134,7 +1146,7 @@ async function startEpisode(index, resume = 0, automatic = false, recovered = fa
   playbackExperience.begin(state.current, state.line, continued); renderPlaybackExperience(true);
   state.pendingResume = Math.max(0, Number(resume) || 0); state.lastSave = 0;
   $('playback-feedback').hidden = true;
-  renderEpisodes(); screenMessage('正在加载这一集…'); $('play-status').textContent = '正在连接视频来源…';
+  renderEpisodes({ revealCurrent: true }); screenMessage('正在加载这一集…'); $('play-status').textContent = '正在连接视频来源…';
   window.history.replaceState(null, '', filmRoute('watch', state.current, index, episode.name));
   state.route = { ...state.route, source: state.current.source, id: state.current.id, episode: index, episodeName: episode.name };
   const version = state.playbackVersion;
@@ -1510,7 +1522,7 @@ $('line-select').addEventListener('change', () => {
   saveProgress(); state.line = line;
   startEpisode(index, position, false, false, paused);
 });
-$('reverse-episodes').addEventListener('click', () => { state.reverse = !state.reverse; renderEpisodes(); });
+$('reverse-episodes').addEventListener('click', () => { state.reverse = !state.reverse; renderEpisodes({ resetScroll: true }); });
 $('next-episode').addEventListener('click', playNext);
 $('previous-episode').addEventListener('click', () => { if (state.episode > 0) { saveProgress(); startEpisode(state.episode - 1); } });
 $('skip-forward').addEventListener('click', () => { if (Number.isFinite(video.duration)) video.currentTime = Math.min(video.duration, video.currentTime + 90); });

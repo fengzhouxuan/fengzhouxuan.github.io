@@ -12,6 +12,69 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+function episodeScrollHarness() {
+  const document = { activeElement: null }; const nodes = new Map(); const focus = [];
+  const node = id => {
+    if (!nodes.has(id)) nodes.set(id, { id, dataset: {}, children: [], hidden: false, scrollTop: 0, clientTop: 0, clientHeight: 180, listeners: new Map(),
+      replaceChildren(...children) { if (this.children.includes(document.activeElement)) document.activeElement = null; this.children = children; children.forEach(child => { child.parentElement = this; }); },
+      getBoundingClientRect: () => ({ top: 300 }),
+      setAttribute() {}, focus(options) { document.activeElement = this; focus.push(clone(options)); },
+      addEventListener(type, handler) { this.listeners.set(type, handler); },
+    });
+    return nodes.get(id);
+  };
+  const state = { current: { ...film, lines: [{ name: '完整线', episodes: Array.from({ length: 100 }, (_, index) => episode(index + 1)) }] }, line: 0, episode: 0, range: 0, reverse: false };
+  const harness = appHarness(source, { ...core, ...playback, state, document, $: node, sourceName: () => '测试来源', renderContentNotice() {},
+    saveProgress() { assert.fail('Browsing a group must not save playback progress'); }, startEpisode() { assert.fail('Browsing a group must not switch playback'); },
+    button: (textContent, _className, click) => ({ textContent, dataset: {}, click, setAttribute() {},
+      focus(options) { document.activeElement = this; focus.push(clone(options)); },
+      getClientRects() { return this.hidden ? [] : [{}]; },
+      getBoundingClientRect() { const top = 300 + Math.floor(this.parentElement.children.indexOf(this) / 3) * 46 - this.parentElement.scrollTop; return { top, bottom: top + 38 }; },
+      scrollIntoView() { assert.fail('Revealing an episode must not scroll the outer page'); },
+    }),
+  });
+  harness.include('renderEpisodes', 'destroyPlayback');
+  return { harness, state, document, node, focus };
+}
+
+test('manual episode group and order changes reset only the episode list and retain group focus without switching playback', () => {
+  const { harness, state, document, node, focus } = episodeScrollHarness();
+  harness.run('renderEpisodes()'); node('episodes').scrollTop = 190;
+  document.activeElement = node('episode-ranges').children[1]; document.activeElement.click();
+  assert.equal(state.range, 1); assert.equal(state.episode, 0); assert.equal(node('episodes').scrollTop, 0);
+  assert.equal(node('episodes').children[0].textContent, '第31集'); assert.equal(document.activeElement.dataset.index, '1');
+  assert.equal(document.activeElement.parentElement.id, 'episode-ranges');
+  const start = source.indexOf("$('reverse-episodes').addEventListener('click'"); const end = source.indexOf("$('next-episode').addEventListener", start);
+  assert.ok(start >= 0 && end > start); harness.run(source.slice(start, end));
+  node('episodes').scrollTop = 190; document.activeElement = node('reverse-episodes');
+  node('reverse-episodes').listeners.get('click')();
+  assert.equal(state.reverse, true); assert.equal(node('episodes').scrollTop, 0); assert.equal(node('episodes').children[0].textContent, '第60集');
+  assert.equal(state.episode, 0); assert.equal(document.activeElement, node('reverse-episodes'));
+  assert.equal(focus.every(options => options.preventScroll === true), true);
+});
+
+test('ordinary episode renders preserve list scroll and keyboard focus while explicit playback reveals only the current button', () => {
+  const { harness, state, document, node, focus } = episodeScrollHarness();
+  harness.run('renderEpisodes()'); node('episodes').scrollTop = 190; document.activeElement = node('episodes').children[20];
+  harness.run('renderEpisodes()'); assert.equal(node('episodes').scrollTop, 190); assert.equal(document.activeElement.dataset.index, '20');
+  assert.equal(focus.at(-1).preventScroll, true);
+  const outside = { dataset: {} }; document.activeElement = outside; state.episode = 26;
+  harness.run('renderEpisodes({revealCurrent:true})'); assert.equal(node('episodes').scrollTop, 226); assert.equal(document.activeElement, outside);
+  state.episode = 0; harness.run('renderEpisodes({revealCurrent:true})'); assert.equal(node('episodes').scrollTop, 0);
+  node('episodes').scrollTop = 50; state.episode = 11;
+  harness.run('renderEpisodes({revealCurrent:true})'); assert.equal(node('episodes').scrollTop, 50); assert.equal(document.activeElement, outside);
+});
+
+test('episode reveal tolerates missing, hidden and collapsed choices and accounts for the list border', () => {
+  const { harness, state, node } = episodeScrollHarness();
+  harness.run('renderEpisodes()'); const group = node('episodes'); group.scrollTop = 60;
+  state.episode = -1; harness.run('revealCurrentEpisode()'); assert.equal(group.scrollTop, 60);
+  state.episode = 0; group.clientHeight = 0; harness.run('revealCurrentEpisode()'); assert.equal(group.scrollTop, 60);
+  group.clientHeight = 180; group.children[0].hidden = true; harness.run('revealCurrentEpisode()'); assert.equal(group.scrollTop, 60);
+  group.children[0].hidden = false; group.clientTop = 2; state.episode = 26;
+  harness.run('revealCurrentEpisode()'); assert.equal(group.scrollTop, 224);
+});
+
 function typeChoiceHarness() {
   const document = { activeElement: null }; const navigation = []; const focus = [];
   const group = { dataset: {}, children: [], hidden: false, scrollLeft: 50,
@@ -428,18 +491,19 @@ test('page history can find an episode only available on another line without di
 
 test('page episode start writes the actual name into its route and sends the stable reference to the resolver', async () => {
   const current = { ...film, source: 'pianku', uid: 'pianku:12', lines: [{ name: '备用线', episodes: [{ name: '第1集', ref: '2-1' }, { name: '第3集', ref: '2-3' }] }] };
-  const state = { current, line: 0, route: { view: 'watch' }, playbackVersion: 0, initialPlayback: false }; const nodes = new Map(); const calls = []; const routes = []; let finish;
+  const state = { current, line: 0, route: { view: 'watch' }, playbackVersion: 0, initialPlayback: false }; const nodes = new Map(); const calls = []; const routes = []; const displayed = []; let finish;
   const harness = appHarness(source, {
     ...core, state, config: {}, backendTransport: { fetch }, AbortController, window: { history: { replaceState: (_state, _title, url) => routes.push(url) } },
     $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); },
     cancelFallback() {}, playbackFallback: { begin() {} }, fallbackMessage() {}, destroyPlayback: () => { state.playbackVersion++; },
-    playbackIntent: playback.createPlaybackIntent(), playbackExperience: { begin() {} }, renderPlaybackExperience() {}, renderEpisodes() {}, screenMessage() {}, monitorPlayback() {},
+    playbackIntent: playback.createPlaybackIntent(), playbackExperience: { begin() {} }, renderPlaybackExperience() {}, renderEpisodes: options => displayed.push({ episode: state.episode, ...clone(options) }), screenMessage() {}, monitorPlayback() {},
     requestEpisode: (...args) => { calls.push(args); return new Promise(resolve => { finish = resolve; }); },
   });
   harness.include('filmRoute', 'navigate'); harness.include('startEpisode', 'renderVariantDiscovery');
   const pending = harness.run('startEpisode(1,60,false,false,true)');
   assert.deepEqual(calls[0].slice(0, 4), ['pianku', '12', '2-3', '第3集']);
   assert.equal(core.parseRoute(routes[0]).episodeName, '第3集'); assert.equal(core.parseRoute(routes[0]).episode, 1);
+  assert.deepEqual(displayed, [{ episode: 1, revealCurrent: true }]);
   state.playbackVersion++; finish('https://example.com/3.mp4'); await pending;
 });
 
