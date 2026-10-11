@@ -6,6 +6,17 @@ import { runInNewContext } from 'node:vm';
 const html = await readFile(new URL('../../source/video/index.html', import.meta.url), 'utf8');
 const script = html.match(/<script data-video-theme>([\s\S]*?)<\/script>/)[1];
 
+test('screen proportions form a labelled native radio group with one default choice', () => {
+  const group = html.match(/<div id="screen-mode"[^>]*>([\s\S]*?)<\/div>/);
+  assert.ok(group); assert.match(group[0], /role="radiogroup" aria-labelledby="screen-mode-label"/);
+  assert.match(html, /id="screen-mode-label">画面比例<\/span>/);
+  const inputs = [...group[1].matchAll(/<input\b([^>]+)>/g)].map(match => match[1]);
+  assert.equal(inputs.length, 3);
+  for (const input of inputs) { assert.match(input, /type="radio"/); assert.match(input, /name="screen-mode"/); }
+  assert.deepEqual(inputs.map(input => input.match(/value="([^"]+)"/)[1]), ['auto', 'portrait', 'wide']);
+  assert.equal(inputs.filter(input => /\bchecked\b/.test(input)).length, 1); assert.match(inputs[0], /\bchecked\b/);
+});
+
 test('all inherited accent themes keep small text readable on paper, filled actions and selected chips', async () => {
   const css = await readFile(new URL('../../source/video/theme.css', import.meta.url), 'utf8');
   const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];

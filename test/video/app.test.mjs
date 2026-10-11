@@ -12,6 +12,26 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('screen choices adapt layout without changing playback or focus, including unloaded media', () => {
+  const video = { videoWidth: 1080, videoHeight: 1920, currentTime: 125, paused: true };
+  let selected = { value: 'auto' }; let portrait; let ratio;
+  const focused = {}; const document = { activeElement: focused };
+  const nodes = {
+    'screen-mode': { querySelector(selector) { assert.equal(selector, 'input:checked'); return selected; } },
+    'watch-layout': { classList: { toggle(name, value) { assert.equal(name, 'portrait'); portrait = value; } } },
+    screen: { style: { setProperty(name, value) { assert.equal(name, '--screen-ratio'); ratio = value; } } },
+  };
+  const harness = appHarness(source, { video, document, $: id => nodes[id], screenPresentation: playback.screenPresentation });
+  harness.include('adaptScreen', 'restoreFullscreenFocus');
+  for (const dimensions of [[1080, 1920], [1920, 1080], [0, 0]]) for (const value of ['auto', 'portrait', 'wide', 'unknown', null]) {
+    [video.videoWidth, video.videoHeight] = dimensions; selected = value === null ? null : { value };
+    harness.run('adaptScreen()');
+    const expected = playback.screenPresentation(...dimensions, value || 'auto');
+    assert.equal(portrait, expected.portrait); assert.equal(ratio, String(expected.ratio));
+    assert.equal(video.currentTime, 125); assert.equal(video.paused, true); assert.equal(document.activeElement, focused);
+  }
+});
+
 function episodeScrollHarness() {
   const document = { activeElement: null }; const nodes = new Map(); const focus = [];
   const node = id => {

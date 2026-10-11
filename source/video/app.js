@@ -896,7 +896,7 @@ function renderWatch() {
 }
 
 function adaptScreen() {
-  const presentation = screenPresentation(video.videoWidth, video.videoHeight, $('screen-mode').value);
+  const presentation = screenPresentation(video.videoWidth, video.videoHeight, $('screen-mode').querySelector('input:checked')?.value || 'auto');
   $('watch-layout').classList.toggle('portrait', presentation.portrait);
   $('screen').style.setProperty('--screen-ratio', String(presentation.ratio));
 }
