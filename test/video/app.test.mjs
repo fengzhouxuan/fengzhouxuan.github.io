@@ -12,6 +12,71 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+function typeChoiceHarness() {
+  const document = { activeElement: null }; const navigation = []; const focus = [];
+  const group = { dataset: {}, children: [], hidden: false, scrollLeft: 50,
+    contains: node => group.children.includes(node),
+    parentElement: { classList: { toggle(name, value) { group[name] = value; } } },
+    insertBefore(node, before) {
+      if (group.children.includes(node)) node.remove();
+      const index = before ? group.children.indexOf(before) : group.children.length;
+      group.children.splice(index, 0, node);
+    },
+  };
+  const fallback = { focus(options) { document.activeElement = this; focus.push(clone(options)); } };
+  const state = { route: { view: 'browse', category: 'anime', type: 0 } };
+  const harness = appHarness(source, { state, document, $: id => id === 'type-picks' ? group : fallback, navigate: hash => navigation.push(hash),
+    button: (_text, _className, click) => {
+      const classes = new Set(); const attributes = new Map();
+      return { dataset: {}, attributes, click, tabIndex: 0,
+        classList: { toggle(name, value) { if (value) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) },
+        setAttribute: (name, value) => attributes.set(name, value),
+        remove() { group.children.splice(group.children.indexOf(this), 1); if (document.activeElement === this) document.activeElement = null; },
+        focus(options) { document.activeElement = this; focus.push(clone(options)); },
+      };
+    },
+  });
+  harness.include('renderTypes', 'renderCatalog');
+  return { harness, state, document, group, fallback, focus, navigation };
+}
+
+test('progressive directory renders retain category button identity, keyboard focus and scroll without selecting a new type', () => {
+  const { harness, state, document, group, focus, navigation } = typeChoiceHarness();
+  const category = { id: 'anime', types: [[0, '全部'], [29, '国漫'], [30, '日漫']] };
+  harness.run('renderTypes(' + JSON.stringify(category) + ')');
+  const buttons = [...group.children]; const focused = buttons[2]; document.activeElement = focused;
+  for (let batch = 0; batch < 4; batch++) harness.run('renderTypes(' + JSON.stringify(category) + ')');
+  assert.deepEqual(group.children, buttons); assert.equal(document.activeElement, focused); assert.equal(group.scrollLeft, 50);
+  assert.equal(state.route.type, 0); assert.equal(navigation.length, 0);
+  assert.equal(group.children.filter(option => option.tabIndex === 0).length, 1); assert.equal(focused.tabIndex, 0);
+  assert.equal(focused.attributes.get('aria-pressed'), 'false'); assert.equal(buttons[0].attributes.get('aria-pressed'), 'true');
+  assert.equal(focus.every(options => options.preventScroll === true), true);
+  state.route.type = 30; document.activeElement = null; harness.run('renderTypes(' + JSON.stringify(category) + ')');
+  assert.equal(group.children[2].classList.contains('active'), true); assert.equal(document.activeElement, null);
+});
+
+test('category changes refresh retained button destinations and safely handle removed, reordered and hidden focused types', () => {
+  const { harness, state, document, group, fallback, navigation } = typeChoiceHarness();
+  harness.run('renderTypes({id:"anime",types:[[0,"全部"],[29,"国漫"],[30,"日漫"]]})');
+  const all = group.children[0]; const retained = group.children[2]; document.activeElement = retained;
+  harness.run('renderTypes({id:"anime",types:[[30,"日漫更新"],[0,"全部"],[29,"国漫"]]})');
+  assert.equal(group.children[0], retained); assert.equal(document.activeElement, retained); assert.equal(retained.textContent, '日漫更新');
+  state.route.category = 'tv'; state.route.type = 13;
+  harness.run('renderTypes({id:"tv",types:[[0,"全部"],[13,"国产剧"]]})');
+  assert.equal(group.children[0], all); assert.equal(group.children.length, 2); assert.equal(document.activeElement, group.children[1]);
+  all.click(); assert.equal(navigation.at(-1), '#browse?category=tv&type=0');
+  group.children[1].click(); assert.equal(navigation.at(-1), '#browse?category=tv&type=13');
+  state.route.view = 'search'; harness.run('renderTypes({id:"tv",types:[[0,"全部"],[13,"国产剧"]]})');
+  assert.equal(group.hidden, true); assert.equal(group['search-filters'], true); assert.equal(document.activeElement, fallback);
+  const outside = {}; document.activeElement = outside;
+  harness.run('renderTypes({id:"tv",types:[[0,"全部"],[13,"国产剧"]]})'); assert.equal(document.activeElement, outside);
+  state.route.view = 'browse'; state.route.type = 999;
+  harness.run('renderTypes({id:"tv",types:[[0,"全部"],[13,"国产剧"]]})');
+  assert.equal(group.hidden, false); assert.equal(group.children[0].tabIndex, 0); assert.equal(document.activeElement, outside);
+  document.activeElement = group.children[0]; harness.run('renderTypes({id:"tv",types:[]})');
+  assert.equal(group.children.length, 0); assert.equal(document.activeElement, fallback);
+});
+
 test('episode arrows follow the rendered rows across responsive layouts and descending order without playing', () => {
   for (const columns of [3, 4, 6]) for (const reverse of [false, true]) {
     let focused; let prevented = 0;
@@ -250,7 +315,7 @@ test('top search continuation preserves results and keyboard focus through loadi
   };
   const state = { route: { view: 'search', category: 'anime', query: '凡人' }, catalog: { items: [film], filters: {}, loading: false, feeds: [{ source: 'liangzi', page: 1, pages: 1 }, { source: 'ruyi', page: 0, pages: 1 }] } };
   const rendered = [];
-  const harness = appHarness(source, { ...core, catalogSummary, state, document, $: node, sourceName: name => name, renderFilters() {}, renderGrid: (_id, items) => rendered.push(items), skeletonCards: () => [], button: () => ({ setAttribute() {} }) });
+  const harness = appHarness(source, { ...core, catalogSummary, state, document, $: node, sourceName: name => name, renderTypes() {}, renderFilters() {}, renderGrid: (_id, items) => rendered.push(items), skeletonCards: () => [], button: () => ({ setAttribute() {} }) });
   harness.include('renderCatalog', 'visibleCardAnchor');
   harness.run('renderCatalog()');
   assert.equal(node('continue-search').hidden, false); assert.equal(node('continue-search').disabled, false);

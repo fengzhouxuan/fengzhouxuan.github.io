@@ -487,6 +487,32 @@ function renderFilters() {
   if (focusedSelected) [...$('selected-filters').children].find(item => item.dataset.filter === focusedSelected)?.focus({ preventScroll: true });
 }
 
+function renderTypes(category) {
+  const group = $('type-picks');
+  const focused = group.contains(document.activeElement) ? document.activeElement : null;
+  group.hidden = state.route.view === 'search';
+  group.parentElement.classList.toggle('search-filters', group.hidden);
+  if (group.hidden) { if (focused) $('filter-toggle').focus({ preventScroll: true }); return; }
+  group.dataset.category = category.id;
+  const existing = new Map([...group.children].map(option => [option.dataset.type, option]));
+  const options = category.types.map(([id, name]) => {
+    let option = existing.get(String(id));
+    if (!option) option = button('', '', () => navigate('#browse?category=' + group.dataset.category + '&type=' + option.dataset.type));
+    option.dataset.type = String(id); option.textContent = name;
+    const active = state.route.type === id;
+    option.classList.toggle('active', active); option.setAttribute('aria-pressed', String(active));
+    return option;
+  });
+  const target = options.includes(focused) ? focused : options.find(option => option.dataset.type === String(state.route.type)) || options[0];
+  const retained = new Set(options);
+  for (const option of [...group.children]) if (!retained.has(option)) option.remove();
+  options.forEach((option, index) => {
+    option.tabIndex = option === target ? 0 : -1;
+    if (group.children[index] !== option) group.insertBefore(option, group.children[index] || null);
+  });
+  if (focused) (target || $('filter-toggle')).focus({ preventScroll: true });
+}
+
 function renderCatalog() {
   if (!['browse', 'search'].includes(state.route.view)) return;
   const focusedControl = ['pause-catalog', 'continue-search', 'load-more'].includes(document.activeElement?.id) ? document.activeElement : null;
@@ -501,12 +527,7 @@ function renderCatalog() {
   $('category-note').hidden = route.view !== 'browse' || route.category !== 'short';
   $('category-note').textContent = route.type === 52 ? '按支持此分类的来源浏览 AI 漫剧，作品归类以来源标注为准。' : '按来源短剧目录浏览，也可以切换到 AI 漫剧。';
   $('catalog-eyebrow').textContent = route.view === 'search' ? 'FIND YOUR NEXT STORY' : 'EXPLORE THE SHELF';
-  $('type-picks').hidden = route.view === 'search';
-  $('type-picks').parentElement.classList.toggle('search-filters', route.view === 'search');
-  $('type-picks').replaceChildren(...cat.types.map(([id, name]) => {
-    const b = button(name, route.type === id ? 'active' : '', () => navigate('#browse?category=' + cat.id + '&type=' + id));
-    b.setAttribute('aria-pressed', String(route.type === id)); return b;
-  }));
+  renderTypes(cat);
   renderFilters();
   const items = filterVideos(state.catalog.items, state.catalog.filters);
   const progress = catalogSummary(state.catalog);
@@ -1441,7 +1462,7 @@ $('continue-search').addEventListener('click', () => loadCatalog({ more: true })
 $('reload-catalog').addEventListener('click', () => loadCatalog({ force: true }));
 $('pause-catalog').addEventListener('click', () => { clearTimeout(filterTimer); catalogLoader.stop(); });
 $('reset-filters').addEventListener('click', () => { resetFilters(); $('filter-toggle').focus({ preventScroll: true }); });
-document.querySelectorAll('.filter-options, #episode-ranges, #episodes, #hero-picks').forEach(group => group.addEventListener('keydown', handleChoiceKey));
+document.querySelectorAll('#type-picks, .filter-options, #episode-ranges, #episodes, #hero-picks').forEach(group => group.addEventListener('keydown', handleChoiceKey));
 for (const section of ['picks', 'short', 'tv', 'movie']) $(section + '-retry').addEventListener('click', () => homeLoader.retry(section));
 $('refresh-favorites').addEventListener('click', () => watchlistRefresher.refresh(state.favorites));
 $('stop-favorites').addEventListener('click', () => watchlistRefresher.stop());
