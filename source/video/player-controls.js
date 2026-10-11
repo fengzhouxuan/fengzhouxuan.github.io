@@ -13,7 +13,7 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
   if (!video || !screen || !play || !seek || !time || !mute || !volume || !fullscreen) return null;
   const doc = screen.ownerDocument, listeners = [];
   const nativeControls = video.controls;
-  let idleTimer, scrubbing = false, destroyed = false, requestId = 0, lastVolume = video.volume > 0 ? video.volume : 1;
+  let idleTimer, ratePicker, scrubbing = false, destroyed = false, requestId = 0, lastVolume = video.volume > 0 ? video.volume : 1;
   const listen = (target, event, handler) => { target.addEventListener(event, handler); listeners.push(() => target.removeEventListener(event, handler)); };
   const duration = () => Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
   function show() {
@@ -45,7 +45,7 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
     volume.value = String(silent ? 0 : Math.round(video.volume * 100)); volume.setAttribute('aria-valuetext', volume.value + '%');
     if (video.volume > 0) lastVolume = video.volume;
     fullscreen.setAttribute('aria-label', doc.fullscreenElement === screen ? '退出全屏' : '全屏');
-    if (rate) rate.value = String(video.playbackRate || 1);
+    if (rate) { rate.value = String(video.playbackRate || 1); ratePicker?.refresh(); }
     if (paused) show();
   }
   async function togglePlay() {
@@ -84,10 +84,85 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
   for (const event of ['play', 'pause', 'ended']) listen(video, event, () => { refresh(); show(); });
   for (const event of ['pointermove', 'pointerleave', 'focusin', 'focusout']) listen(screen, event, show);
   listen(doc, 'fullscreenchange', () => { refresh(); show(); });
+  listen(doc, 'keydown', event => {
+    if (event.key === 'Escape' && !event.defaultPrevented && doc.fullscreenElement === screen && onFullscreen) { event.preventDefault(); onFullscreen(event); }
+  });
+  if (rate) ratePicker = createRatePicker(rate, { label: '' });
   refresh(); controls.hidden = false; video.controls = false; screen.classList.add('custom-controls'); show();
   return { refresh, destroy() {
     if (destroyed) return;
-    destroyed = true; requestId++; clearTimer(idleTimer); listeners.forEach(remove => remove());
+    destroyed = true; requestId++; clearTimer(idleTimer); listeners.forEach(remove => remove()); ratePicker?.destroy();
     controls.hidden = true; video.controls = nativeControls; screen.classList.remove('custom-controls', 'controls-idle', 'is-playing');
+  } };
+}
+
+export function createRatePicker(select, { label = '倍速' } = {}) {
+  const root = select?.parentElement, doc = select?.ownerDocument;
+  if (!root || !doc?.createElement || !select.options?.length) return null;
+  const listeners = [], nativeHidden = select.hidden;
+  const make = (tag, className, text) => { const node = doc.createElement(tag); node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const trigger = make('button', 'choice-trigger'), value = make('strong', 'choice-value');
+  trigger.type = 'button'; trigger.setAttribute('aria-haspopup', 'menu'); trigger.setAttribute('aria-expanded', 'false');
+  if (label) trigger.append(make('span', 'choice-label', label));
+  trigger.append(value, make('span', 'choice-chevron'));
+  const menu = make('div', 'choice-menu'); menu.id = select.id + '-choices'; menu.hidden = true;
+  menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', (select.getAttribute('aria-label') || label) + '选项');
+  trigger.setAttribute('aria-controls', menu.id);
+  const choices = [...select.options].map(option => {
+    const choice = make('button', 'choice-item', option.textContent); choice.type = 'button'; choice.tabIndex = -1;
+    choice.dataset.value = option.value; choice.setAttribute('role', 'menuitemradio'); menu.append(choice); return choice;
+  });
+  let destroyed = false;
+  const listen = (node, type, handler) => { node.addEventListener(type, handler); listeners.push(() => node.removeEventListener(type, handler)); };
+  function refresh() {
+    if (destroyed) return;
+    const selected = choices.find(choice => choice.dataset.value === select.value);
+    value.textContent = selected?.textContent || String(select.value);
+    trigger.disabled = select.disabled;
+    trigger.setAttribute('aria-label', (select.getAttribute('aria-label') || label) + '：' + value.textContent);
+    for (const choice of choices) choice.setAttribute('aria-checked', String(choice === selected));
+  }
+  function close(restore = false) {
+    menu.hidden = true; trigger.setAttribute('aria-expanded', 'false');
+    if (restore) trigger.focus({ preventScroll: true });
+  }
+  function open() {
+    if (trigger.disabled) return;
+    refresh(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true');
+    menu.classList.remove('align-left');
+    const anchor = trigger.getBoundingClientRect?.(), bounds = menu.getBoundingClientRect?.(), height = bounds?.height;
+    const viewport = doc.defaultView?.innerHeight;
+    menu.classList.toggle('align-left', Boolean(bounds && bounds.left < 8));
+    menu.classList.toggle('opens-up', Boolean(anchor && height && viewport && anchor.bottom + height + 7 > viewport && anchor.top >= height + 7));
+    (choices.find(choice => choice.dataset.value === select.value) || choices[0]).focus({ preventScroll: true });
+  }
+  listen(trigger, 'click', () => { if (menu.hidden) open(); else close(true); });
+  listen(trigger, 'keydown', event => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); open(); }
+    else if (event.key === 'Escape' && !menu.hidden) { event.preventDefault(); close(true); }
+  });
+  listen(menu, 'keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); return; }
+    const index = Math.max(0, choices.indexOf(doc.activeElement));
+    const next = event.key === 'ArrowDown' ? (index + 1) % choices.length : event.key === 'ArrowUp' ? (index + choices.length - 1) % choices.length : event.key === 'Home' ? 0 : event.key === 'End' ? choices.length - 1 : -1;
+    if (next >= 0) { event.preventDefault(); choices[next].focus({ preventScroll: true }); }
+  });
+  for (const choice of choices) listen(choice, 'click', () => {
+    select.value = choice.dataset.value;
+    const ChangeEvent = doc.defaultView?.Event || Event;
+    select.dispatchEvent(new ChangeEvent('change', { bubbles: true }));
+    refresh(); close(true);
+  });
+  listen(select, 'change', refresh);
+  listen(doc, 'pointerdown', event => { if (!root.contains(event.target)) close(); });
+  listen(root, 'focusout', event => { if (!root.contains(event.relatedTarget)) close(); });
+  if (doc.defaultView?.addEventListener) listen(doc.defaultView, 'resize', () => close());
+  refresh(); select.hidden = true; root.classList.add('choice-picker'); root.append(trigger, menu);
+  return { refresh, destroy() {
+    if (destroyed) return;
+    const focused = root.contains(doc.activeElement);
+    destroyed = true; listeners.forEach(remove => remove()); trigger.remove(); menu.remove();
+    select.hidden = nativeHidden; root.classList.remove('choice-picker');
+    if (focused && !nativeHidden) select.focus({ preventScroll: true });
   } };
 }

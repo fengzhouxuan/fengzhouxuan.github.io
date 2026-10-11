@@ -193,3 +193,13 @@ test('fullscreen rate controls follow external changes and reject malformed or u
   Object.defineProperty(page.video, 'playbackRate', { get: () => 1, set() { throw Error('unsupported'); } });
   page.nodes.rate.value = '1.5'; await page.nodes.rate.emit('change'); assert.deepEqual(page.errors, ['暂时无法切换倍速。']);
 });
+
+test('Escape exits the player fullscreen only after an open menu has released the event', async () => {
+  const page = fixture(); let prevented = 0;
+  const event = { key: 'Escape', preventDefault() { prevented++; } };
+  await page.document.emit('keydown', event); assert.equal(page.fullscreenRequests(), 0);
+  page.document.fullscreenElement = page.screen;
+  await page.document.emit('keydown', { ...event, defaultPrevented: true }); assert.equal(page.fullscreenRequests(), 0);
+  await page.document.emit('keydown', { ...event, key: 'Tab' }); assert.equal(page.fullscreenRequests(), 0);
+  await page.document.emit('keydown', event); assert.equal(page.fullscreenRequests(), 1); assert.equal(prevented, 1);
+});

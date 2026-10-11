@@ -60,6 +60,7 @@ let fullscreenFocus;
 let submittedSearchHash = '';
 let accountClient;
 let loggingIn = false;
+let speedPicker;
 const backendTransport = createBackendTransport({ base: config.apiBase || '', storage, onChange: renderServiceStatus });
 const accountTransport = config.accountApiBase && config.accountApiBase !== config.apiBase ? createBackendTransport({ base: config.accountApiBase, storage }) : backendTransport;
 accountClient = createAccountClient({
@@ -901,11 +902,11 @@ function adaptScreen() {
   $('screen').style.setProperty('--screen-ratio', String(presentation.ratio));
 }
 
-async function toggleFullscreen(event) {
+async function toggleFullscreen() {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
     else {
-      fullscreenFocus = event?.currentTarget === $('fullscreen') ? $('fullscreen') : document.activeElement;
+      fullscreenFocus = document.activeElement;
       if ($('screen').requestFullscreen) await $('screen').requestFullscreen();
       else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
       else { fullscreenFocus = null; toast('请使用播放器自带的全屏按钮'); }
@@ -1486,7 +1487,7 @@ $('auto-source').addEventListener('change', () => {
 });
 for (const filter of ['all', 'new']) $('favorites-' + filter).addEventListener('click', () => { state.favoriteFilter = filter; renderLibrary(); $('favorites-' + filter).focus(); });
 $('speed').addEventListener('change', () => { video.playbackRate = Number($('speed').value); });
-video.addEventListener('ratechange', () => { $('speed').value = String(video.playbackRate); });
+video.addEventListener('ratechange', () => { $('speed').value = String(video.playbackRate); speedPicker?.refresh(); });
 $('quality-select').addEventListener('change', () => {
   const hls = state.hls; const selected = Number($('quality-select').value);
   const summary = playbackQuality(hls?.levels, { selected, ready: qualityReady });
@@ -1501,12 +1502,10 @@ $('quality-source').addEventListener('click', () => {
   focusPlayerArea('watch-sources-toggle');
 });
 $('screen-mode').addEventListener('change', adaptScreen);
-$('fullscreen').addEventListener('click', toggleFullscreen);
 $('exit-fullscreen').addEventListener('click', toggleFullscreen);
 $('open-episodes').addEventListener('click', () => focusPlayerArea('episode-heading'));
 $('return-screen').addEventListener('click', () => focusPlayerArea('screen'));
 document.addEventListener('fullscreenchange', () => {
-  $('fullscreen-label').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
   if (document.fullscreenElement === $('screen')) $('screen').focus({ preventScroll: true });
   else if (!document.fullscreenElement) restoreFullscreenFocus();
 });
@@ -1577,7 +1576,7 @@ function handlePanelEscape(event) {
 }
 
 function handlePlaybackKey(event) {
-  if (event.target.closest?.('.source-settings, .account-panel')) return;
+  if (event.target.closest?.('.source-settings, .account-panel, .choice-picker')) return;
   if (event.defaultPrevented || state.route.view !== 'watch' || state.detailLoading || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName) || event.target.isContentEditable || event.altKey || event.metaKey || event.ctrlKey) return;
   if (['Space', 'ArrowLeft', 'ArrowRight'].includes(event.code) && /BUTTON|A|SUMMARY/.test(event.target.tagName)) return;
   if (event.code === 'Space' && event.target.tagName === 'VIDEO') return;
@@ -1620,8 +1619,9 @@ sourcePicks.replaceChildren(...SOURCES.map(source => {
   const marker = notice.label !== '推广情况未核验' ? ' · 推广记录' : '';
   label.append(input, el('span', '', source.name + marker)); return label;
 }), reloadCatalog);
-import('./player-controls.js').then(({ createPlayerControls }) => {
+import('./player-controls.js').then(({ createPlayerControls, createRatePicker }) => {
   createPlayerControls(video, { screen: $('screen'), controls: $('player-controls'), onFullscreen: toggleFullscreen, onError: toast });
+  speedPicker = createRatePicker($('speed'));
 }).catch(() => { video.controls = true; $('player-controls').hidden = true; });
 accountClient.initialize(location.hash); renderAccount(); renderServiceStatus(backendTransport.state);
 updateCounts(); renderSources(); handleRoute();
