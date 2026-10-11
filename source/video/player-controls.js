@@ -10,17 +10,18 @@ export function mediaClock(seconds) {
 export function createPlayerControls(video, { screen, controls, onFullscreen, onError = () => {}, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   const node = name => controls?.querySelector('[data-player="' + name + '"]');
   const play = node('play'), seek = node('seek'), time = node('time'), mute = node('mute'), volume = node('volume'), fullscreen = node('fullscreen'), rate = node('rate');
+  const seekPreview = node('seek-preview'), volumeValue = node('volume-value');
   if (!video || !screen || !play || !seek || !time || !mute || !volume || !fullscreen) return null;
   const doc = screen.ownerDocument, listeners = [];
   const nativeControls = video.controls;
-  let idleTimer, ratePicker, scrubbing = false, destroyed = false, requestId = 0, lastVolume = video.volume > 0 ? video.volume : 1;
+  let idleTimer, ratePicker, buffering = false, scrubbing = false, destroyed = false, requestId = 0, lastVolume = video.volume > 0 ? video.volume : 1;
   const listen = (target, event, handler) => { target.addEventListener(event, handler); listeners.push(() => target.removeEventListener(event, handler)); };
   const duration = () => Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
   function show() {
     clearTimer(idleTimer); screen.classList.remove('controls-idle');
-    if (!video.paused && !video.ended) idleTimer = setTimer(() => {
+    if (!video.paused && !video.ended && !buffering) idleTimer = setTimer(() => {
       const keyboardFocus = controls.contains(doc.activeElement) && doc.activeElement.matches(':focus-visible');
-      if (!destroyed && !video.paused && !keyboardFocus && !controls.matches(':hover')) screen.classList.add('controls-idle');
+      if (!destroyed && !video.paused && !buffering && !keyboardFocus && !controls.matches(':hover')) screen.classList.add('controls-idle');
     }, 2500);
   }
   function displayTime(position) {
@@ -29,13 +30,25 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
     seek.setAttribute('aria-valuetext', time.textContent);
     controls.style.setProperty('--played', (end ? clamp(position / end * 100, 0, 100) : 0) + '%');
   }
+  function hidePreview() { if (seekPreview) seekPreview.hidden = true; }
+  function previewTime(ratio) {
+    const width = seek.getBoundingClientRect?.().width;
+    if (!seekPreview || !duration() || !width || !Number.isFinite(ratio)) { hidePreview(); return; }
+    ratio = clamp(ratio, 0, 1);
+    seekPreview.textContent = mediaClock(ratio * duration());
+    const margin = Math.min(32, width / 2);
+    seekPreview.style.setProperty('--seek-x', clamp(ratio * width, margin, width - margin) + 'px');
+    seekPreview.hidden = false;
+  }
   function refresh() {
     if (destroyed) return;
     const end = duration(), paused = video.paused || video.ended;
     screen.classList.toggle('is-playing', !paused);
+    screen.classList.toggle('is-buffering', buffering && !paused);
     play.setAttribute('aria-label', paused ? '播放' : '暂停'); play.title = paused ? '播放（空格）' : '暂停（空格）';
     play.disabled = !video.getAttribute('src') && video.readyState === 0;
     seek.disabled = !end;
+    if (!end) hidePreview();
     if (!scrubbing) { seek.value = String(end ? clamp(video.currentTime / end * 1000, 0, 1000) : 0); displayTime(Math.max(0, video.currentTime || 0)); }
     let buffered = 0;
     try { for (let index = 0; index < video.buffered.length; index++) if (video.buffered.start(index) <= video.currentTime) buffered = Math.max(buffered, video.buffered.end(index)); } catch { /* A source can replace its buffered ranges while loading. */ }
@@ -43,6 +56,8 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
     const silent = video.muted || video.volume === 0;
     controls.classList.toggle('is-muted', silent); mute.setAttribute('aria-label', silent ? '解除静音' : '静音'); mute.setAttribute('aria-pressed', String(silent));
     volume.value = String(silent ? 0 : Math.round(video.volume * 100)); volume.setAttribute('aria-valuetext', volume.value + '%');
+    controls.style.setProperty('--volume', volume.value + '%');
+    if (volumeValue) volumeValue.textContent = volume.value + '%';
     if (video.volume > 0) lastVolume = video.volume;
     fullscreen.setAttribute('aria-label', doc.fullscreenElement === screen ? '退出全屏' : '全屏');
     if (rate) { rate.value = String(video.playbackRate || 1); ratePicker?.refresh(); }
@@ -61,15 +76,21 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
   }
   listen(play, 'click', togglePlay);
   listen(video, 'click', () => { if (!play.disabled) togglePlay(); });
-  listen(seek, 'input', () => { scrubbing = true; displayTime(clamp(seek.value, 0, 1000) / 1000 * duration()); show(); });
+  listen(seek, 'pointermove', event => {
+    const bounds = seek.getBoundingClientRect?.();
+    if (!scrubbing && bounds?.width && Number.isFinite(event.clientX) && event.pointerType !== 'touch') previewTime((event.clientX - bounds.left) / bounds.width);
+  });
+  listen(seek, 'pointerleave', () => { if (!scrubbing) hidePreview(); });
+  listen(seek, 'input', () => { scrubbing = true; const ratio = clamp(seek.value, 0, 1000) / 1000; displayTime(ratio * duration()); previewTime(ratio); show(); });
   listen(seek, 'change', () => commitSeek(clamp(seek.value, 0, 1000) / 1000 * duration()));
-  listen(seek, 'pointercancel', () => { scrubbing = false; refresh(); show(); });
-  listen(seek, 'blur', () => { scrubbing = false; refresh(); });
+  listen(seek, 'pointercancel', () => { scrubbing = false; hidePreview(); refresh(); show(); });
+  listen(seek, 'blur', () => { scrubbing = false; hidePreview(); refresh(); });
   listen(seek, 'keydown', event => {
     if (event.altKey || event.ctrlKey || event.metaKey || !duration()) return;
     const steps = { ArrowLeft: -10, ArrowRight: 10, PageDown: -60, PageUp: 60 };
     if (!Object.hasOwn(steps, event.key) && event.key !== 'Home' && event.key !== 'End') return;
     event.preventDefault(); commitSeek(event.key === 'Home' ? 0 : event.key === 'End' ? duration() : video.currentTime + steps[event.key]);
+    previewTime(video.currentTime / duration());
   });
   listen(mute, 'click', () => { if (video.muted || video.volume === 0) { if (!video.volume) video.volume = lastVolume; video.muted = false; } else video.muted = true; refresh(); show(); });
   listen(volume, 'input', () => { video.volume = clamp(volume.value, 0, 100) / 100; video.muted = video.volume === 0; refresh(); show(); });
@@ -79,11 +100,13 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
     if ([.75, 1, 1.25, 1.5, 2].includes(value)) try { video.playbackRate = value; } catch { onError('暂时无法切换倍速。'); }
     refresh(); show();
   });
-  for (const event of ['timeupdate', 'durationchange', 'loadedmetadata', 'progress', 'volumechange', 'ratechange', 'seeked', 'error']) listen(video, event, refresh);
-  for (const event of ['emptied', 'loadstart']) listen(video, event, () => { scrubbing = false; requestId++; refresh(); });
-  for (const event of ['play', 'pause', 'ended']) listen(video, event, () => { refresh(); show(); });
+  for (const event of ['timeupdate', 'durationchange', 'loadedmetadata', 'progress', 'volumechange', 'ratechange', 'error']) listen(video, event, refresh);
+  for (const event of ['emptied', 'loadstart']) listen(video, event, () => { scrubbing = false; buffering = false; requestId++; hidePreview(); refresh(); });
+  listen(video, 'waiting', () => { buffering = !video.paused && !video.ended; refresh(); show(); });
+  for (const event of ['play', 'pause', 'ended', 'playing', 'canplay', 'seeked']) listen(video, event, () => { buffering = false; refresh(); show(); });
   for (const event of ['pointermove', 'pointerleave', 'focusin', 'focusout']) listen(screen, event, show);
-  listen(doc, 'fullscreenchange', () => { refresh(); show(); });
+  listen(doc, 'fullscreenchange', () => { hidePreview(); refresh(); show(); });
+  if (doc.defaultView?.addEventListener) listen(doc.defaultView, 'resize', hidePreview);
   listen(doc, 'keydown', event => {
     if (event.key === 'Escape' && !event.defaultPrevented && doc.fullscreenElement === screen && onFullscreen) { event.preventDefault(); onFullscreen(event); }
   });
@@ -91,8 +114,8 @@ export function createPlayerControls(video, { screen, controls, onFullscreen, on
   refresh(); controls.hidden = false; video.controls = false; screen.classList.add('custom-controls'); show();
   return { refresh, destroy() {
     if (destroyed) return;
-    destroyed = true; requestId++; clearTimer(idleTimer); listeners.forEach(remove => remove()); ratePicker?.destroy();
-    controls.hidden = true; video.controls = nativeControls; screen.classList.remove('custom-controls', 'controls-idle', 'is-playing');
+    destroyed = true; requestId++; clearTimer(idleTimer); listeners.forEach(remove => remove()); ratePicker?.destroy(); hidePreview();
+    controls.hidden = true; video.controls = nativeControls; screen.classList.remove('custom-controls', 'controls-idle', 'is-playing', 'is-buffering');
   } };
 }
 

@@ -15,7 +15,8 @@ function fixture({ paused = true, duration = 120, volume = 1, source = 'movie.mp
       emit(name, event = {}) { return Promise.all([...(listeners.get(name) || [])].map(handler => handler(event))); },
     };
   }
-  const nodes = Object.fromEntries(['play', 'seek', 'time', 'mute', 'volume', 'fullscreen', 'rate'].map(name => [name, element()]));
+  const nodes = Object.fromEntries(['play', 'seek', 'time', 'mute', 'volume', 'fullscreen', 'rate', 'seek-preview', 'volume-value'].map(name => [name, element()]));
+  nodes.seek.getBoundingClientRect = () => ({ left: 100, width: 200 });
   for (const node of Object.values(nodes)) node.matches = selector => selector === ':focus-visible' && node.keyboard;
   const controls = element(), screen = element(), document = element(), video = element(), timers = new Map(), errors = [];
   let timerId = 0, fullscreenRequests = 0;
@@ -202,4 +203,64 @@ test('Escape exits the player fullscreen only after an open menu has released th
   await page.document.emit('keydown', { ...event, defaultPrevented: true }); assert.equal(page.fullscreenRequests(), 0);
   await page.document.emit('keydown', { ...event, key: 'Tab' }); assert.equal(page.fullscreenRequests(), 0);
   await page.document.emit('keydown', event); assert.equal(page.fullscreenRequests(), 1); assert.equal(prevented, 1);
+});
+
+test('hovering previews a time without seeking, changing progress or playing the video', async () => {
+  const page = fixture(); page.video.currentTime = 20; page.player.refresh();
+  const played = page.controls.styles.get('--played');
+  await page.nodes.seek.emit('pointermove', { clientX: 200, pointerType: 'mouse' });
+  assert.equal(page.nodes['seek-preview'].textContent, '1:00'); assert.equal(page.nodes['seek-preview'].hidden, false);
+  assert.equal(page.nodes['seek-preview'].styles.get('--seek-x'), '100px');
+  assert.equal(page.video.currentTime, 20); assert.equal(page.video.paused, true);
+  assert.equal(page.controls.styles.get('--played'), played); assert.equal(page.nodes.time.textContent, '0:20 / 2:00');
+  for (const [clientX, time, offset] of [[-1, '0:00', '32px'], [900, '2:00', '168px']]) {
+    await page.nodes.seek.emit('pointermove', { clientX, pointerType: 'mouse' });
+    assert.equal(page.nodes['seek-preview'].textContent, time); assert.equal(page.nodes['seek-preview'].styles.get('--seek-x'), offset);
+  }
+  await page.nodes.seek.emit('pointerleave'); assert.equal(page.nodes['seek-preview'].hidden, true);
+  await page.nodes.seek.emit('pointermove', { clientX: 200, pointerType: 'touch' }); assert.equal(page.nodes['seek-preview'].hidden, true);
+});
+
+test('drag and keyboard previews stay aligned and clear on cancellation, blur and source changes', async () => {
+  const page = fixture(); page.nodes.seek.value = '750'; await page.nodes.seek.emit('input');
+  await page.nodes.seek.emit('pointerleave'); assert.equal(page.nodes['seek-preview'].hidden, false);
+  assert.equal(page.nodes['seek-preview'].textContent, '1:30'); assert.equal(page.video.currentTime, 0);
+  await page.nodes.seek.emit('pointercancel'); assert.equal(page.nodes['seek-preview'].hidden, true);
+  await page.nodes.seek.emit('keydown', { key: 'ArrowRight', preventDefault() {} });
+  assert.equal(page.nodes['seek-preview'].textContent, '0:10'); assert.equal(page.video.currentTime, 10);
+  await page.nodes.seek.emit('blur'); assert.equal(page.nodes['seek-preview'].hidden, true);
+  await page.nodes.seek.emit('pointermove', { clientX: 200 }); await page.video.emit('loadstart'); assert.equal(page.nodes['seek-preview'].hidden, true);
+  page.nodes.seek.getBoundingClientRect = () => ({ left: 0, width: 20 }); await page.nodes.seek.emit('pointermove', { clientX: 0 });
+  assert.equal(page.nodes['seek-preview'].styles.get('--seek-x'), '10px');
+  await page.document.emit('fullscreenchange'); assert.equal(page.nodes['seek-preview'].hidden, true);
+});
+
+test('unknown duration or hidden controls never show stale seek previews', async () => {
+  const page = fixture();
+  for (const duration of [NaN, Infinity, 0]) {
+    page.video.duration = duration; await page.nodes.seek.emit('pointermove', { clientX: 200 });
+    assert.equal(page.nodes['seek-preview'].hidden, true);
+  }
+  page.video.duration = 120; page.nodes.seek.getBoundingClientRect = () => ({ left: 0, width: 0 });
+  await page.nodes.seek.emit('input'); assert.equal(page.nodes['seek-preview'].hidden, true);
+  page.nodes.seek.getBoundingClientRect = () => ({ left: 0, width: 200 }); await page.nodes.seek.emit('pointermove', { clientX: NaN });
+  assert.equal(page.nodes['seek-preview'].hidden, true);
+});
+
+test('visible volume percentages and fill reflect actual output including muted audio', async () => {
+  const page = fixture({ volume: .4 });
+  assert.equal(page.nodes['volume-value'].textContent, '40%'); assert.equal(page.controls.styles.get('--volume'), '40%');
+  await page.nodes.mute.emit('click'); assert.equal(page.nodes['volume-value'].textContent, '0%'); assert.equal(page.controls.styles.get('--volume'), '0%');
+  await page.nodes.mute.emit('click'); assert.equal(page.nodes['volume-value'].textContent, '40%');
+});
+
+test('buffering keeps the pause action accessible and visible without an idle timer', async () => {
+  const page = fixture({ paused: false }); await page.video.emit('waiting');
+  assert.equal(page.screen.classes.has('is-buffering'), true); assert.equal(page.timers.size, 0);
+  assert.equal(page.nodes.play.attributes.get('aria-label'), '暂停'); page.expire(); assert.equal(page.screen.classes.has('controls-idle'), false);
+  for (const event of ['playing', 'canplay', 'seeked', 'pause', 'ended', 'emptied']) {
+    page.video.paused = false; await page.video.emit('waiting'); await page.video.emit(event);
+    assert.equal(page.screen.classes.has('is-buffering'), false);
+  }
+  page.video.paused = true; await page.video.emit('waiting'); assert.equal(page.screen.classes.has('is-buffering'), false);
 });
