@@ -372,20 +372,37 @@ function renderHome() {
 }
 
 function renderSources() {
-  $('source-info').replaceChildren(...SOURCES.map(source => {
-    const item = el('div'); item.append(el('strong', '', source.name), el('small', '', source.search === false ? '分类浏览与播放 · ' + sourceSearchNotice(source) : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', state.health.get(source.id) || '本次尚未查询'));
+  const grid = $('source-info');
+  const existing = new Map([...grid.children].map(item => [item.dataset.source, item]));
+  const cards = SOURCES.map(source => {
+    let item = existing.get(source.id);
+    if (!item) {
+      item = el('details', 'source-health-card'); item.dataset.source = source.id;
+      const summary = el('summary');
+      summary.append(el('strong', 'source-health-name'), el('small', 'source-health-status'), el('small', 'source-health-marker'));
+      item.append(summary, el('div', 'source-health-detail'));
+    }
+    const status = state.health.get(source.id) || '本次尚未查询';
+    item.querySelector('.source-health-name').textContent = source.name;
+    const statusNode = item.querySelector('.source-health-status'); statusNode.textContent = status;
+    statusNode.classList.toggle('error', /失败|无法连接/.test(status));
     const notice = contentNotice({ source: source.id });
-    const marker = el('small', notice.label === '推广情况未核验' ? '' : 'content-marker', notice.label);
-    marker.title = notice.text; item.append(marker);
+    const marker = item.querySelector('.source-health-marker'); marker.textContent = notice.label;
+    marker.classList.toggle('content-marker', notice.label !== '推广情况未核验'); marker.title = notice.text;
+    const body = item.querySelector('.source-health-detail');
+    body.replaceChildren(el('small', '', source.search === false ? '分类浏览与播放 · ' + sourceSearchNotice(source) : source.browseTypes?.length === 0 ? '搜索与播放 · 聚合结果按上游去重' : '搜索、支持的分类与播放'), el('small', '', status));
     for (const [operation, label] of [['search', '搜索'], ['browse', '分类']]) {
       const value = sourceHealth.profile(source.id, operation);
       if (!value.observed) continue;
       const message = value.cooldownMs ? '暂时避开 · 约 ' + Math.ceil(value.cooldownMs / 60000) + ' 分钟后可再次自动查询，可手动重试'
         : value.failures ? '最近连接失败，下次查询可再次尝试' : '近期查询约 ' + (value.latencyMs / 1000).toFixed(1) + ' 秒';
-      item.append(el('small', '', label + '：' + message));
+      body.append(el('small', '', label + '：' + message));
     }
     return item;
-  }));
+  });
+  const retained = new Set(cards);
+  for (const item of [...grid.children]) if (!retained.has(item)) item.remove();
+  cards.forEach((item, index) => { if (grid.children[index] !== item) grid.insertBefore(item, grid.children[index] || null); });
 }
 
 async function request(source, options = {}) {
@@ -1491,6 +1508,7 @@ $('change-source').addEventListener('click', () => {
   if (variants.length > 1) switchVariant(variants[(index + 1) % variants.length]);
 });
 function handlePlaybackKey(event) {
+  if (event.target.closest?.('.source-settings')) return;
   if (event.defaultPrevented || state.route.view !== 'watch' || state.detailLoading || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName) || event.target.isContentEditable || event.altKey || event.metaKey || event.ctrlKey) return;
   if (['Space', 'ArrowLeft', 'ArrowRight'].includes(event.code) && /BUTTON|A|SUMMARY/.test(event.target.tagName)) return;
   if (event.code === 'Space' && event.target.tagName === 'VIDEO') return;

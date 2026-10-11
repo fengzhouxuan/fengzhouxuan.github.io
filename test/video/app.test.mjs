@@ -12,6 +12,45 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('source status refresh preserves expanded cards, focus and scroll while updating query details', () => {
+  function node(tag, className = '', textContent = '') {
+    const classes = new Set(className.split(' ').filter(Boolean));
+    const item = { tag, className, textContent, dataset: {}, children: [], open: false, parent: null,
+      classList: { toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) },
+      append(...children) { for (const child of children) { child.parent = this; this.children.push(child); } },
+      replaceChildren(...children) { this.children = []; this.append(...children); },
+      querySelector(selector) { for (const child of this.children) { if (child.classList.contains(selector.slice(1))) return child; const match = child.querySelector(selector); if (match) return match; } return null; },
+      remove() { this.parent.children.splice(this.parent.children.indexOf(this), 1); },
+      insertBefore(child, before) { if (child.parent) child.remove(); child.parent = this; const index = before ? this.children.indexOf(before) : this.children.length; this.children.splice(index, 0, child); },
+    };
+    return item;
+  }
+  const grid = node('div'); grid.scrollTop = 125;
+  const sources = [{ id: 'liangzi', name: '量子资源' }, { id: 'auete', name: 'Auete', search: false }, { id: 'zip0', name: 'ZIP0', browseTypes: [] }];
+  const health = new Map(); const profiles = new Map();
+  const harness = appHarness(source, { ...core, SOURCES: sources, $: () => grid, el: node, state: { health },
+    sourceHealth: { profile: (id, operation) => profiles.get(id + ':' + operation) || {} }, sourceSearchNotice: () => '搜索要求验证' });
+  const start = source.indexOf('function renderSources('); const end = source.indexOf('\nasync function request(', start);
+  assert.ok(start >= 0 && end > start); harness.run(source.slice(start, end)); harness.run('renderSources()');
+  assert.equal(grid.children.length, 3);
+  const card = grid.children[0]; card.open = true; const focused = card.children[0];
+  assert.equal(card.querySelector('.source-health-status').textContent, '本次尚未查询');
+  health.set('liangzi', '目录查询失败，可切换其他来源');
+  profiles.set('liangzi:search', { observed: true, cooldownMs: 120000 });
+  profiles.set('liangzi:browse', { observed: true, failures: 1 });
+  harness.run('renderSources()');
+  assert.equal(grid.children[0], card); assert.equal(card.children[0], focused); assert.equal(card.open, true); assert.equal(grid.scrollTop, 125);
+  assert.equal(card.querySelector('.source-health-status').classList.contains('error'), true);
+  const detail = card.querySelector('.source-health-detail');
+  assert.match(detail.children[2].textContent, /2 分钟/); assert.match(detail.children[3].textContent, /最近连接失败/);
+  health.set('liangzi', '目录查询成功 · 0.6 秒'); profiles.set('liangzi:search', { observed: true, latencyMs: 600 });
+  harness.run('renderSources()');
+  assert.equal(card.querySelector('.source-health-status').classList.contains('error'), false);
+  assert.match(detail.children[2].textContent, /0.6 秒/);
+  assert.match(grid.children[1].querySelector('.source-health-detail').children[0].textContent, /搜索要求验证/);
+  assert.match(grid.children[2].querySelector('.source-health-detail').children[0].textContent, /聚合结果按上游去重/);
+});
+
 test('quality alternative reveals source choices before focusing and scrolling without restarting playback', () => {
   for (const reducedMotion of [false, true]) for (const alreadyOpen of [false, true]) {
     let click; const actions = []; const picker = { open: alreadyOpen };
@@ -64,6 +103,11 @@ test('focused native video seeks exactly ten seconds and keeps control navigatio
   dispatch('Space', { tagName: 'DIV' }); assert.equal(pauses, 1);
   dispatch('KeyN'); dispatch('KeyF'); assert.equal(next, 1); assert.equal(fullscreen, 1);
   assert.equal(dispatch('ArrowUp').defaultPrevented, false);
+  for (const code of ['Space', 'ArrowRight', 'KeyN', 'KeyF']) {
+    const before = { time: video.currentTime, plays, pauses, next, fullscreen };
+    assert.equal(dispatch(code, { tagName: 'DIV', closest: selector => selector === '.source-settings' ? {} : null }).defaultPrevented, false);
+    assert.deepEqual({ time: video.currentTime, plays, pauses, next, fullscreen }, before);
+  }
   dispatch('ArrowRight', { tagName: 'DIV' }, { defaultPrevented: true }); assert.equal(video.currentTime, 130);
   state.detailLoading = true; assert.equal(dispatch('ArrowRight', { tagName: 'DIV' }).defaultPrevented, false);
   state.detailLoading = false; state.route.view = 'home'; assert.equal(dispatch('ArrowRight', { tagName: 'DIV' }).defaultPrevented, false);
