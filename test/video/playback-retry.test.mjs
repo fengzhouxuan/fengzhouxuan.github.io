@@ -8,27 +8,28 @@ import { appHarness } from './fixtures/app-harness.cjs';
 const source = await readFile(new URL('../../source/video/app.js', import.meta.url), 'utf8');
 const base = 'https://service.example';
 const deferred = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
-function page({ phase = 'ready', direct = false, fetchImpl = async () => Response.json({ status: 'ok', url: 'https://cdn.example/1.mp4' }) } = {}) {
+function page({ phase = 'ready', direct = false, fetchImpl = async () => Response.json({ status: 'ok', url: 'https://cdn.example/1.mp4' }), prepareVideo = () => {}, now = Date.now } = {}) {
   const transport = createBackendTransport({ base, fetchImpl });
   Object.assign(transport.state, { phase, retryAt: phase === 'ready' ? 0 : Date.now() + 60000 });
   const episode = { name: '第1集', ...(direct ? { url: 'https://cdn.example/1.mp4' } : { ref: '2-1' }) };
   const state = { route: { view: 'watch' }, current: { source: 'pianku', id: '12', lines: [{ episodes: [episode] }] }, line: 0, episode: 0, playbackVersion: 1 };
-  const nodes = new Map(); const started = []; const messages = []; let saves = 0;
+  const nodes = new Map(); const started = []; const messages = []; const navigator = { onLine: true }; const video = { readyState: 0 }; let saves = 0;
   const harness = appHarness(source, {
-    state, backendTransport: transport, playbackPosition: () => 53, saveProgress: () => { saves++; },
+    state, backendTransport: transport, navigator, video, playbackPosition: () => 53, saveProgress: () => { saves++; },
     $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); },
-    screenMessage: message => messages.push(message), prepareVideo() {},
-    startEpisode: async (index, position) => {
+    screenMessage: message => messages.push(message), prepareVideo, Date: { now },
+    startEpisode: async (index, position, _automatic, _recovered, paused) => {
+      state.userPaused = paused;
       state.playbackVersion++;
       const url = episode.ref ? await requestEpisode('pianku', '12', episode.ref, episode.name, { base, fetchImpl: transport.fetch }) : episode.url;
       started.push({ index, position, url });
     },
   });
-  const start = source.indexOf('async function retryCurrentPlayback(');
+  const start = source.indexOf('function syncPlaybackRetryButtons(');
   const end = source.indexOf('\nasync function playbackError(', start);
   assert.ok(start >= 0 && end > start, 'Missing playback retry function boundary');
   harness.run(source.slice(start, end));
-  return { state, transport, nodes, started, messages, saves: () => saves, retry: () => harness.run('retryCurrentPlayback()') };
+  return { state, transport, navigator, video, nodes, started, messages, saves: () => saves, retry: () => harness.run('retryCurrentPlayback()'), sync: () => harness.run('syncPlaybackRetryButtons()') };
 }
 
 test('one explicit playback retry recovers an unavailable service and reissues the same episode at the saved position', async () => {
@@ -51,6 +52,26 @@ test('ready retries and direct media never add health probes, while lazy quota-l
   await limited.retry(); assert.equal(limited.started.length, 0); assert.match(limited.messages.at(-1), /额度已用完/); assert.equal(limited.transport.state.phase, 'limited');
 });
 
+test('retry keeps explicit pause intent including a pause during a pending service probe', async () => {
+  for (const phase of ['ready', 'unavailable']) {
+    const health = deferred();
+    const p = page({ phase, fetchImpl: url => new URL(url).pathname === '/healthz' ? health.promise : Promise.resolve(Response.json({ url: 'https://cdn.example/1.mp4' })) });
+    p.state.userPaused = phase === 'ready'; const pending = p.retry(); p.state.userPaused = true;
+    health.resolve(Response.json({ status: 'ok' })); await pending;
+    assert.equal(p.started.length, 1); assert.equal(p.state.userPaused, true);
+  }
+});
+
+test('offline retry never probes or reloads, and buffered playback remains unobscured', async () => {
+  for (const readyState of [0, 4]) {
+    const p = page({ phase: 'unavailable', fetchImpl: () => assert.fail('offline must not consume a request') });
+    p.navigator.onLine = false; p.video.readyState = readyState;
+    await p.retry(); await p.retry();
+    assert.equal(p.started.length, 0); assert.equal(p.saves(), 0); assert.equal(p.messages.length, 2 * Number(readyState < 3));
+    assert.match(p.nodes.get('play-status').textContent, /恢复网络后重试/); assert.equal(p.nodes.get('playback-feedback').hidden, false);
+  }
+});
+
 test('duplicate playback retry clicks share one recovery and one resolver request', async () => {
   const health = deferred(); const play = deferred(); const calls = [];
   const view = page({ phase: 'unavailable', fetchImpl: url => { const path = new URL(url).pathname; calls.push(path); return path === '/healthz' ? health.promise : play.promise; } });
@@ -62,6 +83,25 @@ test('duplicate playback retry clicks share one recovery and one resolver reques
   assert.equal(view.started.length, 1); assert.equal(view.saves(), 1); assert.equal(view.nodes.get('reload-play').disabled, false);
 });
 
+test('rapid retries coalesce even if a direct-media restart resolves immediately, with a fresh retry after the burst', async () => {
+  let time = 1000; const p = page({ direct: true, now: () => time });
+  await p.retry(); await p.retry(); assert.equal(p.started.length, 1);
+  time += 399; await p.retry(); assert.equal(p.started.length, 1);
+  time++; await p.retry(); assert.equal(p.started.length, 2);
+  p.state.current = { ...p.state.current }; await p.retry(); assert.equal(p.started.length, 3, 'a different film is not blocked by the previous burst');
+});
+
+test('retrying absent episode details stays single-flight and releases the busy state on success or failure', async () => {
+  for (const failing of [false, true]) {
+    let finish, calls = 0;
+    const p = page({ prepareVideo: () => { calls++; return new Promise((resolve, reject) => { finish = failing ? () => reject(Error('private detail')) : resolve; }); } });
+    p.state.current = null; const pending = p.retry(); await p.retry();
+    assert.equal(calls, 1); assert.equal(p.nodes.get('retry-play').disabled, true);
+    finish(); await pending; assert.equal(p.state.manualRetryBusy, false); assert.equal(p.nodes.get('reload-play').disabled, false);
+    if (failing) { assert.match(p.messages.at(-1), /无法重新读取/); assert.doesNotMatch(p.messages.at(-1), /private/); }
+  }
+});
+
 test('changing film, line, episode, route or cancelling during recovery never starts stale playback', async () => {
   for (const change of [state => { state.current = { ...state.current }; }, state => { state.line++; }, state => { state.episode++; }, state => { state.route.view = 'library'; }, state => { state.playbackVersion++; }]) {
     const health = deferred(); const calls = [];
@@ -69,6 +109,16 @@ test('changing film, line, episode, route or cancelling during recovery never st
     const pending = view.retry(); change(view.state); health.resolve(Response.json({ status: 'ok' })); await pending;
     assert.deepEqual(calls, ['/healthz']); assert.equal(view.started.length, 0); assert.equal(view.state.manualRetryBusy, false);
   }
+});
+
+test('a retry for a new film stays enabled and an older health-check completion cannot unlock its pending resolver', async () => {
+  const health = deferred(), play = deferred(), calls = [];
+  const p = page({ phase: 'unavailable', fetchImpl: url => { const path = new URL(url).pathname; calls.push(path); return path === '/healthz' ? health.promise : play.promise; } });
+  const old = p.retry(); p.state.current = { ...p.state.current }; p.state.playbackVersion++; p.sync(); assert.equal(p.nodes.get('retry-play').disabled, false);
+  const current = p.retry(); health.resolve(Response.json({ status: 'ok' })); await old;
+  assert.equal(p.state.manualRetryBusy, true); assert.equal(p.nodes.get('retry-play').disabled, true);
+  assert.deepEqual(calls, ['/healthz', '/api/play']); play.resolve(Response.json({ url: 'https://cdn.example/1.mp4' })); await current;
+  assert.equal(p.started.length, 1); assert.equal(p.state.manualRetryBusy, false); assert.equal(p.nodes.get('retry-play').disabled, false);
 });
 
 test('failed recovery preserves retry feedback without loops or quota bypass', async () => {

@@ -12,6 +12,97 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('quality rendering forwards genuine levels and current-frame information to the enhanced player', () => {
+  for (const count of [0, 1, 3]) {
+    const nodes = new Map(); const $ = id => {
+      if (!nodes.has(id)) nodes.set(id, { dataset: {}, replaceChildren(...options) { this.options = options; } });
+      return nodes.get(id);
+    };
+    const levels = [{ width: 640, height: 360 }, { width: 1280, height: 720 }, { width: 1920, height: 1080 }].slice(0, count);
+    let summary;
+    const harness = appHarness(source, { $, el: (_tag, _class, textContent) => ({ textContent }),
+      state: { playbackPhase: count === 0 ? 'failed' : 'playing', hls: { levels, autoLevelEnabled: true, currentLevel: 0 } }, video: { videoWidth: 640, videoHeight: 360, paused: true },
+      qualityReady: count > 0, qualityNative: false, qualitySelection: -1, playbackQuality: playback.playbackQuality, document: {},
+      playerEnhancement: { refreshQuality: value => summary = value } });
+    harness.include('renderQuality', 'screenMessage'); harness.run('renderQuality()');
+    assert.equal(summary.selectable, count > 1); assert.equal(summary.displayLabel, '360p'); assert.equal(summary.selected, -1);
+    assert.equal($('quality-select').options.length, count > 1 ? 4 : 0); assert.equal($('quality-source').hidden, count !== 1);
+    assert.equal(summary.choices.length, count);
+    if (!count) assert.equal(summary.note, '播放恢复后可查看清晰度。');
+  }
+});
+
+test('quality selection keeps nextLevel switching and safely handles invalid choices and failures', () => {
+  for (const mode of ['manual', 'auto', 'invalid', 'failure']) {
+    let handler, rendered = 0, errors = 0, changed;
+    const selected = mode === 'auto' ? -1 : mode === 'invalid' ? 9 : 1;
+    const hls = { levels: [{ width: 640, height: 360 }, { width: 1280, height: 720 }], set nextLevel(value) { if (mode === 'failure') throw Error('private stream'); changed = value; } };
+    const harness = appHarness(source, { state: { hls }, qualityReady: true, qualitySelection: -1, playbackQuality: playback.playbackQuality,
+      $: () => ({ value: String(selected), addEventListener: (_type, fn) => handler = fn }), currentEpisode: () => film.lines[0].episodes[0], renderQuality: () => rendered++, toast: () => errors++ });
+    const start = source.indexOf("$('quality-select').addEventListener"); const end = source.indexOf("$('quality-source').addEventListener", start);
+    harness.run(source.slice(start, end)); handler();
+    assert.equal(rendered, 1); assert.equal(changed, ['manual', 'auto'].includes(mode) ? selected : undefined);
+    assert.equal(errors, Number(mode === 'failure')); assert.equal(harness.run('qualitySelection'), mode === 'manual' ? 1 : -1);
+  }
+});
+
+test('ended delegates to the cancellable player countdown while retaining legacy and disabled behavior', () => {
+  for (const enhanced of [true, false]) for (const enabled of [true, false]) {
+    let handler, saved = 0, checked = 0, finished = 0, next = 0;
+    const harness = appHarness(source, { video: { addEventListener: (_type, fn) => handler = fn },
+      $: () => ({ checked: enabled }), saveProgress: () => saved++, checkPlayback: () => checked++,
+      playerEnhancement: enhanced ? { finish: () => finished++ } : null, playNext: () => next++ });
+    const start = source.indexOf("video.addEventListener('ended'"); const end = source.indexOf('\n});', start) + 4;
+    harness.run(source.slice(start, end)); handler();
+    assert.equal(saved, 1); assert.equal(checked, 1); assert.equal(finished, Number(enhanced && enabled)); assert.equal(next, Number(!enhanced && enabled));
+  }
+});
+
+test('watch-page arrow keys delegate once to the player without doubling the seek', () => {
+  let moves = 0;
+  const video = { currentTime: 20, duration: 120, addEventListener() {} };
+  const harness = appHarness(source, { state: { route: { view: 'watch' } }, video,
+    playerEnhancement: { seekBy(delta) { moves++; video.currentTime += delta; return true; } }, document: { addEventListener() {} } });
+  const start = source.indexOf('function handlePlaybackKey('); const end = source.indexOf("document.querySelectorAll('[data-blog-link]')", start);
+  harness.run(source.slice(start, end));
+  harness.run("handlePlaybackKey({ code:'ArrowRight', target:{tagName:'DIV'}, preventDefault(){} })");
+  assert.equal(video.currentTime, 30); assert.equal(moves, 1);
+});
+
+test('Space delegates to the guarded enhancement and stale legacy play failures cannot interrupt a new action or film', async () => {
+  let enhanced = 0;
+  const delegate = appHarness(source, { playerEnhancement: { togglePlay: () => enhanced++ } });
+  delegate.include('toggleUserPlayback', 'handlePlaybackKey'); await delegate.run('toggleUserPlayback()'); assert.equal(enhanced, 1);
+  for (const action of ['pause', 'film', 'source', 'route', 'AbortError', 'current']) {
+    let reject, errors = 0;
+    const state = { route: { view: 'watch' }, playbackVersion: 1 };
+    const video = { paused: true, src: 'first.mp4', play() { this.paused = false; return new Promise((_resolve, fail) => reject = fail); }, pause() { this.paused = true; } };
+    const p = appHarness(source, { state, video, playerEnhancement: null, manualPlayToken: 0, toast: () => errors++ });
+    p.include('toggleUserPlayback', 'handlePlaybackKey'); const pending = p.run('toggleUserPlayback()');
+    if (action === 'pause') await p.run('toggleUserPlayback()');
+    else if (action === 'film') state.playbackVersion++;
+    else if (action === 'source') video.src = 'next.mp4';
+    else if (action === 'route') state.route.view = 'library';
+    reject(Object.assign(Error('private play error'), { name: action === 'AbortError' ? 'AbortError' : 'NotSupportedError' })); await pending;
+    assert.equal(errors, Number(action === 'current'));
+  }
+});
+
+test('rewinding after completion restarts monitoring with the actual pause state without replaying media', () => {
+  for (const switching of [true, false]) for (const ended of [true, false]) for (const paused of [true, false]) {
+    let handler, checked = 0; const restarted = [];
+    const state = { switching, resumeSeekTarget: 50, userPaused: false };
+    const video = { ended, paused, currentTime: 50, addEventListener: (_type, fn) => handler = fn };
+    const harness = appHarness(source, { state, video, playbackMonitor: { state: { phase: 'ended', recovered: true } },
+      checkPlayback: () => checked++, monitorPlayback: (...args) => restarted.push(args) });
+    const start = source.indexOf("video.addEventListener('seeked'"); const end = source.indexOf("video.addEventListener('playing'", start);
+    harness.run(source.slice(start, end)); handler();
+    assert.equal(restarted.length, Number(!switching && !ended)); assert.equal(checked, Number(!switching && ended));
+    if (!switching && !ended) { assert.deepEqual(restarted[0], [50, true]); assert.equal(state.userPaused, paused); }
+    assert.equal(state.resumeSeekTarget, switching ? 50 : null); assert.equal(video.currentTime, 50); assert.equal(video.paused, paused);
+  }
+});
+
 test('screen choices adapt layout without changing playback or focus, including unloaded media', () => {
   const video = { videoWidth: 1080, videoHeight: 1920, currentTime: 125, paused: true };
   let selected = { value: 'auto' }; let portrait; let ratio;
@@ -32,7 +123,17 @@ test('screen choices adapt layout without changing playback or focus, including 
   }
 });
 
-function episodeScrollHarness() {
+test('selected playback speed becomes the media default so changing episodes does not reset it', () => {
+  let listener; const video = { playbackRate: 1.5, defaultPlaybackRate: 1, addEventListener: (_event, fn) => { listener = fn; } };
+  const speed = {}; let refreshes = 0;
+  const harness = appHarness(source, { video, $: () => speed, speedPicker: { refresh() { refreshes++; } } });
+  const start = source.indexOf("video.addEventListener('ratechange'"); const end = source.indexOf("$('quality-select').addEventListener", start);
+  assert.ok(start >= 0 && end > start); harness.run(source.slice(start, end)); listener();
+  assert.equal(video.defaultPlaybackRate, 1.5); assert.equal(speed.value, '1.5'); assert.equal(refreshes, 1);
+  video.playbackRate = video.defaultPlaybackRate; listener(); assert.equal(speed.value, '1.5');
+});
+
+function episodeScrollHarness({ onStart, onSave } = {}) {
   const document = { activeElement: null }; const nodes = new Map(); const focus = [];
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, { id, dataset: {}, children: [], hidden: false, scrollTop: 0, clientTop: 0, clientHeight: 180, listeners: new Map(),
@@ -45,7 +146,7 @@ function episodeScrollHarness() {
   };
   const state = { current: { ...film, lines: [{ name: '完整线', episodes: Array.from({ length: 100 }, (_, index) => episode(index + 1)) }] }, line: 0, episode: 0, range: 0, reverse: false };
   const harness = appHarness(source, { ...core, ...playback, state, document, $: node, sourceName: () => '测试来源', renderContentNotice() {},
-    saveProgress() { assert.fail('Browsing a group must not save playback progress'); }, startEpisode() { assert.fail('Browsing a group must not switch playback'); },
+    saveProgress: onSave || (() => { assert.fail('Browsing a group must not save playback progress'); }), startEpisode: onStart || (() => { assert.fail('Browsing a group must not switch playback'); }),
     button: (textContent, _className, click) => ({ textContent, dataset: {}, click, setAttribute() {},
       focus(options) { document.activeElement = this; focus.push(clone(options)); },
       getClientRects() { return this.hidden ? [] : [{}]; },
@@ -56,6 +157,15 @@ function episodeScrollHarness() {
   harness.include('renderEpisodes', 'destroyPlayback');
   return { harness, state, document, node, focus };
 }
+
+test('reselecting a pending episode is ignored while another episode and ready replay remain available', () => {
+  const starts = []; let saves = 0;
+  const p = episodeScrollHarness({ onStart: index => starts.push(index), onSave: () => saves++ });
+  p.state.switching = true; p.state.resolveController = {}; p.harness.run('renderEpisodes()');
+  p.node('episodes').children[0].click(); p.node('episodes').children[0].click(); assert.equal(starts.length, 0); assert.equal(saves, 0);
+  p.node('episodes').children[1].click(); assert.deepEqual(starts, [1]);
+  p.state.resolveController = null; p.node('episodes').children[0].click(); assert.deepEqual(starts, [1, 0]); assert.equal(saves, 2);
+});
 
 test('manual episode group and order changes reset only the episode list and retain group focus without switching playback', () => {
   const { harness, state, document, node, focus } = episodeScrollHarness();
@@ -334,7 +444,8 @@ test('focused native video seeks exactly ten seconds and keeps control navigatio
   const video = { tagName: 'VIDEO', currentTime: 120, duration: 8640, paused: true,
     addEventListener(type, handler, options) { assert.equal(type, 'keydown'); assert.equal(options.capture, true); capture = handler; },
     play() { plays++; this.paused = false; return Promise.resolve(); }, pause() { pauses++; this.paused = true; } };
-  const harness = appHarness(source, { state, video, document: { addEventListener: (type, handler) => { assert.equal(type, 'keydown'); bubble = handler; } }, playNext: () => next++, toggleFullscreen: () => fullscreen++, toast() {} });
+  const harness = appHarness(source, { state, video, manualPlayToken: 0, playerEnhancement: null, document: { addEventListener: (type, handler) => { assert.equal(type, 'keydown'); bubble = handler; } }, playNext: () => next++, toggleFullscreen: () => fullscreen++, toast() {} });
+  harness.include('toggleUserPlayback', 'handlePlaybackKey');
   const start = source.indexOf('function handlePlaybackKey('); const end = source.indexOf("document.querySelectorAll('[data-blog-link]')", start);
   assert.ok(start >= 0 && end > start); harness.run(source.slice(start, end));
   function dispatch(code, target = video, extra = {}) {
@@ -361,6 +472,10 @@ test('focused native video seeks exactly ten seconds and keeps control navigatio
   dispatch('Space', { tagName: 'DIV' }); assert.equal(plays, 1);
   dispatch('Space', { tagName: 'DIV' }); assert.equal(pauses, 1);
   dispatch('KeyN'); dispatch('KeyF'); assert.equal(next, 1); assert.equal(fullscreen, 1);
+  for (const code of ['Space', 'KeyN', 'KeyF']) assert.equal(dispatch(code, { tagName: 'DIV' }, { repeat: true }).defaultPrevented, true);
+  assert.equal(plays, 1); assert.equal(pauses, 1); assert.equal(next, 1); assert.equal(fullscreen, 1);
+  assert.equal(dispatch('Space', { tagName: 'DIV' }, { isComposing: true }).defaultPrevented, false);
+  assert.equal(dispatch('Space', { tagName: 'BUTTON' }, { repeat: true }).defaultPrevented, false);
   assert.equal(dispatch('ArrowUp').defaultPrevented, false);
   for (const context of ['.source-settings', '.account-panel']) for (const code of ['Space', 'ArrowRight', 'KeyN', 'KeyF']) {
     const before = { time: video.currentTime, plays, pauses, next, fullscreen };
@@ -387,6 +502,8 @@ test('content notice updates when changing episode or source and never blocks pl
   harness.run('renderContentNotice("notice", { source: "diyi", id: "104" }, "第01集")');
   assert.match(node.textContent, /^来源有推广记录/); assert.match(node.textContent, /当前视频未逐一检查/);
   harness.run('renderContentNotice("notice", { source: "liangzi", id: "12" })');
+  assert.match(node.textContent, /^来源有推广记录/); assert.equal(node['has-promotion'], true);
+  harness.run('renderContentNotice("notice", { source: "shandian", id: "12" })');
   assert.match(node.textContent, /^推广情况未核验/); assert.equal(node['has-promotion'], false);
 });
 
@@ -466,22 +583,58 @@ test('page navigation cancels home requests and returning home opens a fresh que
   const fresh = homeLoader.open(); homeLoader.stop(); await fresh;
 });
 
-function page(current = film, { saved = null, route = {}, override = null, intent = playback.createPlaybackIntent() } = {}) {
+function page(current = film, { saved = null, route = {}, override = null, intent = playback.createPlaybackIntent(), requestImpl = async () => ({ videos: [current] }) } = {}) {
   const nodes = new Map(); const started = []; const messages = []; const failures = [];
   const state = { detailVersion: 0, lastList: '#library?tab=history', favoritesDirty: false, watchlist: { loading: false }, restorePlaybackIntent: true, resumeOverride: override };
   const bindings = {
-    ...core, ...playback, state, document: { hidden: false }, navigator: { onLine: true },
+    ...core, ...playback, state, AbortController, document: { hidden: false }, navigator: { onLine: true },
     $: id => { if (!nodes.has(id)) nodes.set(id, { checked: true, replaceChildren() {} }); return nodes.get(id); },
     cancelFallback() {}, destroyPlayback() {}, renderPlaybackExperience() {}, updateFavoriteButtons() {}, updateTrackedFavorite() {}, renderDetail() {}, renderWatch() {}, renderEpisodes() {}, fallbackMessage() {}, save() {},
     variantDiscovery: { stop() {}, open() {} }, playbackExperience: { open() {}, observe() {}, finish() {}, priority: () => 0 },
-    playbackIntent: intent, playbackFallback: { begin() {} }, allKnownVideos: () => [current], request: async () => ({ videos: [current] }), progressFor: () => saved,
+    playbackIntent: intent, playbackFallback: { begin() {} }, allKnownVideos: () => [current], request: requestImpl, progressFor: () => saved,
     screenMessage: message => messages.push(message), reportPlaybackFailure: message => failures.push(message),
     startEpisode: (index, position, _automatic, _recovered, paused) => started.push({ name: current.lines[state.line].episodes[index].name, position, paused }),
     route: { view: 'watch', source: current.source, id: current.id, episode: null, ...route },
   };
   const harness = appHarness(source, bindings); harness.include('filmRoute', 'navigate'); harness.include('prepareVideo', 'switchVariant');
-  return { state, nodes, messages, started, failures, open: () => harness.run('prepareVideo(route)') };
+  return { state, nodes, messages, started, failures, harness, open: () => harness.run('prepareVideo(route)') };
 }
+
+test('rapid source reads abort superseded work and old completion cannot replace the last choice or clear its controller', async () => {
+  const requests = [];
+  const p = page(film, { requestImpl: (_source, options) => new Promise(resolve => requests.push({ ...options, resolve })) });
+  const old = p.open(); const newest = p.harness.run('prepareVideo({...route,id:"13"})');
+  assert.equal(requests[0].signal.aborted, true); assert.equal(requests[1].signal.aborted, false);
+  const controller = p.state.detailController;
+  requests[0].resolve({ videos: [film] }); await old;
+  assert.equal(p.state.current, null); assert.equal(p.state.detailController, controller); assert.equal(p.started.length, 0);
+  requests[1].resolve({ videos: [{ ...film, id: '13', uid: 'liangzi:13' }] }); await newest;
+  assert.equal(p.state.current.id, '13'); assert.equal(p.state.detailController, null); assert.equal(p.started.length, 1);
+});
+
+test('lazy playback service failures explain quota or outage without starting an automatic source loop', async () => {
+  for (const phase of ['limited', 'unavailable']) {
+    const nodes = new Map(), messages = [];
+    const p = appHarness(source, { state: { route: { view: 'watch' }, playbackVersion: 1 }, backendTransport: { state: { phase } },
+      currentEpisode: () => ({ ref: '1-1' }), playbackExperience: { fail() {} }, renderPlaybackExperience() {},
+      $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); }, screenMessage: text => messages.push(text) });
+    p.include('playbackError', 'renderVariantDiscovery'); await p.run('playbackError("address failed",1)');
+    assert.match(messages.at(-1), phase === 'limited' ? /额度已用完/ : /查询服务暂时不可用/);
+    assert.match(nodes.get('play-status').textContent, /观看位置已保留/);
+    assert.equal(nodes.get('playback-feedback').hidden, false);
+  }
+});
+
+test('offline feedback updates when buffered playback runs out without waiting for a different phase', () => {
+  const nodes = new Map(); const state = { playbackPhase: '', current: film }; const video = { readyState: 4 };
+  const $ = id => { if (!nodes.has(id)) nodes.set(id, { textContent: '', classList: { toggle() {} } }); return nodes.get(id); };
+  const p = appHarness(source, { ...core, state, video, $, document: {}, renderQuality() {}, screenMessage: text => $('screen-message').textContent = text });
+  p.include('renderPlaybackState', 'monitorPlayback');
+  p.run('renderPlaybackState({phase:"offline",waitMs:0})'); assert.match($('play-status').textContent, /已缓冲的画面/); assert.equal($('screen-message').textContent, '');
+  video.readyState = 2; p.run('renderPlaybackState({phase:"offline",waitMs:0})');
+  assert.match($('play-status').textContent, /暂时无法继续加载/); assert.match($('screen-message').textContent, /观看位置已保留/);
+  video.readyState = 4; p.run('renderPlaybackState({phase:"offline",waitMs:0})'); assert.match($('play-status').textContent, /已缓冲的画面/); assert.equal($('screen-message').textContent, '');
+});
 
 test('page resume preserves a missing saved episode and position without starting a neighboring episode', async () => {
   const current = { ...film, lines: [{ episodes: [1, 2].map(episode) }] };
@@ -524,7 +677,49 @@ test('page episode start writes the actual name into its route and sends the sta
   assert.deepEqual(calls[0].slice(0, 4), ['pianku', '12', '2-3', '第3集']);
   assert.equal(core.parseRoute(routes[0]).episodeName, '第3集'); assert.equal(core.parseRoute(routes[0]).episode, 1);
   assert.deepEqual(displayed, [{ episode: 1, revealCurrent: true }]);
-  state.playbackVersion++; finish('https://example.com/3.mp4'); await pending;
+  const finishOld = finish;
+  const newest = harness.run('startEpisode(0,0,false,false,true)'), controller = state.resolveController, finishNew = finish;
+  finishOld('https://example.com/3.mp4'); await pending; assert.equal(state.resolveController, controller, 'old resolver completion must not clear the new request');
+  state.playbackVersion++; finishNew('https://example.com/1.mp4'); await newest; assert.equal(state.resolveController, null);
+});
+
+test('same-episode HLS retry restores the selected rendition, while new episodes and stale manifest events cannot apply it', async () => {
+  for (const action of ['retry', 'next', 'stale', 'missing', 'failure']) {
+    const current = clone(film); current.lines[0].episodes.forEach(ep => ep.url = ep.url.replace('.mp4', '.m3u8'));
+    const levels = [{ width: 640, height: 360 }, { width: 1280, height: 720 }]; const callbacks = new Map(); let selected, played = 0;
+    class Hls {
+      static isSupported() { return true; }
+      static Events = { MANIFEST_PARSED: 'manifest', LEVEL_SWITCHED: 'level', LEVELS_UPDATED: 'levels', ERROR: 'error' };
+      constructor() { this.levels = action === 'missing' ? levels.slice(0, 1) : levels; }
+      loadSource() {} attachMedia() {} on(type, fn) { callbacks.set(type, fn); }
+      set nextLevel(value) { if (action === 'failure') throw Error('private'); selected = value; }
+    }
+    const state = { current, line: 0, route: { view: 'watch' }, playbackVersion: 0, qualityPreference: { episode: current.lines[0].episodes[0], ...levels[1] } }; const nodes = new Map();
+    const p = appHarness(source, { ...core, ...playback, state, window: { Hls, history: { replaceState() {} } }, video: { play: () => { played++; return Promise.resolve(); } },
+      qualitySelection: -1, $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); },
+      cancelFallback() {}, playbackFallback: { begin() {} }, fallbackMessage() {}, destroyPlayback: () => { state.playbackVersion++; },
+      playbackIntent: playback.createPlaybackIntent(), playbackExperience: { begin() {} }, renderPlaybackExperience() {}, renderEpisodes() {}, screenMessage() {}, monitorPlayback() {}, captureFirstFrame() {}, renderQuality() {} });
+    p.include('filmRoute', 'navigate'); p.include('startEpisode', 'renderVariantDiscovery');
+    await p.run(`startEpisode(${action === 'next' ? 1 : 0},20,false,true,true)`);
+    if (action === 'stale') state.playbackVersion++;
+    callbacks.get('manifest')();
+    assert.equal(selected, action === 'retry' ? 1 : undefined); assert.equal(played, 0, 'paused recovery must not call play');
+    if (['next', 'missing', 'failure'].includes(action)) assert.equal(state.qualityPreference, null);
+  }
+});
+
+test('an old autoplay rejection after a manual pause cannot replace the current paused state', async () => {
+  for (const paused of [true, false]) {
+    let reject; const state = { current: film, line: 0, route: { view: 'watch' }, playbackVersion: 0 }; const nodes = new Map();
+    const p = appHarness(source, { ...core, state, window: { history: { replaceState() {} } },
+      video: { play: () => new Promise((_yes, no) => reject = no) },
+      $: id => { if (!nodes.has(id)) nodes.set(id, {}); return nodes.get(id); }, cancelFallback() {}, playbackFallback: { begin() {} }, fallbackMessage() {},
+      destroyPlayback: () => { state.playbackVersion++; }, playbackIntent: playback.createPlaybackIntent(), playbackExperience: { begin() {} },
+      renderPlaybackExperience() {}, renderEpisodes() {}, screenMessage() {}, monitorPlayback() {}, captureFirstFrame() {}, renderQuality() {}, checkPlayback() {} });
+    p.include('filmRoute', 'navigate'); p.include('startEpisode', 'renderVariantDiscovery'); await p.run('startEpisode(0)');
+    state.userPaused = paused; reject(Object.assign(Error('autoplay'), { name: 'NotAllowedError' })); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.autoplayBlocked, !paused); assert.equal(state.userPaused, paused);
+  }
 });
 
 function saving(storage, initial = [], account = null) {

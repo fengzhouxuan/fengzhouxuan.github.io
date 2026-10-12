@@ -149,6 +149,16 @@ export function createRatePicker(select, { label = '倍速' } = {}) {
     menu.hidden = true; trigger.setAttribute('aria-expanded', 'false');
     if (restore) trigger.focus({ preventScroll: true });
   }
+  function focusChoice(choice) {
+    choice.focus({ preventScroll: true });
+    // Reveal only within a bounded menu, without scrolling the watching page.
+    if (!(menu.clientHeight > 0 && menu.scrollHeight > menu.clientHeight)) return;
+    const bounds = menu.getBoundingClientRect?.(), item = choice.getBoundingClientRect?.();
+    if (!bounds || !item) return;
+    const top = bounds.top + (menu.clientTop || 0);
+    if (item.top < top) menu.scrollTop += item.top - top;
+    else if (item.bottom > top + menu.clientHeight) menu.scrollTop += item.bottom - top - menu.clientHeight;
+  }
   function open() {
     if (trigger.disabled) return;
     refresh(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true');
@@ -157,7 +167,7 @@ export function createRatePicker(select, { label = '倍速' } = {}) {
     const viewport = doc.defaultView?.innerHeight;
     menu.classList.toggle('align-left', Boolean(bounds && bounds.left < 8));
     menu.classList.toggle('opens-up', Boolean(anchor && height && viewport && anchor.bottom + height + 7 > viewport && anchor.top >= height + 7));
-    (choices.find(choice => choice.dataset.value === select.value) || choices[0]).focus({ preventScroll: true });
+    focusChoice(choices.find(choice => choice.dataset.value === select.value) || choices[0]);
   }
   listen(trigger, 'click', () => { if (menu.hidden) open(); else close(true); });
   listen(trigger, 'keydown', event => {
@@ -168,7 +178,7 @@ export function createRatePicker(select, { label = '倍速' } = {}) {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); return; }
     const index = Math.max(0, choices.indexOf(doc.activeElement));
     const next = event.key === 'ArrowDown' ? (index + 1) % choices.length : event.key === 'ArrowUp' ? (index + choices.length - 1) % choices.length : event.key === 'Home' ? 0 : event.key === 'End' ? choices.length - 1 : -1;
-    if (next >= 0) { event.preventDefault(); choices[next].focus({ preventScroll: true }); }
+    if (next >= 0) { event.preventDefault(); focusChoice(choices[next]); }
   });
   for (const choice of choices) listen(choice, 'click', () => {
     select.value = choice.dataset.value;
@@ -187,5 +197,49 @@ export function createRatePicker(select, { label = '倍速' } = {}) {
     destroyed = true; listeners.forEach(remove => remove()); trigger.remove(); menu.remove();
     select.hidden = nativeHidden; root.classList.remove('choice-picker');
     if (focused && !nativeHidden) select.focus({ preventScroll: true });
+  } };
+}
+
+// Present the existing HLS selection model inside the player. Catalog and media
+// requests stay with app.js; this control only changes the original select.
+export function createQualityPicker(select, { container, focusTarget, getMenuHeight = () => 360 } = {}) {
+  const doc = select?.ownerDocument, parent = select?.parentElement;
+  if (!doc || !parent || !container) return null;
+  const sibling = select.nextSibling, hidden = select.hidden;
+  const badge = doc.createElement('span'); badge.className = 'art-quality-current';
+  let picker, key = '', destroyed = false, latest = {};
+  select.hidden = true; container.append(select, badge);
+  function refresh(summary = latest) {
+    if (destroyed) return;
+    latest = summary;
+    container.style?.setProperty('--player-menu-height', Math.max(80, Number(getMenuHeight()) || 360) + 'px');
+    const options = [...select.options];
+    const selectable = summary.selectable && !select.disabled && options.length > 1;
+    const nextKey = selectable ? JSON.stringify(options.map(option => [option.value, option.textContent])) : '';
+    const focused = container.contains(doc.activeElement);
+    if (nextKey !== key) {
+      picker?.destroy(); picker = null; select.hidden = true; key = nextKey;
+      if (selectable) {
+        picker = createRatePicker(select, { label: '' });
+        const note = doc.createElement('p'); note.className = 'art-quality-note'; note.setAttribute('aria-hidden', 'true');
+        container.querySelector('.choice-menu')?.append(note);
+      }
+      if (focused) (container.querySelector('.choice-trigger') || focusTarget)?.focus({ preventScroll: true });
+    }
+    badge.hidden = !!picker; badge.textContent = summary.displayLabel || '清晰度';
+    badge.title = [summary.currentLabel, summary.note].filter(Boolean).join('；');
+    badge.setAttribute('aria-label', badge.title || '正在读取可用清晰度');
+    const trigger = container.querySelector('.choice-trigger'), note = container.querySelector('.art-quality-note');
+    if (trigger) trigger.title = badge.title;
+    if (note) note.textContent = [summary.currentLabel, summary.note].filter(Boolean).join('\n');
+    picker?.refresh();
+  }
+  refresh();
+  return { refresh, destroy() {
+    if (destroyed) return;
+    const focused = container.contains(doc.activeElement);
+    destroyed = true; picker?.destroy(); badge.remove();
+    parent.insertBefore(select, sibling?.parentElement === parent ? sibling : null); select.hidden = hidden;
+    if (focused) focusTarget?.focus({ preventScroll: true });
   } };
 }

@@ -31,7 +31,14 @@ export function playbackQuality(levels = [], { selected = -1, current = -1, widt
   const currentLabel = actual ? '当前画面：' + actual + ' · ' + w + '×' + h : '画面分辨率尚未取得';
   const pending = Boolean(target && (current !== selection || (w && h && target.width && target.height && (w !== target.width || h !== target.height))));
   const note = !ready ? '正在读取可用清晰度…' : native ? '清晰度由浏览器自动适配，可尝试其他来源。' : !selectable ? '此来源未提供多个清晰度，可尝试其他来源。' : pending ? '已选择 ' + target.label + '；' + (paused ? '继续播放后切换。' : '缓冲片段播放后生效。') : selection < 0 ? '自动根据网络情况选择清晰度。' : '已使用 ' + target.label + '。';
-  return { choices, selectable, selected: selection, currentLabel, note, pending };
+  return { choices, selectable, selected: selection, currentLabel, displayLabel: actual || '清晰度', note, pending };
+}
+
+export function matchingQualityLevel(levels, preference) {
+  if (!preference || !Array.isArray(levels) || ![preference.width, preference.height].every(value => Number.isInteger(value) && value > 0 && value <= 16384)) return -1;
+  const matches = levels.slice(0, 100).map((level, index) => ({ level, index })).filter(({ level }) => level && !level.audioOnly && level.width === preference.width && level.height === preference.height);
+  if (!matches.length) return -1;
+  return (matches.find(({ level }) => level.bitrate === preference.bitrate) || matches[0]).index;
 }
 
 export function playbackSummary(item, line = 0) {

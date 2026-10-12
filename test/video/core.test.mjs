@@ -499,12 +499,23 @@ test('manual promotion observations preserve sources and distinguish specific ep
   assert.equal(contentNotice(single, '第2集').observed, false);
   assert.equal(contentNotice({ ...single, lines: [] }, '第2集').observed, false);
   assert.equal(contentNotice({ ...single, lines: undefined }, '第2集').observed, false);
-  for (const item of [undefined, { source: 'unknown' }, { source: 'liangzi', id: '12' }, { source: 'zip0', id: 'ffzy:12' }]) {
+  for (const item of [undefined, { source: 'unknown' }, { source: 'zip0', id: 'ffzy:12' }]) {
     assert.equal(contentNotice(item).label, '推广情况未核验'); assert.match(contentNotice(item).text, /不代表/);
   }
   assert.equal(contentNotice({ source: 'kuaiche', id: '132088' }).label, '已发现博彩推广');
   assert.equal(contentNotice({ source: 'dbzy', id: '152475' }, '第1集').observed, true);
   assert.equal(allowedVideoId('subo', '161094'), true); assert.equal(allowedVideoId('diyi', '104'), true);
+});
+
+test('Liangzi episode 2 promotion is marked without excluding the source or marking episode 1 as inspected', () => {
+  const item = { source: 'liangzi', id: '24456' };
+  assert.equal(contentNotice(item, '第2集').observed, true);
+  assert.match(contentNotice(item, '第02集').text, /4分7秒/);
+  assert.equal(contentNotice(item, '第01集').observed, false);
+  assert.equal(contentNotice(item, '第01集').label, '来源有推广记录');
+  assert.equal(contentNotice({ source: 'liangzi', id: '12' }).label, '来源有推广记录');
+  assert.equal(allowedVideoId('liangzi', '24456'), true);
+  assert.deepEqual(contentNotice({ source: 'zip0', id: 'lzzy:24456' }, '第02集'), contentNotice(item, '第02集'));
 });
 
 test('the inspected episode 27 retains playback access and marks only its own observation across source aliases', () => {

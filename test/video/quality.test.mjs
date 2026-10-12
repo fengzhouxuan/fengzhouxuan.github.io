@@ -1,14 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { playbackQuality } from '../../source/video/playback.js';
+import { playbackQuality, matchingQualityLevel } from '../../source/video/playback.js';
 
 const levels = [{ width: 640, height: 360, bitrate: 800000 }, { width: 1280, height: 720, bitrate: 2500000 }, { width: 1920, height: 1080, bitrate: 5000000 }];
+
+test('retry restores a genuine rendition by dimensions and bitrate rather than an obsolete manifest index', () => {
+  const preference = { ...levels[1] };
+  assert.equal(matchingQualityLevel([...levels].reverse(), preference), 1);
+  assert.equal(matchingQualityLevel([levels[1], levels[2], levels[0]], preference), 0);
+  assert.equal(matchingQualityLevel([{ ...levels[1], bitrate: 3000000 }, levels[1]], preference), 1);
+  assert.equal(matchingQualityLevel([{ ...levels[1], bitrate: 3000000 }], preference), 0);
+  assert.equal(matchingQualityLevel([levels[2]], preference), -1);
+  for (const value of [null, {}, { width: -1, height: 720 }, { width: '1280', height: 720 }, { width: Infinity, height: 720 }, { width: 20000, height: 720 }]) assert.equal(matchingQualityLevel(levels, value), -1);
+  for (const value of [null, {}, [], [null], [{ ...levels[1], audioOnly: true }]]) assert.equal(matchingQualityLevel(value, preference), -1);
+});
 
 test('real quality choices retain HLS indices while sorting resolution and labeling actual decoded dimensions', () => {
   const result = playbackQuality(levels, { ready: true, width: 1920, height: 1080, current: 2 });
   assert.equal(result.selectable, true); assert.equal(result.selected, -1); assert.equal(result.pending, false);
   assert.deepEqual(result.choices.map(({ index, label }) => [index, label]), [[2, '1080p'], [1, '720p'], [0, '360p']]);
-  assert.equal(result.currentLabel, '当前画面：1080p · 1920×1080'); assert.match(result.note, /自动/);
+  assert.equal(result.currentLabel, '当前画面：1080p · 1920×1080'); assert.equal(result.displayLabel, '1080p'); assert.match(result.note, /自动/);
   assert.deepEqual(levels.map(level => level.height), [360, 720, 1080]);
 });
 
@@ -25,6 +36,7 @@ test('manual choice distinguishes pending buffered quality from current picture,
 
 test('single renditions and native playback never advertise unavailable manual choices', () => {
   assert.match(playbackQuality().note, /正在读取/);
+  assert.equal(playbackQuality().displayLabel, '清晰度');
   for (const value of [undefined, null, {}, [], [null], [levels[2]]]) {
     const result = playbackQuality(value, { ready: true, selected: 0, width: 1920, height: 1080 });
     assert.equal(result.selectable, false); assert.equal(result.selected, -1); assert.match(result.note, /未提供多个/);
