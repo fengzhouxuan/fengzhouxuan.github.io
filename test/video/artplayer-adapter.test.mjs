@@ -244,6 +244,7 @@ test('frame UI degrades safely to time-only for a blocked source and clamps near
 test('ArtPlayer reuses the original media and delegates source, resume, shortcuts and recovery to the site', () => {
   const p = fixture(), options = p.options();
   assert.equal(options.url, ''); assert.equal(options.proxy(), p.video);
+  assert.equal(options.theme, 'var(--cinema-accent)', 'the vendor inline theme must retain the dark control dock palette in light mode');
   for (const key of ['autoplay', 'autoPlayback', 'hotkey', 'mutex', 'fullscreen', 'fullscreenWeb', 'screenshot', 'pip', 'setting']) assert.equal(options[key], false);
   assert.equal(p.Artplayer.RECONNECT_TIME_MAX, 0); assert.equal(p.Artplayer.CONTEXTMENU, false); assert.equal(p.Artplayer.REMOVE_SRC_WHEN_DESTROY, false);
   assert.deepEqual([p.video.src, p.video.currentTime, p.video.paused, p.video.volume, p.video.muted, p.video.playbackRate], ['blob:existing-hls', 20, true, .4, true, 1.25]);

@@ -320,8 +320,8 @@ test('offline failures wait and reconnect reloads the same attempt once, without
   blocked.monitor.fail('线路无法加载'); assert.equal(blocked.advance(1).reason, '线路无法加载'); assert.equal(blocked.advance(60000).action, '');
 });
 
-test('offline reconnect and hard errors defer while paused, seeking or hidden; stale stopped monitors remain inert', () => {
-  for (const changes of [{ userPaused: true }, { seeking: true }, { hidden: true }]) {
+test('offline reconnect and hard errors defer while paused or hidden; stale stopped monitors remain inert', () => {
+  for (const changes of [{ userPaused: true }, { hidden: true }]) {
     const f = monitorFixture(); f.monitor.fail(); f.advance(1, { offline: true, ready: 1, error: true });
     assert.equal(f.advance(60000, { offline: false, ...changes }).action, '');
     assert.equal(f.advance(1, { userPaused: false, seeking: false, hidden: false }).action, 'recover');
@@ -331,6 +331,25 @@ test('offline reconnect and hard errors defer while paused, seeking or hidden; s
   f.monitor.stop(); f.monitor.fail('迟到错误'); assert.equal(f.advance(60000).action, '');
   f.monitor.begin({ position: 20 }); assert.equal(f.advance(1, { position: NaN, paused: true }).action, '');
   assert.equal(f.monitor.state.position, 20);
+});
+
+test('reconnection recovers an offline seek once at its selected position after manual resume', () => {
+  for (const automatic of [true, false]) {
+    const f = monitorFixture();
+    f.advance(1, { offline: true, ready: 1, seeking: true, position: 60, automatic });
+    f.monitor.fail('分片读取失败');
+    assert.equal(f.advance(60000, { userPaused: true, paused: true }).action, '');
+    assert.equal(f.advance(60000, { offline: false }).phase, 'paused');
+    assert.equal(f.advance(60000).action, '', 'network recovery must not undo a user pause');
+    const resumed = f.advance(1, { userPaused: false, paused: false });
+    assert.equal(resumed.action, automatic ? 'recover' : 'fail');
+    assert.equal(resumed.position, 60);
+    assert.match(resumed.reason, /网络已恢复/);
+    assert.equal(f.advance(60000).action, '', 'a stalled seek must not repeatedly restart the stream');
+  }
+  const f = monitorFixture();
+  f.advance(1, { offline: true, ready: 1, seeking: true, position: 60 });
+  assert.equal(f.advance(1, { offline: false }).action, 'recover');
 });
 
 test('local stall reloads preserve the existing per-episode fallback budget and cancellation identity', () => {

@@ -1,10 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
+const fontFiles = (await readdir(new URL('../../source/video/assets/fonts/', import.meta.url))).map(file => 'assets/fonts/' + file);
 
 const html = await readFile(new URL('../../source/video/index.html', import.meta.url), 'utf8');
 const script = html.match(/<script data-video-theme>([\s\S]*?)<\/script>/)[1];
+
+test('cinema fonts load from complete local subsets with immediate system fallbacks and no font-service dependency', async () => {
+  assert.match(html, /href="\.\/assets\/fonts\/fonts\.css"/);
+  const fontCSS = await readFile(new URL('../../source/video/assets/fonts/fonts.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(fontCSS, /https?:|@import|data:/i);
+  const urls = [...fontCSS.matchAll(/url\(\.\/([^)'"\s]+)\)/g)].map(match => match[1]);
+  const allowed = fontFiles.filter(file => file.endsWith('.woff2'));
+  assert.equal(new Set(urls).size, allowed.length);
+  for (const file of urls) {
+    assert.ok(allowed.includes('assets/fonts/' + file));
+    const data = await readFile(new URL('../../source/video/assets/fonts/' + file, import.meta.url));
+    assert.equal(data.subarray(0, 4).toString(), 'wOF2');
+  }
+  for (const face of fontCSS.match(/@font-face\s*\{[^}]+\}/g)) assert.match(face, /font-display:\s*swap/);
+  assert.match(fontCSS, /unicode-range:/);
+  assert.match(fontCSS, /font-weight:\s*400 600/);
+  const theme = await readFile(new URL('../../source/video/theme.css', import.meta.url), 'utf8');
+  assert.match(theme, /--font-body:InterVariable,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif/);
+  for (const name of ['Inter.LICENSE', 'NotoSansSC.LICENSE', 'NotoSerifSC.LICENSE']) {
+    assert.match(await readFile(new URL('../../source/video/assets/fonts/' + name, import.meta.url), 'utf8'), /SIL OPEN FONT LICENSE/i);
+  }
+});
 
 test('screen proportions form a labelled native radio group with one default choice', () => {
   const group = html.match(/<div id="screen-mode"[^>]*>([\s\S]*?)<\/div>/);
@@ -17,7 +40,7 @@ test('screen proportions form a labelled native radio group with one default cho
   assert.equal(inputs.filter(input => /\bchecked\b/.test(input)).length, 1); assert.match(inputs[0], /\bchecked\b/);
 });
 
-test('all inherited accent themes keep small text readable on paper, filled actions and selected chips', async () => {
+test('Blue Hour keeps small text readable in both modes regardless of an inherited blog accent', async () => {
   const css = await readFile(new URL('../../source/video/theme.css', import.meta.url), 'utf8');
   const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
   function luminance(hex) {
@@ -79,16 +102,16 @@ test('video reads all supported blog accents and both modes without changing sav
   }
 });
 
-test('missing, malformed, inherited and blocked preferences fall back safely', () => {
+test('missing, malformed and blocked preferences use the approved dark cinema without changing saved data', () => {
   for (const cookie of ['', 'flatpaper-accent=%E0%A4%A', 'flatpaper-accent=constructor', 'flatpaper-accent=__proto__', 'flatpaper-accent=unknown']) {
-    const page = preview({ cookie, mode: 'unexpected' }); assert.equal(page.attributes.get('data-accent'), 'green'); assert.equal(page.classes.has('dark-mode'), false);
+    const page = preview({ cookie, mode: 'unexpected' }); assert.equal(page.attributes.get('data-accent'), 'green'); assert.equal(page.classes.has('dark-mode'), true);
   }
   const blocked = preview({ blocked: true, cookieBlocked: true, control: false });
-  assert.equal(blocked.attributes.get('data-accent'), 'green'); assert.equal(blocked.classes.has('dark-mode'), false);
+  assert.equal(blocked.attributes.get('data-accent'), 'green'); assert.equal(blocked.classes.has('dark-mode'), true);
 });
 
 test('theme control shares only the blog mode preference and keeps its accessible state current', () => {
-  const page = preview({ cookie: 'flatpaper-accent=sakura' });
+  const page = preview({ cookie: 'flatpaper-accent=sakura', mode: 'light' });
   page.clicks.get('click')();
   assert.equal(page.classes.has('dark-mode'), true); assert.equal(page.values.get('flatpaper-mode'), 'dark');
   assert.equal(page.attributes.get('button:aria-label'), '切换到浅色主题'); assert.equal(page.attributes.get('button:title'), '切换到浅色主题');
@@ -103,13 +126,13 @@ test('focus, page restoration and relevant storage events synchronize settings c
   page.cookie('flatpaper-accent=purple'); page.handlers.get('focus')(); assert.equal(page.attributes.get('data-accent'), 'purple');
   page.values.set('flatpaper-mode', 'dark'); page.handlers.get('storage')({ key: 'flatpaper-mode' }); assert.equal(page.classes.has('dark-mode'), true);
   const before = page.reads(); page.handlers.get('storage')({ key: 'video-history' }); assert.equal(page.reads(), before);
-  page.values.clear(); page.handlers.get('storage')({ key: null }); assert.equal(page.classes.has('dark-mode'), false);
+  page.values.clear(); page.handlers.get('storage')({ key: null }); assert.equal(page.classes.has('dark-mode'), true);
   page.cookie('flatpaper-accent=blue'); page.handlers.get('pageshow')(); assert.equal(page.attributes.get('data-accent'), 'blue');
 });
 
 test('blocked storage still permits an in-page mode change through focus and page restoration', () => {
   const page = preview({ blocked: true }); page.clicks.get('click')(); page.handlers.get('focus')(); page.handlers.get('pageshow')();
-  assert.equal(page.classes.has('dark-mode'), true); assert.equal(page.attributes.get('button:aria-pressed'), 'true');
+  assert.equal(page.classes.has('dark-mode'), false); assert.equal(page.attributes.get('button:aria-pressed'), 'false');
 });
 
 test('readable but full storage keeps a manual mode until a new shared preference arrives', () => {

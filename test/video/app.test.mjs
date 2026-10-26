@@ -12,6 +12,117 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const episode = number => ({ name: '第' + number + '集', url: 'https://example.com/' + number + '.mp4' });
 const film = { uid: 'liangzi:12', source: 'liangzi', id: '12', title: '测试剧', year: '2026', category: '国产剧', lines: [{ name: '完整线', episodes: [1, 2, 3].map(episode) }, { name: '缺第2集', episodes: [1, 3].map(episode) }] };
 
+test('resume labels distinguish a fresh start from elapsed minutes without repeating episode or status text', () => {
+  const harness = appHarness(source, {});
+  harness.include('minuteLabel', 'filmRoute');
+  for (const position of [undefined, -10, 'bad', 0, 59]) {
+    assert.equal(harness.run(`continueLabel({episode:'第1集',position:${JSON.stringify(position)}})`), '第1集 · 刚刚开始');
+  }
+  assert.equal(harness.run("continueLabel({episode:'第1集',playbackLabel:'第01集',position:685})"), '第01集 · 已看 11 分钟');
+  assert.equal(harness.run('continueLabel({position:120})'), '已看 2 分钟');
+});
+
+test('player click-to-play hint uses its own position and clears that presentation state for every other message', () => {
+  const notice = { dataset: {} };
+  const harness = appHarness(source, { $: () => notice });
+  harness.include('screenMessage', 'fallbackMessage');
+  harness.run("screenMessage('请点击播放器开始观看。')");
+  assert.equal(notice.dataset.kind, 'play'); assert.equal(notice.hidden, false);
+  harness.run("screenMessage('正在恢复观看位置…')");
+  assert.equal(notice.dataset.kind, ''); assert.equal(notice.textContent, '正在恢复观看位置…');
+  harness.run("screenMessage('')"); assert.equal(notice.dataset.kind, ''); assert.equal(notice.hidden, true);
+});
+
+test('home and watch ambience use any films source poster with no title-specific artwork or unsafe URLs', () => {
+  let assignments = 0, src = '';
+  const backdrop = { dataset: {}, hidden: true, getAttribute: () => src, removeAttribute: () => { src = ''; },
+    set src(value) { assignments++; src = value; } };
+  const requested = []; const harness = appHarness(source, { $: id => { requested.push(id); return backdrop; }, safeURL: core.safeURL });
+  harness.include('renderBackdrop', 'renderHeroArtwork');
+  harness.include('renderHeroArtwork', 'renderHero');
+  harness.run('renderHeroArtwork(null)'); assert.equal(backdrop.hidden, true); assert.equal(assignments, 0);
+  for (const poster of ['', 'javascript:alert(1)', 'data:image/png;base64,eA==', 'http://example.com/p.jpg', 'https://secret@example.com/p.jpg']) {
+    harness.run('renderHeroArtwork(' + JSON.stringify({ title: '星际穿越', poster }) + ')'); assert.equal(backdrop.hidden, true); assert.equal(assignments, 0);
+  }
+  harness.run("renderHeroArtwork({title:'任何影片',poster:'https://example.com/source-poster.jpg'})");
+  assert.equal(backdrop.hidden, false); assert.equal(src, 'https://example.com/source-poster.jpg'); assert.equal(assignments, 1);
+  harness.run("renderHeroArtwork({title:'其他标题',poster:'https://example.com/source-poster.jpg'})"); assert.equal(assignments, 1);
+  assert.ok(requested.every(id => id === 'hero-backdrop'));
+  harness.run("renderBackdrop('watch-backdrop',{poster:'https://example.com/watch.jpg'})");
+  assert.equal(requested.at(-1), 'watch-backdrop'); assert.equal(src, 'https://example.com/watch.jpg');
+  harness.run("renderBackdrop('watch-backdrop',null)"); assert.equal(backdrop.hidden, true); assert.equal(src, '');
+});
+
+test('cinema starts from a matching curated film while respecting an explicitly selected film and empty results', () => {
+  const picks = [{ source: 'a', id: '1', title: '琅琊榜' }, { source: 'a', id: '2', title: '星际穿越' }];
+  const state = { home: { picks }, hero: '' };
+  const harness = appHarness(source, { state, groupVideos: items => items, videoKey: item => item.source + ':' + item.id });
+  harness.include('heroVideo', 'renderHeroArtwork'); assert.equal(harness.run('heroVideo().title'), '星际穿越');
+  state.home.picks = [picks[0]]; assert.equal(harness.run('heroVideo().title'), '琅琊榜');
+  state.home.picks.push(picks[1]); assert.equal(harness.run('heroVideo().title'), '星际穿越');
+  state.hero = 'a:1'; assert.equal(harness.run('heroVideo().title'), '琅琊榜');
+  state.home.picks = [picks[0]]; state.hero = 'missing'; assert.equal(harness.run('heroVideo().title'), '琅琊榜');
+  state.home.picks = []; assert.equal(harness.run('heroVideo()'), undefined);
+});
+
+test('failed ambience does not retry every render and a stale image failure cannot hide a newly selected poster', () => {
+  let assignments = 0, src = '';
+  const backdrop = { dataset: {}, getAttribute: () => src, removeAttribute: () => { src = ''; }, set src(value) { assignments++; src = value; } };
+  const harness = appHarness(source, { $: () => backdrop, safeURL: core.safeURL }); harness.include('renderBackdrop', 'renderHeroArtwork');
+  harness.run("renderBackdrop('hero-backdrop',{poster:'https://example.com/a.jpg'})"); const oldFailure = backdrop.onerror;
+  harness.run("renderBackdrop('hero-backdrop',{poster:'https://example.com/b.jpg'})"); oldFailure(); assert.equal(backdrop.hidden, false);
+  backdrop.onerror(); assert.equal(backdrop.hidden, true);
+  harness.run("renderBackdrop('hero-backdrop',{poster:'https://example.com/b.jpg'})"); assert.equal(assignments, 2); assert.equal(backdrop.hidden, true);
+  harness.run("renderBackdrop('hero-backdrop',{poster:'https://example.com/c.jpg'})"); assert.equal(backdrop.hidden, false); assert.equal(assignments, 3);
+});
+
+test('progressive home results never pin an automatic hero, while explicit choice and favorite state remain stable', () => {
+  class Node {
+    constructor(className = '') { this.className = className; this.children = []; this.dataset = {}; this.attributes = {}; this.classList = { toggle() {} }; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) { this.children = nodes; }
+    contains() { return false; }
+    querySelector(selector) { return this.children.find(child => '.' + child.className === selector); }
+    setAttribute(name, value) { this.attributes[name] = value; }
+    insertBefore(node) { this.children.push(node); }
+    closest() { return { open: false }; }
+  }
+  const nodes = new Map(); const $ = id => { if (!nodes.has(id)) nodes.set(id, new Node()); return nodes.get(id); };
+  const first = { uid: 'a:1', title: '先返回的影片' }, featured = { uid: 'a:2', title: '星际穿越' };
+  const state = { home: { picks: [first], sections: { picks: {} } }, hero: '' }; const saved = new Set();
+  const harness = appHarness(source, { $, state, groupVideos: items => items, videoKey: item => item.uid,
+    favoriteFor: item => saved.has(item.uid), renderHeroArtwork() {}, safeURL: () => '', addPoster() {}, heroPoster: null,
+    document: { activeElement: null }, el: (_tag, className, textContent) => Object.assign(new Node(className), { textContent }),
+    button: (_label, _className, onclick) => Object.assign(new Node(), { onclick }),
+  });
+  harness.include('heroVideo', 'renderHeroArtwork'); harness.include('renderHero', 'renderHome');
+  harness.run('renderHero()'); assert.equal(state.hero, ''); assert.equal($('hero-title').textContent, first.title);
+  state.home.picks.push(featured); harness.run('renderHero()'); assert.equal($('hero-title').textContent, featured.title);
+  saved.add(featured.uid); harness.run('renderHero()'); assert.equal($('hero-favorite').attributes['aria-pressed'], 'true');
+  assert.equal($('hero-favorite-label').textContent, '已收藏');
+  $('hero-picks').children[0].onclick(); assert.equal(state.hero, first.uid); assert.equal($('hero-title').textContent, first.title);
+  assert.equal($('hero-favorite').attributes['aria-pressed'], 'false');
+  state.home.picks = []; harness.run('renderHero()'); assert.equal($('hero-title').textContent, '私人放映室');
+  assert.equal($('hero-play').disabled, true); assert.equal($('hero-art').children.length, 0);
+});
+
+test('poster and optional blurred backing only reuse the safe source URL and fall back to readable text without retries', () => {
+  const images = []; const fallback = {};
+  const harness = appHarness(source, {
+    el: () => fallback, safeURL: core.safeURL,
+    document: { createElement() { const image = { handlers: {}, addEventListener(name, fn) { this.handlers[name] = fn; }, remove() { this.removed = true; } }; images.push(image); return image; } },
+    container: { replaceChildren() {}, append() {} },
+  });
+  harness.include('addPoster', 'renderCard');
+  harness.run("addPoster(container,{title:'星际穿越',poster:'javascript:alert(1)'},'lazy',true)"); assert.equal(images.length, 0);
+  harness.run("addPoster(container,{title:'星际穿越',poster:'https://example.com/poster.jpg'},'lazy',true)");
+  assert.equal(images.length, 2);
+  for (const image of images) { assert.equal(image.src, 'https://example.com/poster.jpg'); assert.equal(image.loading, 'lazy'); assert.equal(image.referrerPolicy, 'no-referrer'); }
+  assert.equal(images[0].className, 'poster-atmosphere'); images[1].handlers.error();
+  assert.ok(images.every(image => image.removed));
+  assert.notEqual(fallback.hidden, true);
+});
+
 test('quality rendering forwards genuine levels and current-frame information to the enhanced player', () => {
   for (const count of [0, 1, 3]) {
     const nodes = new Map(); const $ = id => {

@@ -180,6 +180,11 @@ function minuteLabel(position) {
   return minutes ? minutes + ' 分钟' : '刚刚开始';
 }
 
+function continueLabel(item) {
+  const position = minuteLabel(item.position);
+  return [item.playbackLabel || item.episode, position === '刚刚开始' ? position : '已看 ' + position].filter(Boolean).join(' · ');
+}
+
 function filmRoute(view, item, episode, episodeName = item.lines?.[0]?.episodes[episode]?.name) {
   const params = new URLSearchParams({ source: item.source, id: item.id });
   if (episode !== undefined) params.set('episode', String(episode + 1));
@@ -222,27 +227,44 @@ function updateFavoriteButtons() {
   }
 }
 
-function addPoster(container, item, loading = 'lazy') {
+function addPoster(container, item, loading = 'lazy', ambient = false) {
   container.replaceChildren();
   const fallback = el('span', 'poster-fallback', item.title);
   container.append(fallback);
-  if (!safeURL(item.poster)) return;
+  const poster = safeURL(item.poster);
+  if (!poster) return;
+  let atmosphere;
+  if (ambient) {
+    atmosphere = document.createElement('img'); atmosphere.className = 'poster-atmosphere';
+    atmosphere.src = poster; atmosphere.alt = ''; atmosphere.loading = loading; atmosphere.referrerPolicy = 'no-referrer';
+    atmosphere.addEventListener('error', () => atmosphere.remove(), { once: true });
+    container.append(atmosphere);
+  }
   const img = document.createElement('img');
-  img.src = safeURL(item.poster); img.alt = ''; img.loading = loading; img.referrerPolicy = 'no-referrer';
+  img.src = poster; img.alt = ''; img.loading = loading; img.referrerPolicy = 'no-referrer';
   img.addEventListener('load', () => { fallback.hidden = true; }, { once: true });
-  img.addEventListener('error', () => img.remove(), { once: true });
+  img.addEventListener('error', () => {
+    img.remove(); atmosphere?.remove();
+  }, { once: true });
   container.append(img);
 }
 
-function renderCard(item, { history = false } = {}) {
-  const card = el('article', 'movie-card');
+function renderCard(item, { history = false, editorial = false } = {}) {
+  const card = el('article', editorial ? 'movie-card editorial-card' : 'movie-card');
   const poster = el('a', 'poster-button'); const badge = el('span', 'card-badge');
   const track = el('span', 'progress-track'); const fill = el('span', 'progress-fill'); track.append(fill);
   const title = el('h3'); const link = el('a'); title.append(link);
   const metadata = el('p', 'card-meta'); const sources = el('span', 'secondary');
   const bottom = el('div', 'card-bottom');
   const favorite = button('', '', () => toggleFavorite(item));
-  bottom.append(sources, favorite); card.append(poster, title, metadata, bottom);
+  const favoriteIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  favoriteIcon.setAttribute('viewBox', '0 0 24 24'); favoriteIcon.setAttribute('aria-hidden', 'true');
+  const favoriteShape = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  favoriteShape.setAttribute('d', 'M6 3h12v18l-6-4-6 4z'); favoriteIcon.append(favoriteShape); favorite.append(favoriteIcon);
+  const description = editorial ? el('p', 'card-description') : null;
+  bottom.append(sources, favorite); card.append(poster, title, metadata);
+  if (description) card.append(description);
+  card.append(bottom);
   let lastPoster; let watch;
   if (history) {
     const actions = el('div', 'saved-actions');
@@ -266,8 +288,9 @@ function renderCard(item, { history = false } = {}) {
     track.hidden = !(progress?.duration > 0);
     fill.style.width = (progress?.duration > 0 ? Math.min(100, Math.max(0, progress.position / progress.duration * 100)) : 0) + '%';
     link.textContent = item.title; metadata.textContent = [item.year, item.area, item.category].filter(Boolean).join(' · ');
+    if (description) description.textContent = item.description || item.remarks || '打开详情，看看这个故事。';
     sources.textContent = item.variants.length > 1 ? item.variants.length + ' 个来源' : sourceName(item.source);
-    favorite.textContent = saved ? '♥' : '♡'; favorite.className = saved ? 'saved' : '';
+    favorite.className = saved ? 'saved' : '';
     favorite.setAttribute('aria-label', (saved ? '取消收藏' : '收藏') + item.title); favorite.setAttribute('aria-pressed', String(saved));
     if (watch) watch.href = filmRoute('watch', progress || item);
   }
@@ -296,30 +319,62 @@ function skeletonCards() {
 
 function heroVideo() {
   const picks = groupVideos(state.home.picks);
-  return picks.find(item => videoKey(item) === state.hero) || picks[0];
+  return picks.find(item => videoKey(item) === state.hero) || picks.find(item => item.title === '星际穿越') || picks[0];
+}
+
+function renderBackdrop(id, item) {
+  const backdrop = $(id);
+  const source = safeURL(item?.poster);
+  const failed = source && backdrop.dataset.failed === source;
+  backdrop.hidden = !source || failed;
+  if (!source) { backdrop.removeAttribute('src'); return; }
+  if (source && backdrop.getAttribute('src') !== source) {
+    backdrop.onerror = () => {
+      if (backdrop.getAttribute('src') !== source) return;
+      backdrop.dataset.failed = source; backdrop.hidden = true;
+    };
+    backdrop.src = source;
+  }
+}
+
+function renderHeroArtwork(item) {
+  renderBackdrop('hero-backdrop', item);
 }
 
 function renderHero() {
   const picks = groupVideos(state.home.picks); const item = heroVideo();
   $('hero-play').disabled = !item; $('hero-detail').disabled = !item;
+  const favorite = $('hero-favorite');
+  favorite.disabled = !item;
+  favorite.setAttribute('aria-pressed', String(Boolean(item && favoriteFor(item))));
+  $('hero-favorite-label').textContent = item && favoriteFor(item) ? '已收藏' : '收藏';
+  renderHeroArtwork(item);
   if (!item) {
+    $('hero-title').textContent = '私人放映室'; $('hero-meta').textContent = '精选影片';
+    $('hero-art').replaceChildren(); heroPoster = undefined;
     $('hero-description').textContent = state.home.sections.picks.loading ? '正在准备今天的放映室…' : '试试搜索片名，或从下面的分类开始挑选。';
     return;
   }
-  if (!state.hero) state.hero = videoKey(item);
   $('hero-title').textContent = item.title;
-  $('hero-meta').textContent = '经典重温 / ' + [item.year, item.category, item.remarks].filter(Boolean).join(' · ');
+  $('hero-meta').textContent = [item.year, item.area, item.category, item.remarks].filter(Boolean).join(' · ');
   $('hero-description').textContent = item.description || '选一部熟悉的故事，从这一幕开始。';
   const posterKey = videoKey(item) + '|' + safeURL(item.poster);
   if (heroPoster !== posterKey) {
-    addPoster($('hero-art'), item, 'eager'); $('hero-art').append(el('span', 'film-corner', 'SIDE B / CINEMA')); heroPoster = posterKey;
+    addPoster($('hero-art'), item, 'eager', true); heroPoster = posterKey;
   }
   const group = $('hero-picks'); const existing = new Map([...group.children].map(option => [option.dataset.key, option]));
   const focused = group.contains(document.activeElement) ? document.activeElement : null;
-  const options = picks.map((pick, index) => {
+  const options = picks.map(pick => {
     const key = videoKey(pick); const selected = key === videoKey(item);
-    const option = existing.get(key) || button('', '', () => { state.hero = key; renderHero(); });
-    option.dataset.key = key; option.textContent = '0' + (index + 1) + '  ' + pick.title;
+    const option = existing.get(key) || button('', '', () => {
+      state.hero = key; renderHero();
+      const switcher = group.closest('details');
+      if (switcher?.open) { switcher.open = false; switcher.querySelector('summary').focus({ preventScroll: true }); }
+    });
+    if (!option.querySelector('.hero-pick-title')) option.append(el('span', 'hero-pick-title'), el('small', 'hero-pick-meta'));
+    option.dataset.key = key; option.querySelector('.hero-pick-title').textContent = pick.title;
+    option.querySelector('.hero-pick-meta').textContent = [pick.year, pick.category].filter(Boolean).join(' · ');
+    option.setAttribute('aria-label', [pick.title, pick.year, pick.category].filter(Boolean).join('，'));
     option.classList.toggle('active', selected); option.setAttribute('aria-pressed', String(selected));
     option.tabIndex = (focused ? option === focused : selected) ? 0 : -1; return option;
   });
@@ -333,10 +388,16 @@ function renderHome() {
   for (const section of ['picks', 'short', 'tv', 'movie']) {
     const grid = $(section + '-cards'); const status = state.home.sections[section];
     const statusFocused = document.activeElement === $(section + '-status');
-    const items = groupVideos(state.home[section]).slice(0, 6);
+    const selection = groupVideos(state.home[section]);
+    if (section === 'picks') {
+      const order = ['楚门的世界', '肖申克的救赎', '星际穿越'];
+      const rank = item => { const index = order.indexOf(item.title); return index < 0 ? order.length : index; };
+      selection.sort((first, second) => rank(first) - rank(second));
+    }
+    const items = selection.slice(0, 6);
     if (!items.length && status.loading) {
       if (!grid.querySelector('.skeleton')) grid.replaceChildren(...skeletonCards());
-    } else renderGrid(section + '-cards', items);
+    } else renderGrid(section + '-cards', items, { editorial: section === 'picks' });
     grid.setAttribute('aria-busy', String(status.loading));
     const message = status.loading ? (items.length ? '已返回的影片可以先看，其他条目仍在查询…' : '正在加载影片…')
       : status.failed ? (items.length ? '部分条目暂时无法读取，已显示的影片可以正常查看。' : '这个栏目暂时无法读取，请稍后重试。')
@@ -350,21 +411,28 @@ function renderHome() {
     else if (statusFocused && !message) grid.querySelector('.poster-button')?.focus({ preventScroll: true });
   }
   $('home-status').textContent = state.home.loading ? '正在布置放映室，已返回的影片可以先看。' : '';
-  const records = groupVideos(state.history).slice(0, 3);
+  const records = groupVideos(state.history).slice(0, 4);
   $('continue-section').hidden = !records.length;
   const grid = $('continue-cards'); const existing = new Map([...grid.children].map(card => [card.dataset.key, card]));
   const cards = records.map(item => {
     const key = videoKey(item); let card = existing.get(key);
     if (!card) {
       card = el('a', 'continue-card'); card.dataset.key = key;
-      const cover = el('div', 'continue-cover'); const copy = el('div');
+      const cover = el('div', 'continue-cover'); const copy = el('div', 'continue-copy');
       const title = el('strong'); const progress = el('small'); let posterKey;
-      copy.append(title, progress, el('span', '', '继续观看 →')); card.append(cover, copy);
+      const track = el('span', 'progress-track'); const fill = el('span', 'progress-fill'); track.append(fill);
+      const action = el('span', 'continue-action'); action.append(el('span', 'sr-only', '继续观看'));
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('aria-hidden', 'true');
+      const shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); shape.setAttribute('d', 'm9 5 10 7-10 7z'); icon.append(shape); action.append(icon);
+      copy.append(title, progress); card.append(cover, copy, action);
       continueUpdates.set(card, next => {
         const poster = next.title + '|' + safeURL(next.poster);
-        if (posterKey !== poster) { addPoster(cover, next); posterKey = poster; }
+        if (posterKey !== poster) { addPoster(cover, next, 'lazy', true); cover.append(track); posterKey = poster; }
+        track.hidden = !(next.duration > 0);
+        fill.style.width = (next.duration > 0 ? Math.min(100, Math.max(0, next.position / next.duration * 100)) : 0) + '%';
         card.href = filmRoute('watch', next); title.textContent = next.title;
-        progress.textContent = (next.playbackLabel || next.episode) + ' · 已看到 ' + minuteLabel(next.position);
+        progress.textContent = continueLabel(next);
       });
     }
     continueUpdates.get(card)(item); return card;
@@ -878,6 +946,7 @@ function renderQuality() {
 
 function screenMessage(text) {
   $('screen-message').textContent = text; $('screen-message').hidden = !text;
+  $('screen-message').dataset.kind = text === '请点击播放器开始观看。' ? 'play' : '';
 }
 
 function fallbackMessage(text) {
@@ -897,6 +966,7 @@ function playbackPosition() {
 
 function renderWatch() {
   const current = state.current;
+  renderBackdrop('watch-backdrop', current);
   $('playing-title').textContent = current.title; $('watch-back').href = filmRoute('detail', current);
   $('watch-list-back').href = state.lastList;
   $('failed-watch-back').href = state.lastList;
@@ -1276,6 +1346,7 @@ async function prepareVideo(route) {
   state.detailController?.abort();
   const controller = new AbortController(); state.detailController = controller;
   const version = ++state.detailVersion; destroyPlayback(); state.current = null; state.group = null; state.detailLoading = true;
+  $('watch-backdrop').hidden = true;
   state.initialPlayback = route.view === 'watch';
   if (state.initialPlayback) { playbackExperience.open(document.hidden ? 'background' : navigator.onLine === false ? 'offline' : 'loading'); renderPlaybackExperience(true); }
   $('playback-feedback').hidden = true;
@@ -1410,12 +1481,13 @@ function handleRoute() {
     $(id + '-page').hidden = id === 'catalog' ? !['browse', 'search'].includes(route.view) : route.view !== id;
   }
   if (document.activeElement?.closest('[hidden]')) document.activeElement.blur();
-  const active = route.view === 'browse' ? route.category : route.view === 'search' ? '' : route.view === 'detail' || route.view === 'watch' ? '' : route.view;
+  const active = route.view === 'browse' ? route.category : route.view === 'library' && route.tab === 'history' ? 'history' : route.view === 'search' ? '' : route.view === 'detail' || route.view === 'watch' ? '' : route.view;
   document.querySelectorAll('[data-nav]').forEach(link => {
     if (link.dataset.nav === active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
   });
   document.body.classList.toggle('watching', route.view === 'watch');
   document.body.classList.toggle('browsing', ['browse', 'search'].includes(route.view));
+  $('page-context').textContent = route.view === 'browse' ? (CATEGORIES.find(category => category.id === route.category)?.name || '浏览影片') : ({ home: '发现', search: '搜索', library: '我的片单', detail: '影片详情', watch: '正在放映' }[route.view] || '私人放映室');
   if (['home', 'browse', 'search', 'library'].includes(route.view)) state.lastList = listNavigation.remember(location.hash || '#home');
   document.title = '私人放映室 · 打个大柚子的兔子洞';
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1525,6 +1597,12 @@ window.addEventListener('pagehide', () => {
 });
 window.addEventListener('hashchange', handleRoute);
 
+document.querySelector('.skip-link').addEventListener('click', event => {
+  event.preventDefault();
+  $('main-content').focus({ preventScroll: true });
+  $('main-content').scrollIntoView({ block: 'start', behavior: 'instant' });
+});
+
 $('search-form').addEventListener('submit', event => {
   event.preventDefault(); const query = $('query').value.trim();
   if (query) { submittedSearchHash = '#search?q=' + encodeURIComponent(query); navigate(submittedSearchHash); } else $('query').focus();
@@ -1534,6 +1612,9 @@ $('hero-play').addEventListener('click', () => {
 });
 $('hero-detail').addEventListener('click', () => {
   const item = heroVideo(); if (item) navigate(filmRoute('detail', item));
+});
+$('hero-favorite').addEventListener('click', () => {
+  const item = heroVideo(); if (item) toggleFavorite(item);
 });
 $('detail-play').addEventListener('click', () => {
   if (state.current) navigate(filmRoute('watch', state.current));

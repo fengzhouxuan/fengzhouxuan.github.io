@@ -39,7 +39,7 @@ export function createArtPlayer(video, { screen, controls, onFullscreen, onError
       autoplay: false, autoPlayback: false, hotkey: false, mutex: false, gesture: false,
       fullscreen: false, fullscreenWeb: false, playbackRate: false, setting: false,
       screenshot: false, pip: false, autoSize: false, autoMini: false,
-      theme: 'var(--accent)', moreVideoAttr: { controls: false, preload: 'metadata', playsInline: true },
+      theme: 'var(--cinema-accent)', moreVideoAttr: { controls: false, preload: 'metadata', playsInline: true },
       cssVar: { '--art-control-height': '40px', '--art-bottom-gap': '10px', '--art-border-radius': '6px', '--art-font-family': 'inherit' },
     });
     // The site's media error handler already owns retry and cross-source recovery.

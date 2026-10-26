@@ -125,22 +125,24 @@ export function createPlaybackMonitor({ now = () => performance.now(), startupAf
     if (sample.blocked) return suspend('blocked');
     if (sample.ended) { state.active = false; state.phase = 'ended'; return result(); }
     if (sample.userPaused || (state.started && sample.paused && !sample.error && !failure)) return suspend('paused');
+    const act = (action, reason) => {
+      actioned = true; state.phase = action === 'recover' ? 'recovering' : 'failed'; state.reason = reason;
+      if (action === 'recover') state.recovered = true;
+      return result(action);
+    };
+    // Missing offline fragments can leave the media element seeking forever.
+    // Honor pause/background first, then recover at the selected position.
+    if (wasOffline) {
+      wasOffline = false;
+      if (reconnectNeeded && !advanced) return act(sample.automatic === false ? 'fail' : 'recover', '网络已恢复，正在重试当前线路');
+      reconnectNeeded = false;
+    }
     if (sample.seeking) {
       seekSince ??= time;
       return suspend(time - seekSince >= seekAfter ? 'seek-timeout' : 'seeking');
     }
     seekSince = null;
     if (gate) { lastProgress = time; gate = ''; }
-    const act = (action, reason) => {
-      actioned = true; state.phase = action === 'recover' ? 'recovering' : 'failed'; state.reason = reason;
-      if (action === 'recover') state.recovered = true;
-      return result(action);
-    };
-    if (wasOffline) {
-      wasOffline = false;
-      if (reconnectNeeded && !advanced) return act(sample.automatic === false ? 'fail' : 'recover', '网络已恢复，正在重试当前线路');
-      reconnectNeeded = false;
-    }
     if (failure || sample.error) return act('fail', failure || '视频线路发生错误');
     const elapsed = time - lastProgress;
     state.waitMs = Math.max(0, elapsed);
