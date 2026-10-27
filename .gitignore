@@ -22,6 +22,7 @@ source/wallpapers/data/previews.json.tmp
 *.local
 coverage/
 test-results/
+prototypes/
 .idea/
 .vscode/
 *.iml

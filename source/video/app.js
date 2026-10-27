@@ -1009,6 +1009,97 @@ function focusPlayerArea(id) {
   target.focus({ preventScroll: true });
 }
 
+/* 手机端选集抽屉：把侧栏里的同一块面板临时移到屏幕底部。
+   面板不复制、不重建，选集与换源逻辑完全沿用原有代码。 */
+const episodeSheet = (() => {
+  const panel = $('episode-panel');
+  const narrow = window.matchMedia('(max-width: 600px)');
+  let sheet, backdrop, closeButton, body, placeholder, opener, originParent, originSibling;
+  let open = false, restoreTimer = 0;
+
+  function build() {
+    backdrop = document.createElement('button');
+    backdrop.type = 'button'; backdrop.className = 'episode-sheet-backdrop'; backdrop.tabIndex = -1;
+    backdrop.setAttribute('aria-label', '关闭选集面板');
+    sheet = document.createElement('section');
+    sheet.id = 'episode-sheet'; sheet.className = 'episode-sheet'; sheet.tabIndex = -1;
+    sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-labelledby', 'episode-heading');
+    const bar = document.createElement('div'); bar.className = 'episode-sheet-bar';
+    const grip = document.createElement('span'); grip.className = 'episode-sheet-grip'; grip.setAttribute('aria-hidden', 'true');
+    closeButton = document.createElement('button');
+    closeButton.type = 'button'; closeButton.className = 'episode-sheet-close';
+    closeButton.setAttribute('aria-label', '关闭选集面板');
+    closeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+    bar.append(grip, closeButton);
+    body = document.createElement('div'); body.className = 'episode-sheet-body';
+    sheet.append(bar, body);
+    document.body.append(backdrop, sheet);
+    backdrop.addEventListener('click', () => hide());
+    closeButton.addEventListener('click', () => hide());
+    document.addEventListener('keydown', onKeydown, true);
+    panel.addEventListener('click', event => {
+      if (open && event.target.closest?.('#episodes [data-index]')) hide();
+    }, true);
+    window.addEventListener('hashchange', () => hide(false));
+    narrow.addEventListener?.('change', event => { if (!event.matches) hide(false); });
+  }
+
+  function trapFocus(event) {
+    const focusable = [...sheet.querySelectorAll('button, summary, select, a[href], [tabindex]')]
+      .filter(node => !node.disabled && !node.hidden && node.tabIndex >= 0 && node.getClientRects().length);
+    const first = focusable[0], last = focusable.at(-1);
+    if (!first) { event.preventDefault(); sheet.focus(); }
+    else if (event.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+
+  function onKeydown(event) {
+    if (!open) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); hide(); return; }
+    if (event.code === 'KeyE') { event.stopPropagation(); return; }
+    if (event.key === 'Tab') trapFocus(event);
+  }
+
+  function show(trigger) {
+    if (open || !panel || $('watch-page').hidden) return;
+    if ($('screen').classList.contains('episode-drawer-open')) return;
+    if (!sheet) build();
+    clearTimeout(restoreTimer);
+    if (panel.parentElement !== body) { originParent = panel.parentElement; originSibling = panel.nextSibling; }
+    if (!placeholder) {
+      placeholder = document.createElement('div');
+      placeholder.className = 'episode-sheet-placeholder';
+      placeholder.textContent = '选集与来源已在底部展开';
+      originParent.insertBefore(placeholder, panel);
+    }
+    opener = trigger || document.activeElement;
+    body.append(panel);
+    open = true;
+    document.documentElement.classList.add('sheet-open');
+    sheet.classList.add('is-open'); backdrop.classList.add('is-open');
+    closeButton.focus({ preventScroll: true });
+    panel.querySelector('#episodes [aria-pressed="true"]')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function hide(restoreFocus = true) {
+    if (!open) return;
+    open = false;
+    document.documentElement.classList.remove('sheet-open');
+    sheet.classList.remove('is-open'); backdrop.classList.remove('is-open');
+    const parent = originParent, sibling = originSibling;
+    clearTimeout(restoreTimer);
+    restoreTimer = setTimeout(() => {
+      if (open || !parent) return;
+      parent.insertBefore(panel, sibling?.parentElement === parent ? sibling : null);
+      placeholder?.remove(); placeholder = null;
+    }, 240);
+    if (restoreFocus) opener?.focus?.({ preventScroll: true });
+  }
+
+  return { show, hide, get open() { return open; } };
+})();
+
 function automaticPlaybackAllowed() {
   return navigator.onLine !== false && !document.hidden && !state.userPaused && !state.autoplayBlocked;
 }
@@ -1661,8 +1752,14 @@ $('quality-source').addEventListener('click', () => {
 });
 $('screen-mode').addEventListener('change', adaptScreen);
 $('exit-fullscreen').addEventListener('click', toggleFullscreen);
-$('open-episodes').addEventListener('click', () => focusPlayerArea('episode-heading'));
-$('return-screen').addEventListener('click', () => focusPlayerArea('screen'));
+$('open-episodes').addEventListener('click', () => {
+  if (window.matchMedia('(max-width: 600px)').matches) episodeSheet.show($('open-episodes'));
+  else focusPlayerArea('episode-heading');
+});
+$('return-screen').addEventListener('click', () => {
+  if (episodeSheet.open) episodeSheet.hide(false);
+  focusPlayerArea('screen');
+});
 document.addEventListener('fullscreenchange', () => {
   if (document.fullscreenElement === $('screen')) $('screen').focus({ preventScroll: true });
   else if (!document.fullscreenElement) restoreFullscreenFocus();
