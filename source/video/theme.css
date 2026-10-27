@@ -940,6 +940,8 @@ html:not(.dark-mode) .episode-sheet-backdrop{background:#1b171257}
 @media(max-width:600px){
 .episode-sheet{display:flex}
 .episode-sheet-backdrop{display:block}
+/* 手机上选集内容只在底部抽屉里出现一次：抽屉收起时面板搬回侧栏，正好被这条规则重新隐藏 */
+.watch-sidebar #episode-panel{display:none}
 }
 @media(prefers-reduced-motion:reduce){
 .episode-sheet,.episode-sheet-backdrop{transition-duration:.01ms}
