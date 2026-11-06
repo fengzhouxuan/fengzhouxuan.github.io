@@ -11,11 +11,18 @@
     (() => {
       const root = document.documentElement;
       const accents = ['orange', 'purple', 'sakura', 'blue', 'pink', 'green', 'black'];
-      let currentMode = 'dark';
+      const requestedPalette = new URLSearchParams(window.location.search).get('palette');
+      const palette = ['shanshui', 'ink'].includes(requestedPalette) ? requestedPalette : 'showa';
+      root.setAttribute('data-screening-palette', palette);
+      const defaultMode = palette === 'ink' ? 'dark' : 'light';
+      let currentMode = defaultMode;
       let transientMode = false;
       function mode() {
         if (transientMode) return currentMode;
-        try { return localStorage.getItem('flatpaper-mode') === 'light' ? 'light' : 'dark'; }
+        try {
+          const saved = localStorage.getItem('flatpaper-mode');
+          return saved === 'light' || saved === 'dark' ? saved : defaultMode;
+        }
         catch { return currentMode; }
       }
       function syncTheme() {
@@ -61,6 +68,7 @@
   </script>
   <link rel="stylesheet" href="./assets/fonts/fonts.css">
   <link rel="stylesheet" href="./theme.css">
+  <link rel="stylesheet" href="./tape-shelf.css">
   <link rel="modulepreload" href="./app.js">
   <link rel="modulepreload" href="./core.js">
   <link rel="modulepreload" href="./catalog.js">
@@ -75,6 +83,7 @@
   <script defer src="./vendor/hls.min.js"></script>
   <script defer src="./vendor/artplayer-5.4.0.js"></script>
   <link rel="stylesheet" href="./artplayer-theme.css">
+  <link rel="stylesheet" href="./showa-pages.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
@@ -94,7 +103,6 @@
   </defs></svg>
   <div class="app">
     <div class="workspace">
-    <img id="hero-backdrop" class="cinema-backdrop home-ambient" alt="" aria-hidden="true" referrerpolicy="no-referrer" hidden>
     <img id="watch-backdrop" class="cinema-backdrop watch-ambient" alt="" aria-hidden="true" referrerpolicy="no-referrer" hidden>
     <header class="site-header">
       <div class="header-brand"><a class="station-name" href="#home">私人放映室</a><a class="brand" data-blog-link="/" href="https://fengzhouxuan.github.io/" aria-label="返回博客：打个大柚子的兔子洞">返回博客</a></div>
@@ -121,14 +129,47 @@
     <main id="main-content" tabindex="-1">
       <section id="opening-page" class="page" aria-label="正在打开私人放映室"><p class="eyebrow">PRIVATE CINEMA</p><h1>正在打开私人放映室…</h1><p class="status" role="status">页面准备好后，会回到你正在浏览的位置。</p><noscript><p>请开启 JavaScript 后重新载入页面。</p></noscript></section>
       <section id="home-page" class="page" aria-label="放映首页" hidden>
-        <section class="hero" aria-labelledby="hero-title">
-          <div class="hero-copy"><h1 id="hero-title">私人放映室</h1><p id="hero-meta" class="hero-meta">精选影片</p><p id="hero-description" class="hero-description">正在加载影片信息…</p><div class="hero-actions"><button id="hero-play" class="button cream" disabled><svg class="play-icon" aria-hidden="true"><use href="#action-play"/></svg>开始观看</button><button id="hero-detail" class="button outline" disabled>影片详情</button><button id="hero-favorite" class="button outline" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#nav-bookmark"/></svg><span id="hero-favorite-label">收藏</span></button></div></div>
-          <div id="hero-art" class="hero-art"></div>
-          <details class="hero-switcher"><summary>切换精选</summary><div id="hero-picks" class="hero-picks" role="group" aria-label="精选影片，可用左右方向键选择、回车确认"></div></details>
+        <div class="screening-masthead">
+          <span><span class="screening-lamp" aria-hidden="true"></span> 兔子洞放映手记</span>
+          <span lang="en">RABBIT HOLE PICTURES</span>
+        </div>
+        <section class="screening-desk" aria-labelledby="screening-title">
+          <div class="screening-program">
+            <div class="program-kicker"><span lang="en">NOW SHOWING</span><span aria-hidden="true">✦</span></div>
+            <h1 id="screening-title">今晚放映<span aria-hidden="true">。</span></h1>
+            <div class="program-film">
+              <h2 id="hero-title">私人放映室</h2>
+              <p id="hero-meta" class="program-meta">精选影片</p>
+              <p id="hero-description" class="program-description">正在加载影片信息…</p>
+            </div>
+            <div class="program-actions">
+              <button id="hero-play" class="button program-play" disabled><svg class="play-icon" aria-hidden="true"><use href="#action-play"/></svg>开始观看</button>
+              <button id="hero-detail" class="button outline" disabled>影片详情</button>
+              <button id="hero-favorite" class="button outline" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#nav-bookmark"/></svg><span id="hero-favorite-label">收藏</span></button>
+            </div>
+            <div class="program-ticket"><span>私人放映室 · 兔子洞藏片</span><span class="ticket-stripes" aria-hidden="true"></span></div>
+          </div>
+          <section class="tape-shelf" aria-labelledby="tape-shelf-title">
+            <header class="tape-shelf-heading">
+              <div><p lang="en">THE TAPE SHELF</p><h2 id="tape-shelf-title">录像带架</h2></div>
+              <span class="shelf-edition" lang="en">VOL. 01</span>
+              <span class="tape-touch-hint">← 横划挑片 →</span>
+            </header>
+            <div class="tape-cabinet">
+              <img id="hero-backdrop" class="tape-ambience" alt="" aria-hidden="true" referrerpolicy="no-referrer" hidden>
+              <a id="hero-cover-link" class="tape-cover" aria-disabled="true">
+                <span class="tape-cover-caption" lang="en">OUT OF THE BOX</span>
+                <span id="hero-art" class="tape-art"></span>
+                <span class="tape-cover-footer">查看片盒 <span aria-hidden="true">↗</span></span>
+              </a>
+              <div id="hero-picks" class="tape-spines" role="group" aria-label="精选影片，可用左右方向键移动，回车选中"></div>
+            </div>
+            <div class="tape-shelf-footer"><span>挑一盒，看看今晚放什么。</span></div>
+          </section>
         </section>
         <p id="home-status" class="status" role="status"></p>
         <section id="continue-section" class="content-section" hidden><div class="section-heading"><h2>继续观看</h2><a href="#library?tab=history">全部记录</a></div><div id="continue-cards" class="continue-cards"></div></section>
-        <section class="content-section"><div class="section-heading"><h2>周末片单</h2><a href="#library">我的片单</a></div><div id="picks-cards" class="cards editorial-cards"></div><div class="home-feedback"><p id="picks-status" class="status" role="status" tabindex="-1"></p><button id="picks-retry" class="text-button" hidden>重试这个栏目</button></div></section>
+        <section class="content-section"><div class="section-heading"><div><p class="eyebrow">01 / WEEKEND SELECTION</p><h2>周末片单</h2></div><a href="#library">我的片单 ↗</a></div><div id="picks-cards" class="cards editorial-cards"></div><div class="home-feedback"><p id="picks-status" class="status" role="status" tabindex="-1"></p><button id="picks-retry" class="text-button" hidden>重试这个栏目</button></div></section>
         <section class="content-section"><div class="section-heading"><div><p class="eyebrow">NEW IMAGINATIONS</p><h2>AI漫剧</h2></div><a href="#browse?category=short&type=52">浏览 AI 漫剧 ↗</a></div><div id="short-cards" class="cards"></div><div class="home-feedback"><p id="short-status" class="status" role="status" tabindex="-1"></p><button id="short-retry" class="text-button" hidden>重试这个栏目</button></div></section>
         <section class="content-section"><div class="section-heading"><div><p class="eyebrow">RECENTLY UPDATED</p><h2>最近更新 · 国产剧</h2></div><a href="#browse?category=tv">浏览剧集 ↗</a></div><div id="tv-cards" class="cards"></div><div class="home-feedback"><p id="tv-status" class="status" role="status" tabindex="-1"></p><button id="tv-retry" class="text-button" hidden>重试这个栏目</button></div></section>
         <section class="content-section"><div class="section-heading"><div><p class="eyebrow">ON THE SHELF</p><h2>新上架 · 剧情电影</h2></div><a href="#browse?category=movie">浏览电影 ↗</a></div><div id="movie-cards" class="cards"></div><div class="home-feedback"><p id="movie-status" class="status" role="status" tabindex="-1"></p><button id="movie-retry" class="text-button" hidden>重试这个栏目</button></div></section>
@@ -178,7 +219,7 @@
         <section class="content-section"><div class="section-heading"><h2>选一条线路，开始放映</h2><span class="secondary">不同来源可能采用不同剪辑版本</span></div><div id="detail-variants" class="variant-buttons"></div><p id="variant-status" class="status"></p><div id="detail-episodes" class="episodes detail-episodes"></div></section>
       </section>
       <section id="watch-page" class="page watch-page" aria-labelledby="playing-title" hidden>
-        <div class="player-heading"><div><div class="watch-breadcrumbs"><a id="watch-list-back" class="back-link" href="#home">← 返回列表</a><span aria-hidden="true">/</span><a id="watch-back" class="back-link" href="#home">影片详情</a></div><h1 id="playing-title"></h1></div><button id="favorite-current" class="button ghost small">收藏</button></div>
+        <div class="player-heading"><div><div class="watch-breadcrumbs"><a id="watch-list-back" class="back-link" href="#home">← 返回列表</a><span aria-hidden="true">/</span><a id="watch-back" class="back-link" href="#home">影片详情</a></div><p class="eyebrow" lang="en">NOW SCREENING</p><h1 id="playing-title"></h1></div><button id="favorite-current" class="button ghost small">收藏</button></div>
         <div id="watch-layout" class="watch-layout"><div class="screen-column"><div id="screen" class="screen" tabindex="-1"><video id="video" controls playsinline preload="metadata"></video><button id="exit-fullscreen" class="fullscreen-exit" aria-label="退出全屏">退出全屏 ↙</button><div id="screen-message" class="screen-message" role="status"></div>
           <div id="player-controls" class="player-controls" role="group" aria-label="播放器控制" hidden>
             <div class="player-seek-wrap"><input data-player="seek" class="player-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="播放进度，左右方向键快进退10秒" disabled><span data-player="seek-preview" class="player-seek-preview" aria-hidden="true" hidden></span></div>

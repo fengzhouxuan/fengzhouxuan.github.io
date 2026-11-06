@@ -1,0 +1,162 @@
+/* The film index and programme notes use the same paper as the home screen. */
+[data-screening-palette=showa] :is(.page-heading, .detail-heading, .player-heading) .eyebrow {
+  display: block;
+  margin: 0 0 7px;
+  color: var(--accent);
+  font: 600 .72rem/1.5 var(--screening-mono);
+  letter-spacing: .14em;
+}
+
+[data-screening-palette=showa] :is(.page-heading h1, .detail-copy h1, .player-heading h1) {
+  font-family: var(--screening-serif);
+  font-weight: 700;
+  line-height: 1.22;
+  text-wrap: wrap;
+}
+
+[data-screening-palette=showa] .page-heading {
+  padding: 7px 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+[data-screening-palette=showa] .page-heading h1 { font-size: clamp(1.85rem, 3.2vw, 3rem); }
+[data-screening-palette=showa] #result-count {
+  max-width: 42%;
+  text-align: right;
+  font-family: var(--screening-mono);
+}
+
+[data-screening-palette=showa] .filter-panel:not(.search-filters) {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+[data-screening-palette=showa] :is(.filter-panel, .empty, .watchlist-card, .watchlist-poster, .search-form) { border-radius: 3px; }
+[data-screening-palette=showa] .search-form:focus-within { border-color: var(--accent); }
+[data-screening-palette=showa] :is(.type-picks button, .catalog-filters > summary, .filter-chip, .view-tabs a) { border-radius: 2px; }
+[data-screening-palette=showa] :is(.type-picks button.active, .view-tabs a.active) { box-shadow: inset 0 -2px var(--accent); }
+
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .movie-card {
+  padding: clamp(5px, .75vw, 11px);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+}
+
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .poster-button { border-radius: 1px; }
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .poster-button::after { background: linear-gradient(transparent 74%, #11272e99); }
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .poster-button:has(.poster-fallback:not([hidden]))::after { display: none; }
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .poster-fallback {
+  background: var(--paper-warm);
+  font-family: var(--screening-serif);
+}
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .card-badge {
+  border-radius: 2px;
+  background: #172c34ed;
+}
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .movie-card h3 { font-family: var(--screening-serif); font-weight: 700; }
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .card-bottom {
+  margin-top: 5px;
+  padding-top: 3px;
+  border-top: 1px dashed var(--line);
+}
+
+[data-screening-palette=showa] :is(#catalog-page, #library-page) .card-bottom button { border-radius: 2px; }
+
+[data-screening-palette=showa] .detail-layout {
+  padding: clamp(16px, 3vw, 38px);
+  gap: clamp(22px, 3.5vw, 54px);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: repeating-linear-gradient(96deg, #7a634b07 0 1px, transparent 1px 5px), var(--paper);
+}
+
+[data-screening-palette=showa] .detail-poster {
+  border: 4px solid var(--paper-warm);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px var(--line), 4px 4px #789092;
+}
+
+[data-screening-palette=showa] .detail-copy h1 { font-size: clamp(1.75rem, 3.6vw, 3.4rem); }
+[data-screening-palette=showa] .detail-heading { border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+[data-screening-palette=showa] .detail-meta { font-family: var(--screening-mono); }
+[data-screening-palette=showa] .detail-remarks { margin-bottom: 12px; }
+[data-screening-palette=showa] :is(.description-section h2, #detail-page .section-heading h2, .episode-heading h2) { font-family: var(--screening-serif); }
+[data-screening-palette=showa] :is(.detail-actions .button, .variant-buttons button, .episodes button, .episode-ranges button, .load-more) { border-radius: 2px; }
+
+/* Dim the room for playback. These variables also reach both episode drawers. */
+html[data-screening-palette=showa] body.watching {
+  --bg: #17292f;
+  --paper: #233a43;
+  --paper-warm: #2c4650;
+  --ink: #f9f2e5;
+  --muted: #c1d1d0;
+  --line: #506a73;
+  --dash: #819ca4;
+  --accent: #f3ae99;
+  --accent-dark: #ffd0be;
+  --accent-soft: #4d3636;
+  --button-ink: #302421;
+  --promo-ink: #f8c395;
+  --error-ink: #ffc1b4;
+  --glass-strong: var(--paper);
+  --glass-highlight: #edf5ef23;
+  --glass-reflection: #edf5ef0d;
+  --cinema-bg: #172c34;
+  --cinema-surface: #233a43;
+  --cinema-raised: #2c4650;
+  --cinema-accent: #f3ae99;
+  --cinema-hover: #ffd0be;
+  --cinema-button-ink: #302421;
+  --cinema-rim: #718e99;
+  color-scheme: dark;
+  background-image: repeating-linear-gradient(2deg, #edf5ef07 0 1px, transparent 1px 5px);
+}
+
+[data-screening-palette=showa] .player-heading {
+  align-items: end;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+[data-screening-palette=showa] .player-heading h1 { font-size: clamp(1.5rem, 2.8vw, 2.55rem); }
+html[data-screening-palette=showa] .watch-sidebar {
+  background: repeating-linear-gradient(2deg, #edf5ef07 0 1px, transparent 1px 5px), var(--paper);
+  border-color: var(--line);
+  border-radius: 3px;
+  box-shadow: inset 0 1px var(--glass-highlight);
+  backdrop-filter: none;
+}
+
+[data-screening-palette=showa] .watch-sidebar::after { display: none; }
+[data-screening-palette=showa] .screen:not(:fullscreen) {
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--line), 0 18px 40px -24px #090e11d9;
+}
+
+[data-screening-palette=showa] :is(.playback-tools .button, #favorite-current, .watch-sources, .quality-status, .playback-option select) { border-radius: 3px; }
+[data-screening-palette=showa] .watch-sources { background: var(--paper-warm); }
+[data-screening-palette=showa] .artplayer-active .art-bottom::before {
+  background: color-mix(in srgb, var(--cinema-bg) 91%, transparent);
+  border-radius: 4px;
+}
+
+[data-screening-palette=showa] .episode-sheet {
+  background: var(--paper);
+  border-radius: 8px 8px 0 0;
+}
+
+[data-screening-palette=showa] .art-episode-dialog { border-radius: 4px; }
+
+@media (max-width: 600px) {
+  [data-screening-palette=showa] .page-heading { align-items: end; }
+  [data-screening-palette=showa] .detail-layout { padding: 14px; gap: 15px; }
+  [data-screening-palette=showa] .detail-poster { border-width: 2px; }
+  [data-screening-palette=showa] .detail-heading { border: 0; margin: 0; }
+  [data-screening-palette=showa] .detail-body { padding-top: 14px; border-top: 1px solid var(--line); }
+  [data-screening-palette=showa] .player-heading { align-items: start; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-screening-palette=showa] .artplayer-active .art-bottom::before { background: var(--cinema-bg); }
+}

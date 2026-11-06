@@ -84,6 +84,7 @@ test('progressive home results never pin an automatic hero, while explicit choic
     contains() { return false; }
     querySelector(selector) { return this.children.find(child => '.' + child.className === selector); }
     setAttribute(name, value) { this.attributes[name] = value; }
+    removeAttribute(name) { delete this.attributes[name]; if (name === 'href') delete this.href; }
     insertBefore(node) { this.children.push(node); }
     closest() { return { open: false }; }
   }
@@ -92,6 +93,7 @@ test('progressive home results never pin an automatic hero, while explicit choic
   const state = { home: { picks: [first], sections: { picks: {} } }, hero: '' }; const saved = new Set();
   const harness = appHarness(source, { $, state, groupVideos: items => items, videoKey: item => item.uid,
     favoriteFor: item => saved.has(item.uid), renderHeroArtwork() {}, safeURL: () => '', addPoster() {}, heroPoster: null,
+    filmRoute: (view, item) => '#' + view + '/' + item.uid,
     document: { activeElement: null }, el: (_tag, className, textContent) => Object.assign(new Node(className), { textContent }),
     button: (_label, _className, onclick) => Object.assign(new Node(), { onclick }),
   });
@@ -101,9 +103,13 @@ test('progressive home results never pin an automatic hero, while explicit choic
   saved.add(featured.uid); harness.run('renderHero()'); assert.equal($('hero-favorite').attributes['aria-pressed'], 'true');
   assert.equal($('hero-favorite-label').textContent, '已收藏');
   $('hero-picks').children[0].onclick(); assert.equal(state.hero, first.uid); assert.equal($('hero-title').textContent, first.title);
+  assert.equal($('hero-cover-link').href, '#detail/' + first.uid);
+  assert.equal($('hero-picks').children[0].attributes['aria-pressed'], 'true');
+  assert.equal($('hero-picks').children[1].attributes['aria-pressed'], 'false');
   assert.equal($('hero-favorite').attributes['aria-pressed'], 'false');
   state.home.picks = []; harness.run('renderHero()'); assert.equal($('hero-title').textContent, '私人放映室');
   assert.equal($('hero-play').disabled, true); assert.equal($('hero-art').children.length, 0);
+  assert.equal($('hero-cover-link').href, undefined); assert.equal($('hero-picks').children.length, 0);
 });
 
 test('poster and optional blurred backing only reuse the safe source URL and fall back to readable text without retries', () => {
@@ -220,8 +226,10 @@ test('screen choices adapt layout without changing playback or focus, including 
   const focused = {}; const document = { activeElement: focused };
   const nodes = {
     'screen-mode': { querySelector(selector) { assert.equal(selector, 'input:checked'); return selected; } },
-    'watch-layout': { classList: { toggle(name, value) { assert.equal(name, 'portrait'); portrait = value; } } },
-    screen: { style: { setProperty(name, value) { assert.equal(name, '--screen-ratio'); ratio = value; } } },
+    'watch-layout': {
+      classList: { toggle(name, value) { assert.equal(name, 'portrait'); portrait = value; } },
+      style: { setProperty(name, value) { assert.equal(name, '--screen-ratio'); ratio = value; } },
+    },
   };
   const harness = appHarness(source, { video, document, $: id => nodes[id], screenPresentation: playback.screenPresentation });
   harness.include('adaptScreen', 'restoreFullscreenFocus');

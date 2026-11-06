@@ -74,7 +74,7 @@ test('Blue Hour keeps small text readable in both modes regardless of an inherit
 });
 
 
-function preview({ cookie = '', mode = null, blocked = false, readOnly = false, cookieBlocked = false, control = true } = {}) {
+function preview({ cookie = '', mode = null, search = '', blocked = false, readOnly = false, cookieBlocked = false, control = true } = {}) {
   const attributes = new Map(), classes = new Set(), handlers = new Map(), clicks = new Map();
   const values = new Map([['flatpaper-mode', mode], ['video-favorites', 'keep-favorites'], ['video-history', 'keep-history']]);
   const root = {
@@ -88,7 +88,7 @@ function preview({ cookie = '', mode = null, blocked = false, readOnly = false, 
   let reads = 0;
   const document = { documentElement: root, getElementById: () => control ? button : null, get cookie() { reads++; if (cookieBlocked) throw Error('blocked'); return cookie; } };
   const localStorage = { getItem(key) { if (blocked) throw Error('blocked'); return values.get(key) ?? null; }, setItem(key, value) { if (blocked || readOnly) throw Error('blocked'); values.set(key, value); } };
-  runInNewContext(script, { document, localStorage, window: { addEventListener: (key, fn) => handlers.set(key, fn) } });
+  runInNewContext(script, { document, localStorage, URLSearchParams, window: { location: { search }, addEventListener: (key, fn) => handlers.set(key, fn) } });
   handlers.get('DOMContentLoaded')();
   return { attributes, classes, values, handlers, clicks, reads: () => reads, cookie: value => { cookie = value; } };
 }
@@ -102,12 +102,27 @@ test('video reads all supported blog accents and both modes without changing sav
   }
 });
 
-test('missing, malformed and blocked preferences use the approved dark cinema without changing saved data', () => {
+test('missing, malformed and blocked preferences use light Showa without changing saved data', () => {
   for (const cookie of ['', 'flatpaper-accent=%E0%A4%A', 'flatpaper-accent=constructor', 'flatpaper-accent=__proto__', 'flatpaper-accent=unknown']) {
-    const page = preview({ cookie, mode: 'unexpected' }); assert.equal(page.attributes.get('data-accent'), 'green'); assert.equal(page.classes.has('dark-mode'), true);
+    const page = preview({ cookie, mode: 'unexpected' }); assert.equal(page.attributes.get('data-accent'), 'green'); assert.equal(page.classes.has('dark-mode'), false);
   }
   const blocked = preview({ blocked: true, cookieBlocked: true, control: false });
-  assert.equal(blocked.attributes.get('data-accent'), 'green'); assert.equal(blocked.classes.has('dark-mode'), true);
+  assert.equal(blocked.attributes.get('data-accent'), 'green'); assert.equal(blocked.classes.has('dark-mode'), false);
+});
+
+test('plain links use Showa and explicit alternatives respect the shared theme preference', () => {
+  for (const [search, palette, dark] of [
+    ['', 'showa', false], ['?palette=showa', 'showa', false],
+    ['?palette=unknown', 'showa', false], ['?palette=shanshui', 'shanshui', false],
+    ['?palette=ink', 'ink', true],
+  ]) {
+    const page = preview({ search });
+    assert.equal(page.attributes.get('data-screening-palette'), palette);
+    assert.equal(page.classes.has('dark-mode'), dark);
+    assert.equal(page.values.get('flatpaper-mode'), null);
+    assert.equal(preview({ search, mode: 'dark' }).classes.has('dark-mode'), true);
+    assert.equal(preview({ search, mode: 'light' }).classes.has('dark-mode'), false);
+  }
 });
 
 test('theme control shares only the blog mode preference and keeps its accessible state current', () => {
@@ -126,13 +141,13 @@ test('focus, page restoration and relevant storage events synchronize settings c
   page.cookie('flatpaper-accent=purple'); page.handlers.get('focus')(); assert.equal(page.attributes.get('data-accent'), 'purple');
   page.values.set('flatpaper-mode', 'dark'); page.handlers.get('storage')({ key: 'flatpaper-mode' }); assert.equal(page.classes.has('dark-mode'), true);
   const before = page.reads(); page.handlers.get('storage')({ key: 'video-history' }); assert.equal(page.reads(), before);
-  page.values.clear(); page.handlers.get('storage')({ key: null }); assert.equal(page.classes.has('dark-mode'), true);
+  page.values.clear(); page.handlers.get('storage')({ key: null }); assert.equal(page.classes.has('dark-mode'), false);
   page.cookie('flatpaper-accent=blue'); page.handlers.get('pageshow')(); assert.equal(page.attributes.get('data-accent'), 'blue');
 });
 
 test('blocked storage still permits an in-page mode change through focus and page restoration', () => {
   const page = preview({ blocked: true }); page.clicks.get('click')(); page.handlers.get('focus')(); page.handlers.get('pageshow')();
-  assert.equal(page.classes.has('dark-mode'), false); assert.equal(page.attributes.get('button:aria-pressed'), 'false');
+  assert.equal(page.classes.has('dark-mode'), true); assert.equal(page.attributes.get('button:aria-pressed'), 'true');
 });
 
 test('readable but full storage keeps a manual mode until a new shared preference arrives', () => {

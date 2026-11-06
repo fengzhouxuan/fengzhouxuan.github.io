@@ -317,8 +317,7 @@ function skeletonCards() {
   });
 }
 
-function heroVideo() {
-  const picks = groupVideos(state.home.picks);
+function heroVideo(picks = groupVideos(state.home.picks)) {
   return picks.find(item => videoKey(item) === state.hero) || picks.find(item => item.title === '星际穿越') || picks[0];
 }
 
@@ -342,38 +341,50 @@ function renderHeroArtwork(item) {
 }
 
 function renderHero() {
-  const picks = groupVideos(state.home.picks); const item = heroVideo();
+  const picks = groupVideos(state.home.picks); const item = heroVideo(picks);
   $('hero-play').disabled = !item; $('hero-detail').disabled = !item;
   const favorite = $('hero-favorite');
   favorite.disabled = !item;
   favorite.setAttribute('aria-pressed', String(Boolean(item && favoriteFor(item))));
   $('hero-favorite-label').textContent = item && favoriteFor(item) ? '已收藏' : '收藏';
+  const cover = $('hero-cover-link');
+  const group = $('hero-picks');
   renderHeroArtwork(item);
   if (!item) {
     $('hero-title').textContent = '私人放映室'; $('hero-meta').textContent = '精选影片';
     $('hero-art').replaceChildren(); heroPoster = undefined;
     $('hero-description').textContent = state.home.sections.picks.loading ? '正在准备今天的放映室…' : '试试搜索片名，或从下面的分类开始挑选。';
+    cover.removeAttribute('href');
+    cover.setAttribute('aria-disabled', 'true');
+    cover.removeAttribute('aria-label');
+    group.replaceChildren();
     return;
   }
+  cover.href = filmRoute('detail', item);
+  cover.removeAttribute('aria-disabled');
+  cover.setAttribute('aria-label', '查看影片详情：' + item.title);
   $('hero-title').textContent = item.title;
   $('hero-meta').textContent = [item.year, item.area, item.category, item.remarks].filter(Boolean).join(' · ');
   $('hero-description').textContent = item.description || '选一部熟悉的故事，从这一幕开始。';
   const posterKey = videoKey(item) + '|' + safeURL(item.poster);
   if (heroPoster !== posterKey) {
-    addPoster($('hero-art'), item, 'eager', true); heroPoster = posterKey;
+    addPoster($('hero-art'), item, 'eager'); heroPoster = posterKey;
   }
-  const group = $('hero-picks'); const existing = new Map([...group.children].map(option => [option.dataset.key, option]));
+  const previousOptions = [...group.children];
+  const previousSelection = group.querySelector('[aria-pressed="true"]');
+  const existing = new Map(previousOptions.map(option => [option.dataset.key, option]));
   const focused = group.contains(document.activeElement) ? document.activeElement : null;
-  const options = picks.map(pick => {
-    const key = videoKey(pick); const selected = key === videoKey(item);
+  const selectedKey = videoKey(item);
+  const options = picks.map((pick, index) => {
+    const key = videoKey(pick); const selected = key === selectedKey;
     const option = existing.get(key) || button('', '', () => {
       state.hero = key; renderHero();
-      const switcher = group.closest('details');
-      if (switcher?.open) { switcher.open = false; switcher.querySelector('summary').focus({ preventScroll: true }); }
     });
-    if (!option.querySelector('.hero-pick-title')) option.append(el('span', 'hero-pick-title'), el('small', 'hero-pick-meta'));
-    option.dataset.key = key; option.querySelector('.hero-pick-title').textContent = pick.title;
-    option.querySelector('.hero-pick-meta').textContent = [pick.year, pick.category].filter(Boolean).join(' · ');
+    if (!existing.has(key)) option.append(el('span', 'tape-number'), el('span', 'tape-title'), el('small', 'tape-year'));
+    option.dataset.key = key;
+    option.children[0].textContent = String(index + 1).padStart(2, '0');
+    option.children[1].textContent = pick.title;
+    option.children[2].textContent = pick.year || 'VHS';
     option.setAttribute('aria-label', [pick.title, pick.year, pick.category].filter(Boolean).join('，'));
     option.classList.toggle('active', selected); option.setAttribute('aria-pressed', String(selected));
     option.tabIndex = (focused ? option === focused : selected) ? 0 : -1; return option;
@@ -381,6 +392,16 @@ function renderHero() {
   const retained = new Set(options);
   for (const option of [...group.children]) if (!retained.has(option)) option.remove();
   options.forEach((option, index) => { if (group.children[index] !== option) group.insertBefore(option, group.children[index] || null); });
+  const selectedIndex = options.findIndex(option => option.dataset.key === selectedKey);
+  const selection = options[selectedIndex];
+  if ((!focused || focused === selection) && group.scrollWidth > group.clientWidth &&
+    (selection !== previousSelection || previousOptions[selectedIndex] !== selection || previousOptions.length !== options.length)) {
+    const rack = group.getBoundingClientRect();
+    const tape = selection.getBoundingClientRect();
+    // Move only the shelf, so a late response cannot scroll the whole page.
+    if (tape.left < rack.left) group.scrollLeft += tape.left - rack.left - 4;
+    else if (tape.right > rack.right) group.scrollLeft += tape.right - rack.right + 4;
+  }
 }
 
 function renderHome() {
@@ -977,8 +998,9 @@ function renderWatch() {
 
 function adaptScreen() {
   const presentation = screenPresentation(video.videoWidth, video.videoHeight, $('screen-mode').querySelector('input:checked')?.value || 'auto');
-  $('watch-layout').classList.toggle('portrait', presentation.portrait);
-  $('screen').style.setProperty('--screen-ratio', String(presentation.ratio));
+  const layout = $('watch-layout');
+  layout.classList.toggle('portrait', presentation.portrait);
+  layout.style.setProperty('--screen-ratio', String(presentation.ratio));
 }
 
 async function toggleFullscreen() {
