@@ -23,7 +23,7 @@ test('cinema fonts load from complete local subsets with immediate system fallba
   assert.match(fontCSS, /unicode-range:/);
   assert.match(fontCSS, /font-weight:\s*400 600/);
   const theme = await readFile(new URL('../../source/video/theme.css', import.meta.url), 'utf8');
-  assert.match(theme, /--font-body:InterVariable,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif/);
+  assert.match(theme, /--font-body:Outfit,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif/);
   for (const name of ['Inter.LICENSE', 'NotoSansSC.LICENSE', 'NotoSerifSC.LICENSE']) {
     assert.match(await readFile(new URL('../../source/video/assets/fonts/' + name, import.meta.url), 'utf8'), /SIL OPEN FONT LICENSE/i);
   }
