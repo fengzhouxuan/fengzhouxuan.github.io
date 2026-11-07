@@ -371,11 +371,14 @@ input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}
 .playback-experience .text-button{min-height:44px}
 .watch-sidebar{position:relative;align-self:start;min-width:0;padding:20px;border:1px solid var(--glass-rim);border-radius:var(--radius-panel);background:var(--glass-surface);box-shadow:inset 0 1px var(--glass-highlight),var(--glass-shadow)}
 .episode-panel{min-width:0;align-self:start;padding:0;border-radius:0;background:transparent}
-.watch-options{min-width:0;margin-top:18px;border-top:1px solid var(--line)}
+/* 播放器下方的设置区：与选集栏同款玻璃卡片，内部两列铺开，避免侧栏越拉越长 */
+.watch-options{min-width:0;grid-column:1/-1;align-self:start;position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px;align-items:start;padding:20px;border:1px solid var(--glass-rim);border-radius:var(--radius-panel);background:var(--glass-surface);box-shadow:inset 0 1px var(--glass-highlight),var(--glass-shadow)}
+.watch-options>.watch-status-bar{grid-column:1/-1;min-width:0;border-bottom:1px solid var(--line)}
+.watch-status-bar .play-status,.watch-status-bar .fallback-status,.watch-status-bar .playback-feedback{margin:6px 0 10px}
 .watch-options>.playback-settings,.watch-options>.playback-experience,.watch-options>.keyboard-help,.watch-options>.video-details{margin:0;padding:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent}
 .watch-options>details>summary{min-height:48px;width:100%;font-size:13px;color:var(--ink)}
 .watch-options .keyboard-help>summary::after{margin-left:auto}
-.watch-options .video-details{padding-top:10px}
+.watch-options .video-details{grid-column:1/-1;padding-top:10px;border-bottom:0}
 .watch-options .video-details p{font-size:13px;line-height:1.85}
 .episode-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}
 .episode-heading h2{font-size:20px;margin:0}
@@ -486,7 +489,7 @@ footer p{margin:5px 0 0;max-width:80ch}
 .watch-sidebar .episode-heading h2{font-size:23px}
 .watch-sidebar .episodes button{min-height:44px;font-size:12px;line-height:1.2;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-inline:3px}
 .watch-sidebar .watch-sources>summary{font-size:15px;min-height:46px}
-.watch-sidebar .watch-options>details>summary{font-size:15px;min-height:46px}
+.watch-options>details>summary{font-size:15px;min-height:46px}
 .site-header{display:grid;grid-template-columns:calc(265 * var(--cinema-unit)) calc(74 * var(--cinema-unit)) calc(486 * var(--cinema-unit)) minmax(0,1fr) calc(214 * var(--cinema-unit)) calc(37 * var(--cinema-unit)) calc(236 * var(--cinema-unit));gap:0;padding-inline:calc(40 * var(--cinema-unit)) calc(28 * var(--cinema-unit))}
 .station-name{font-size:calc(32 * var(--cinema-unit));font-weight:700}
 .brand{font-size:calc(16 * var(--cinema-unit))}
@@ -552,6 +555,7 @@ footer p{margin:5px 0 0;max-width:80ch}
 .watch-page .episodes{grid-template-columns:repeat(6,minmax(0,1fr))}}
 @media(max-width:600px){.workspace{padding-inline:18px}
 .workspace{padding-top:12px}
+.watch-options{grid-template-columns:1fr;padding:16px}
 .station-name{font-size:22px}
 .header-brand{gap:10px}
 .brand{font-size:11px;padding-left:10px}
@@ -682,21 +686,21 @@ footer{padding-top:20px;font-size:12px;gap:10px}
   html.dark-mode{--glass-surface:#15171bd9}
   .site-header{background:transparent}
   .site-header::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(115deg,var(--cinema-reflection),transparent 38%),var(--cinema-glass);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.2);backdrop-filter:blur(var(--glass-blur)) saturate(1.2);pointer-events:none}
-  .account-menu,.watch-sidebar{-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur))}
-  .account-menu,.watch-sidebar{background:linear-gradient(125deg,var(--glass-reflection),transparent 48%),var(--glass-surface)}
+  .account-menu,.watch-sidebar,.watch-options{-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur))}
+  .account-menu,.watch-sidebar,.watch-options{background:linear-gradient(125deg,var(--glass-reflection),transparent 48%),var(--glass-surface)}
   html.dark-mode .watch-page{--muted:#d5e0eb}
-  html.dark-mode .watch-sidebar{background:linear-gradient(115deg,#ffffff0f,transparent 42%),#10121699;border-color:var(--cinema-rim)}
-  html.dark-mode .watch-sidebar :focus-visible{outline-color:var(--ink)}
+  html.dark-mode .watch-sidebar,html.dark-mode .watch-options{background:linear-gradient(115deg,#ffffff0f,transparent 42%),#10121699;border-color:var(--cinema-rim)}
+  html.dark-mode .watch-sidebar :focus-visible,html.dark-mode .watch-options :focus-visible{outline-color:var(--ink)}
   
 }
 @supports (mask-composite:exclude){
-  .site-header::after,.watch-sidebar::after,.account-menu::after{content:"";position:absolute;inset:-1px;z-index:3;pointer-events:none;border-radius:inherit;padding:1px;background:linear-gradient(125deg,#ffffffb3,#ffffff14 30%,transparent 55%,#ffd9cd5c);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  .site-header::after,.watch-sidebar::after,.watch-options::after,.account-menu::after{content:"";position:absolute;inset:-1px;z-index:3;pointer-events:none;border-radius:inherit;padding:1px;background:linear-gradient(125deg,#ffffffb3,#ffffff14 30%,transparent 55%,#ffd9cd5c);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 }
 @media(prefers-reduced-transparency:reduce){
-  .site-header,.account-menu,.watch-sidebar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .site-header,.account-menu,.watch-sidebar,.watch-options{-webkit-backdrop-filter:none;backdrop-filter:none}
   .site-header{background:var(--shell)}
-  .account-menu,.watch-sidebar,html.dark-mode .watch-sidebar{background:var(--paper)}
-  .cinema-backdrop,.poster-atmosphere,.site-header::before,.site-header::after,.watch-sidebar::after,.account-menu::after{display:none}
+  .account-menu,.watch-sidebar,.watch-options,html.dark-mode .watch-sidebar,html.dark-mode .watch-options{background:var(--paper)}
+  .cinema-backdrop,.poster-atmosphere,.site-header::before,.site-header::after,.watch-sidebar::after,.watch-options::after,.account-menu::after{display:none}
 }
 
 /* ── Ink Cinema refinements ────────────────────────────────────────────────
@@ -737,7 +741,7 @@ footer{padding-top:20px;font-size:12px;gap:10px}
 .screen{border-radius:14px;box-shadow:0 30px 70px -40px #000000f2,inset 0 0 0 1px #ffffff14}
 .player-controls{left:12px;right:12px;bottom:12px;padding:26px 14px 10px;border:1px solid #ffffff24;border-radius:14px;background:linear-gradient(transparent,#000000a8 32%,#000000d9);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2)}
 .player-controls .player-seek{height:18px}
-.watch-sidebar{border-radius:18px;border-color:var(--glass-rim)}
+.watch-sidebar,.watch-options{border-radius:18px;border-color:var(--glass-rim)}
 .watch-sources{border-radius:12px;background:var(--paper-warm)}
 .playback-tools{margin-top:16px;gap:10px 14px}
 .playback-option select{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 9px;color:var(--ink)}
@@ -839,6 +843,8 @@ html:not(.dark-mode) .episode-sheet-backdrop{background:#1b171257}
 .episode-sheet-backdrop{display:block}
 /* 手机上选集内容只在底部抽屉里出现一次：抽屉收起时面板搬回侧栏，正好被这条规则重新隐藏 */
 .watch-sidebar #episode-panel{display:none}
+/* 设置面板已移到播放器下方，侧栏在手机上不留空壳 */
+.watch-sidebar{display:none}
 }
 @media(prefers-reduced-motion:reduce){
 .episode-sheet,.episode-sheet-backdrop{transition-duration:.01ms}

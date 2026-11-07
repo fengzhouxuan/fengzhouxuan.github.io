@@ -120,7 +120,7 @@ html[data-screening-palette=showa] body.watching {
 }
 
 [data-screening-palette=showa] .player-heading h1 { font-size: clamp(1.5rem, 2.8vw, 2.55rem); }
-html[data-screening-palette=showa] .watch-sidebar {
+html[data-screening-palette=showa] :is(.watch-sidebar, .watch-options) {
   background: repeating-linear-gradient(2deg, #edf5ef07 0 1px, transparent 1px 5px), var(--paper);
   border-color: var(--line);
   border-radius: 3px;
@@ -128,7 +128,7 @@ html[data-screening-palette=showa] .watch-sidebar {
   backdrop-filter: none;
 }
 
-[data-screening-palette=showa] .watch-sidebar::after { display: none; }
+[data-screening-palette=showa] :is(.watch-sidebar, .watch-options)::after { display: none; }
 [data-screening-palette=showa] .screen:not(:fullscreen) {
   border-radius: 3px;
   box-shadow: 0 0 0 1px var(--line), 0 18px 40px -24px #090e11d9;
