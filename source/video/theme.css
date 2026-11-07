@@ -4,7 +4,7 @@
   --accent:#b83718;--accent-dark:#9c2c11;--accent-soft:#f8e3db;--button-ink:#ffffff;--color-accent:var(--accent);--color-accent-strong:var(--accent);--color-accent-soft:var(--accent-soft);
   --shell:#0b0c0e;--shell-ink:#f4f1eb;--shell-muted:#b8b4ac;--shell-selected:#23252a;--shell-line:#2b2d33;--shell-accent:#ff6846;--promo-ink:#8a3418;--error-ink:#a23432;--shadow-rgb:0,0,0;
   --cinema-bg:#0b0c0e;--cinema-surface:#15171b;--cinema-raised:#1c1f24;--cinema-ink:#f4f1eb;--cinema-muted:#928f89;--cinema-caption:#c9c5bd;--cinema-accent:#ff6846;--cinema-hover:#ff7d60;--cinema-button-ink:#17120f;
-  --font-body:InterVariable,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --font-body:Outfit,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
   --type-body:16px;--type-caption:13px;--type-control:14px;--type-title:15px;
   --radius-control:8px;--radius-panel:14px;
   --glass-surface:#ffffff;--glass-rim:#8b857b59;--glass-highlight:#ffffffd9;--glass-reflection:#ffffff70;--glass-shadow:0 20px 48px -20px #1b171233;--glass-blur:22px;

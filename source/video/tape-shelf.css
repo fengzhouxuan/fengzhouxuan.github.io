@@ -45,7 +45,7 @@ html.dark-mode body:has(#home-page:not([hidden])) {
 :is(.workspace:has(#home-page:not([hidden])), [data-screening-palette=showa] .workspace) .account-menu { background: var(--paper); }
 
 #home-page, [data-screening-palette=showa] body {
-  --screening-serif: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
+  --screening-serif: "Cormorant Garamond", "ZCOOL XiaoWei", "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
   --screening-mono: ui-monospace, Consolas, monospace;
 }
 

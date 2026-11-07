@@ -820,3 +820,11 @@
 }
 
 @font-face {font-family:InterVariable;font-style:normal;font-weight:100 900;font-display:swap;src:url(./inter-variable.woff2) format("woff2");unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F;}
+/* Shanse type system - additional families; existing faces unchanged */
+@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weight:400 700;font-display:swap;src:url(./zcool-xiaowei-400.woff2) format('woff2');}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:600;font-display:swap;src:url(./cormorant-garamond-600.woff2) format('woff2');unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21BB;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:700;font-display:swap;src:url(./cormorant-garamond-700.woff2) format('woff2');unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21BB;}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:400;font-display:swap;src:url(./outfit-400.woff2) format('woff2');unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21BB;}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:500;font-display:swap;src:url(./outfit-500.woff2) format('woff2');unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21BB;}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:600;font-display:swap;src:url(./outfit-600.woff2) format('woff2');unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21BB;}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:700;font-display:swap;src:url(./outfit-700.woff2) format('woff2');unicode-range:U+0000-024F,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21BB;}
